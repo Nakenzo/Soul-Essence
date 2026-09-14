@@ -1,0 +1,301 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Courier New", monospace;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: #111;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.kotak-game {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+}
+
+.posisi-game {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+}
+
+canvas {
+    border: 6px solid #222;
+    border-radius: 4px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #1a1a2e;
+    cursor: crosshair;
+    display: block;
+    width: min(96vw, calc((100vh - 110px) * 4 / 3));
+    height: auto;
+    aspect-ratio: 4 / 3;
+}
+
+/* ======================== */
+/*  OVERLAY (semua layar)   */
+/* ======================== */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 12, 25, 0.92);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    z-index: 5;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+/* Overlay pause: tembus pandang agar adegan beku tetap terlihat */
+.overlay-beku {
+    background: rgba(10, 12, 25, 0.45);
+    backdrop-filter: blur(2px);
+}
+
+/* ======================== */
+/*  TOMBOL PAUSE (ingame)   */
+/* ======================== */
+.tombol-pause {
+    position: absolute;
+    top: 10px;
+    right: 9px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 2px solid #555;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 4;
+    transition: all 0.15s;
+    font-family: "Courier New", monospace;
+}
+
+.tombol-pause:hover {
+    background: rgba(20, 20, 40, 0.85);
+    border-color: #ffd23f;
+}
+
+.tombol-pause.hidden {
+    display: none;
+}
+
+/* ======================== */
+/*  LAYAR JUDUL             */
+/* ======================== */
+.judul-besar {
+    color: #ffd23f;
+    font-size: 48px;
+    line-height: 1.1;
+    letter-spacing: 8px;
+    margin-bottom: 12px;
+    text-shadow: 4px 4px 0 #982b3c;
+}
+
+.sub-judul {
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+}
+
+.tombol-play {
+    background: #3aaa35;
+    color: #fff;
+    font-size: 22px;
+    padding: 16px 70px;
+    border: 3px solid #2d8a28;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 4px;
+    font-weight: bold;
+    font-family: "Courier New", monospace;
+    transition: all 0.15s;
+}
+
+.tombol-play:hover {
+    background: #45c73e;
+    transform: scale(1.05);
+}
+
+.tombol-play:active {
+    transform: scale(0.97);
+}
+
+/* ======================== */
+/*  LAYAR PILIH KARAKTER    */
+/* ======================== */
+#layarPilih h2 {
+    color: #ffd23f;
+    font-size: 26px;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+}
+
+.tombol-karakter {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 20px;
+}
+
+.kartu-karakter {
+    background: #222;
+    border: 3px solid #555;
+    color: #ffd23f;
+    padding: 16px;
+    width: 170px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: "Courier New", monospace;
+}
+
+.kartu-karakter canvas {
+    border: none;
+    background: #181a2e;
+    image-rendering: pixelated;
+}
+
+.kartu-karakter:hover {
+    border-color: #ffd23f;
+    transform: scale(1.06);
+    background: #2a2a2a;
+}
+
+.kartu-karakter:active {
+    transform: scale(0.97);
+}
+
+.nama-karakter {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0 4px 0;
+}
+
+.desk-karakter {
+    font-size: 11px;
+    color: #999;
+}
+
+.tombol-kecil {
+    margin-top: 24px;
+    background: #333;
+    color: #aaa;
+    padding: 10px 30px;
+    font-size: 13px;
+    border: 2px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: "Courier New", monospace;
+    transition: all 0.15s;
+}
+
+.tombol-kecil:hover {
+    background: #444;
+    color: #fff;
+}
+
+/* ======================== */
+/*  LAYAR GAME OVER         */
+/* ======================== */
+.judul-gameover {
+    color: #ff4d4d;
+    font-size: 38px;
+    letter-spacing: 6px;
+    margin-bottom: 12px;
+    text-shadow: 3px 3px 0 #5a1010;
+}
+
+.teks-skor {
+    color: #ffd23f;
+    font-size: 22px;
+    margin-bottom: 32px;
+    letter-spacing: 2px;
+}
+
+.grup-tombol {
+    display: flex;
+    gap: 16px;
+}
+
+.tombol-hijau,
+.tombol-abu {
+    padding: 14px 36px;
+    font-size: 17px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: "Courier New", monospace;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+}
+
+.tombol-hijau {
+    background: #3aaa35;
+    color: #fff;
+    border: 3px solid #2d8a28;
+}
+
+.tombol-hijau:hover {
+    background: #45c73e;
+    transform: scale(1.05);
+}
+
+.tombol-abu {
+    background: #555;
+    color: #fff;
+    border: 3px solid #444;
+}
+
+.tombol-abu:hover {
+    background: #666;
+    transform: scale(1.05);
+}
+
+.tombol-hijau:active,
+.tombol-abu:active {
+    transform: scale(0.97);
+}
+
+/* ======================== */
+/*  BANTUAN (di bawah)      */
+/* ======================== */
+.bantuan {
+    margin-top: 12px;
+    color: #aaa;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.bantuan b {
+    color: #ffd23f;
+}

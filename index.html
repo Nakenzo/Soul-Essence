@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Strike</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="kotak-game">
+        <div class="posisi-game">
+            <canvas id="game" width="640" height="480"></canvas>
+
+            <!-- Tombol Pause (hanya saat bermain) -->
+            <button id="tombolPause" class="tombol-pause hidden" title="Jeda (Esc)">&#10073;&#10073;</button>
+
+            <!-- Layar Pause -->
+            <div id="layarPause" class="overlay overlay-beku hidden">
+                <h2>PAUSE</h2>
+                <p class="sub-judul">Permainan dijeda</p>
+                <div class="grup-tombol">
+                    <button id="tombolLanjut" class="tombol-hijau">&#9654; Lanjut</button>
+                    <button id="tombolMenuPause" class="tombol-abu">&#8592; Menu Utama</button>
+                </div>
+            </div>
+
+            <!-- Layar Judul (seperti Minecraft) -->
+            <div id="layarJudul" class="overlay">
+                <h1 class="judul-besar">PIXEL<br>STRIKE</h1>
+                <p class="sub-judul">Game tembak-menembak pixel art</p>
+                <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
+            </div>
+
+            <!-- Layar Pilih Karakter -->
+            <div id="layarPilih" class="overlay hidden">
+                <h2>PILIH KARAKTER</h2>
+                <p id="menuStatus" class="sub-judul">Pilih karakter untuk dimainkan</p>
+                <div id="daftarKarakter" class="tombol-karakter"></div>
+            </div>
+
+            <!-- Layar Game Over -->
+            <div id="layarGameOver" class="overlay hidden">
+                <h2 class="judul-gameover">GAME OVER</h2>
+                <p id="skorAkhir" class="teks-skor">SKOR: 0</p>
+                <div class="grup-tombol">
+                    <button id="tombolUlang" class="tombol-hijau">&#9654; Main Lagi</button>
+                    <button id="tombolMenu" class="tombol-abu">&#8592; Menu Utama</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bantuan">
+            <p><b>WASD / Panah</b> = Gerak &emsp; <b>Klik Kiri</b> = Serang</p>
+            <p><b>Q / K</b> = Jurus Ledakan &emsp; <b>R</b> = Ulang &emsp; <b>Esc</b> = Jeda</p>
+        </div>
+    </div>
+
+    <script src="core.js"></script>
+    <script src="config.js"></script>
+    <script src="texture.js"></script>
+    <script src="menu.js"></script>
+    <script src="input.js"></script>
+    <script src="entities.js"></script>
+    <script src="draw.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
