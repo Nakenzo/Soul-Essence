@@ -100,7 +100,7 @@ function pasangTombol() {
   document.getElementById("tombolMenuPause").addEventListener("click", tampilkanJudul);
 }
 
-// ---------- Kartu karakter ----------
+// ---------- Kartu karakter (minimalis: kotak kecil) ----------
 function buatPilihanKarakter() {
   daftarKarakter.innerHTML = "";
 
@@ -110,28 +110,25 @@ function buatPilihanKarakter() {
     card.className = "kartu-karakter";
 
     const cv = document.createElement("canvas");
-    cv.width = 96;
-    cv.height = 96;
+    cv.width = 48;
+    cv.height = 48;
     const c = cv.getContext("2d");
     c.imageSmoothingEnabled = false;
     if (img && img.width) {
-      const w = img.width * kar.skala * 1.5;
-      const h = img.height * kar.skala * 1.5;
-      c.drawImage(img, (96 - w) / 2, (96 - h) / 2, w, h);
+      const s = 3; // 16px sprite -> 48px
+      const w = img.width * s;
+      const h = img.height * s;
+      c.drawImage(img, (48 - w) / 2, (48 - h) / 2, w, h);
     } else {
       c.fillStyle = "#ff8844";
-      c.fillRect(24, 24, 48, 48);
+      c.fillRect(6, 6, 36, 36);
     }
     card.appendChild(cv);
 
     const nama = document.createElement("div");
     nama.className = "nama-karakter";
     nama.textContent = (idx + 1) + ". " + kar.nama;
-    const desk = document.createElement("div");
-    desk.className = "desk-karakter";
-    desk.textContent = kar.deskripsi;
     card.appendChild(nama);
-    card.appendChild(desk);
 
     card.addEventListener("click", () => {
       karakter = kar;

@@ -158,19 +158,19 @@ canvas {
 
 .tombol-karakter {
     display: flex;
-    gap: 20px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
-    padding: 0 20px;
+    padding: 0 10px;
 }
 
 .kartu-karakter {
     background: #222;
     border: 3px solid #555;
     color: #ffd23f;
-    padding: 16px;
-    width: 170px;
-    border-radius: 10px;
+    padding: 8px;
+    width: 84px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s;
     display: flex;
@@ -183,6 +183,8 @@ canvas {
     border: none;
     background: #181a2e;
     image-rendering: pixelated;
+    width: 48px;
+    height: 48px;
 }
 
 .kartu-karakter:hover {
@@ -196,14 +198,9 @@ canvas {
 }
 
 .nama-karakter {
-    font-size: 20px;
+    font-size: 13px;
     font-weight: bold;
-    margin: 10px 0 4px 0;
-}
-
-.desk-karakter {
-    font-size: 11px;
-    color: #999;
+    margin-top: 4px;
 }
 
 .tombol-kecil {
