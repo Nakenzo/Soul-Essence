@@ -135,7 +135,7 @@ function draw() {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(0, H - 30, W, 30);
     ctx.fillStyle = "#ff6b6b";
-    ctx.font = "bold 14px Courier New";
+    ctx.font = "bold 14px DotGothic16";
     ctx.fillText("ERROR: " + errorBanner, 8, H - 9);
   }
 }
@@ -143,30 +143,30 @@ function draw() {
 function drawHUD() {
   ctx.fillStyle = "#000";
   ctx.fillRect(10, 10, 132, 14);
-  ctx.fillStyle = "#3aa0ff";
+  ctx.fillStyle = "#4ade80";
   ctx.fillRect(12, 12, 128 * (player.hp / player.maxHp), 10);
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 1;
   ctx.strokeRect(10.5, 10.5, 131, 13);
 
-  ctx.font = "14px Courier New";
+  ctx.font = "14px DotGothic16";
   ctx.fillStyle = "#fff";
   ctx.fillText("HP", 146, 23);
 
-  ctx.fillStyle = "#ffd23f";
-  ctx.font = "bold 18px Courier New";
+  ctx.fillStyle = "#4ade80";
+  ctx.font = "bold 18px DotGothic16";
   ctx.fillText("SKOR " + score, 470, 23);
 
   if (karakter) {
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 14px Courier New";
+    ctx.font = "bold 14px DotGothic16";
     ctx.fillText(karakter.nama.toUpperCase(), 470, 42);
   }
 
   ctx.fillStyle = "#000";
   ctx.fillRect(10, 32, 132, 14);
   const ratio = 1 - player.specialCd / player.specialMax;
-  ctx.fillStyle = "#ff4d6d";
+  ctx.fillStyle = "#ffd23f";
   ctx.fillRect(12, 34, 128 * ratio, 10);
   ctx.fillStyle = "#fff";
   ctx.fillText(player.specialCd > 0 ? "JURUS " + player.specialCd.toFixed(1) : "JURUS SIAP", 146, 45);
