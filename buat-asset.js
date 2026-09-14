@@ -167,7 +167,9 @@ const MUSUH_SPRITE = [
   [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
 ];
 
-// Senjata: Busur 10x16 — lengkungan frame + tali vertikal di kanan
+// Senjata: Busur 10x16 — lengkungan frame + tali vertikal di kanan.
+// Di draw.js sprite diputar +90 derajat (karakter.rot) sehingga tampil
+// sebagai busur yang mengarah ke pointer.
 const PANAH_SPRITE = [
   [0, 0, 0, 0, 2, 2, 0, 0, 0, 0],
   [0, 0, 0, 2, 1, 0, 0, 0, 0, 0],
@@ -187,28 +189,15 @@ const PANAH_SPRITE = [
   [0, 0, 0, 0, 2, 2, 0, 0, 0, 0]
 ];
 
-// Senjata: Pedang 6x20 — bilah lebar + pelindung tangan + gagang
+// Senjata: Pedang 20x6 — menghadap KANAN (+x = arah pointer).
+// Pelindung tangan emas di tengah (grip), bilah ke kanan, gagang ke kiri.
 const PEDANG_SPRITE = [
-  [0, 0, 5, 5, 0, 0],
-  [0, 0, 1, 1, 0, 0],
-  [0, 0, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 1, 2, 0, 0],
-  [0, 1, 2, 2, 0, 0],
-  [0, 4, 4, 4, 4, 0],
-  [0, 4, 5, 5, 4, 0],
-  [0, 0, 3, 3, 0, 0],
-  [0, 0, 3, 3, 0, 0],
-  [0, 0, 3, 3, 0, 0],
-  [0, 0, 3, 3, 0, 0],
-  [0, 4, 3, 3, 4, 0],
-  [0, 0, 4, 4, 0, 0]
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 1, 1, 1, 1, 1, 0, 0, 0],
+  [4, 4, 0, 3, 3, 3, 3, 3, 0, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 5],
+  [4, 4, 0, 3, 3, 3, 3, 3, 0, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 5],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 2, 2, 2, 2, 2, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
 // ---------- Buat semua file ----------

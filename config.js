@@ -20,6 +20,8 @@ const KARAKTER = [
     damage: 25,
     reach: 0,
     halfArc: 0,
+    // rot: offset rotasi sprite senjata (radian) agar ujungnya menunjuk pointer.
+    rot: Math.PI,
     specialRadius: 170,
     specialDmg: 100,
     tipe: "jarak"

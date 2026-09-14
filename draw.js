@@ -12,14 +12,14 @@ function gambarSenjata() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
   // Jarak orbit dari pusat karakter
-  const jarak = 22;
+  const jarak = 35;
 
   ctx.save();
   ctx.translate(
     player.x + Math.cos(angle) * jarak,
     player.y + Math.sin(angle) * jarak
   );
-  ctx.rotate(angle);
+  ctx.rotate(angle + (karakter.rot || 0));
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, -w / 2, -h / 2, w, h);
   ctx.restore();
@@ -102,13 +102,20 @@ function draw() {
     ctx.stroke();
   }
 
-  // Peluru
-  ctx.fillStyle = "#ffd23f";
+  // Peluru Kenji: anak panah — ujung putih, batang abu-abu, ekor bulu.
+  // Dirotasi agar ujungnya sejajar arah tembak.
   for (const b of bullets) {
-    ctx.fillRect(b.x - 2, b.y - 6, 4, 12);
-    ctx.fillStyle = "#ffe98a";
-    ctx.fillRect(b.x - 1, b.y - 4, 2, 8);
-    ctx.fillStyle = "#ffd23f";
+    const ang = Math.atan2(b.vy, b.vx);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(ang + Math.PI / 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-1, -6, 2, 3);
+    ctx.fillStyle = "#d9d9d9";
+    ctx.fillRect(-1, -3, 2, 6);
+    ctx.fillStyle = "#a9a9a9";
+    ctx.fillRect(-2, 3, 4, 3);
+    ctx.restore();
   }
 
   // Senjata + Pemain. Saat pause/game over tetap digambar agar adegan beku terlihat.

@@ -21,7 +21,7 @@ function shoot() {
     y: player.y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    life: 1.2
+    life: 2.0
   });
   spawnParticles(player.x, player.y, "#ffd23f", 4);
 }
