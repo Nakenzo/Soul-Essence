@@ -30,17 +30,23 @@ function slashSwing() {
   if (player.attackCd > 0) return;
   player.attackCd = karakter.attackRate;
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+  player.swing = karakter.swingDuration || 0.2;
+  // Efek tebasan muncul dari lokasi bilah sabit (titik orbit senjata),
+  // bukan dari pusat karakter.
+  const ox = player.x + Math.cos(angle) * 35;
+  const oy = player.y + Math.sin(angle) * 35;
   slashes.push({
-    x: player.x,
-    y: player.y,
+    x: ox,
+    y: oy,
+    // Terpusat ke arah pointer (bukan frame rotasi sabit).
     angle: angle,
     reach: karakter.reach,
     halfArc: karakter.halfArc,
     t: 0,
-    life: 0.18,
+    life: karakter.swingDuration || 0.2,
     hit: new Set()
   });
-  spawnParticles(player.x + Math.cos(angle) * 30, player.y + Math.sin(angle) * 30, "#ffffff", 6);
+  spawnParticles(ox, oy, "#ffffff", 6);
 }
 
 function castSpecial() {
@@ -120,6 +126,7 @@ function update(dt) {
 
   player.attackCd -= dt;
   player.specialCd = Math.max(0, player.specialCd - dt);
+  player.swing = Math.max(0, (player.swing || 0) - dt);
 
   if (mouse.down) {
     attack();

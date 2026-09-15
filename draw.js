@@ -22,7 +22,15 @@ function gambarSenjata() {
     Math.round(player.y + Math.sin(angle) * jarak)
   );
   ctx.imageSmoothingEnabled = false;
-  ctx.rotate(angle + (karakter.rot || 0));
+  let rotTotal = angle + (karakter.rot || 0);
+  // Saat menyerang, sabit ikut menyapu dari ujung start ke ujung end.
+  if ((player.swing || 0) > 0 && karakter.halfArc > 0) {
+    const dur = karakter.swingDuration || 0.2;
+    const p = 1 - Math.min(1, player.swing / dur);
+    const k = 1 - (1 - p) * (1 - p);
+    rotTotal += -karakter.halfArc + karakter.halfArc * 2 * k;
+  }
+  ctx.rotate(rotTotal);
   ctx.drawImage(img, -Math.round(w / 2), -Math.round(h / 2), Math.round(w), Math.round(h));
   ctx.restore();
 }
@@ -88,20 +96,51 @@ function draw() {
     ctx.fillRect(e.x - 16, e.y - 22, 32 * (e.hp / e.maxHp), 3);
   }
 
-  // Ayunan pedang
+  // Efek TEbasan sabit Vender: garis api merayap di sepanjang TEPI ATAS
+  // (tepian luar) hitbox ayunan sabit — dari ujung kiri ke ujung kanan,
+  // muncul perlahan (linear, tanpa fade-in/fade-out), hilang seketika.
   for (const sl of slashes) {
-    const alpha = 1 - sl.t / sl.life;
-    ctx.fillStyle = "rgba(255, 255, 255, " + 0.45 * alpha + ")";
+    // Fase 1 (muncul): garis merayap dari ujung kiri ke kanan.
+    // Fase 2 (hilang): ujung KIRI memudar, mengejar ke arah kanan,
+    // seperti munculnya tapi terbalik.
+    const full = sl.halfArc * 2;
+    const half = sl.life / 2;
+    let a1, a2;
+    if (sl.t < half) {
+      const p = sl.t / half;
+      a1 = sl.angle - sl.halfArc;
+      a2 = a1 + full * p;
+    } else {
+      const q = (sl.t - half) / half;
+      a1 = sl.angle - sl.halfArc + full * q;
+      a2 = sl.angle + sl.halfArc;
+    }
+    const r = sl.reach;
+
+    ctx.lineCap = "round";
+    // Bara lebar di tepi.
+    ctx.strokeStyle = "rgba(255, 70, 20, 0.5)";
+    ctx.lineWidth = 12;
     ctx.beginPath();
-    ctx.moveTo(sl.x, sl.y);
-    ctx.arc(sl.x, sl.y, sl.reach * (0.4 + 0.6 * alpha), sl.angle - sl.halfArc, sl.angle + sl.halfArc);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255, 210, 63, " + alpha + ")";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(sl.x, sl.y, sl.reach, sl.angle - sl.halfArc, sl.angle + sl.halfArc);
+    ctx.arc(sl.x, sl.y, r, a1, a2);
     ctx.stroke();
+    // Garis api utama.
+    ctx.strokeStyle = "rgba(255, 150, 40, 0.95)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(sl.x, sl.y, r, a1, a2);
+    ctx.stroke();
+    // Inti kuning terang.
+    ctx.strokeStyle = "#ffd75f";
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(sl.x, sl.y, r, a1, a2);
+    ctx.stroke();
+    // Titik terang di ujung yang merayap.
+    ctx.fillStyle = "#fff7cc";
+    ctx.beginPath();
+    ctx.arc(sl.x + Math.cos(a2) * r, sl.y + Math.sin(a2) * r, 5, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // Peluru Kenji: anak panah — ujung putih, batang abu-abu, ekor bulu.
