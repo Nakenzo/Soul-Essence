@@ -1,8 +1,18 @@
+/* Font pixel self-host: Zen Dots (teknologi futuristik, runcing) — file lokal
+   agar pasti tampil tanpa bergantung CDN (termasuk saat sudah di GitHub Pages). */
+@font-face {
+    font-family: "Zen Dots";
+    src: url("assets/fonts/ZenDots.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
 }
 
 html,
@@ -93,7 +103,7 @@ canvas {
     cursor: pointer;
     z-index: 4;
     transition: all 0.15s;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
 }
 
 .tombol-pause:hover {
@@ -119,7 +129,7 @@ canvas {
 }
 
 .sub-judul {
-    color: #7dd3a0;
+    color: #b8c6d8;
     font-size: 13px;
     margin-bottom: 0;
     letter-spacing: 2px;
@@ -137,7 +147,7 @@ canvas {
     cursor: pointer;
     letter-spacing: 4px;
     font-weight: bold;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
 }
 
@@ -154,7 +164,7 @@ canvas {
 /*  LAYAR PILIH KARAKTER    */
 /* ======================== */
 #layarPilih h2 {
-    color: #4ade80;
+    color: #7dd3fc;
     font-size: 26px;
     letter-spacing: 4px;
     margin-bottom: 0;
@@ -162,7 +172,7 @@ canvas {
 }
 
 #layarPause h2 {
-    color: #4ade80;
+    color: #7dd3fc;
     font-size: 26px;
     letter-spacing: 4px;
 }
@@ -183,7 +193,7 @@ canvas {
 .kartu-karakter {
     background: #222;
     border: 3px solid #555;
-    color: #4ade80;
+    color: #e6edf5;
     padding: 8px;
     width: 84px;
     border-radius: 8px;
@@ -192,7 +202,7 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
 }
 
 .kartu-karakter canvas {
@@ -228,7 +238,7 @@ canvas {
     border: 2px solid #555;
     border-radius: 6px;
     cursor: pointer;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
 }
 
@@ -249,7 +259,7 @@ canvas {
 }
 
 .teks-skor {
-    color: #4ade80;
+    color: #ffd23f;
     font-size: 22px;
     margin-bottom: 6px;
     letter-spacing: 2px;
@@ -267,7 +277,7 @@ canvas {
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
-    font-family: "DotGothic16", "Courier New", monospace;
+    font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
     letter-spacing: 1px;
 }
@@ -304,11 +314,11 @@ canvas {
 /* ======================== */
 .bantuan {
     margin-top: 12px;
-    color: #9fb89d;
+    color: #8a93a8;
     font-size: 14px;
     line-height: 1.7;
 }
 
 .bantuan b {
-    color: #4ade80;
+    color: #7dd3fc;
 }

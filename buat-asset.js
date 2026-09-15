@@ -134,6 +134,23 @@ const MUSUH_PAL = {
   2: [255, 255, 255, 255]   // mata
 };
 
+// Musuh mini/Cepat: biru, ramping seperti proyektil.
+const CEPET_PAL = {
+  0: [0, 0, 0, 0],
+  1: [58, 160, 255, 255],    // badan biru
+  2: [255, 255, 255, 255],   // mata
+  3: [143, 216, 255, 255]    // aksen biru terang (perut)
+};
+
+// Musuh Tank: ungu, besar & berzirah.
+const TANK_PAL = {
+  0: [0, 0, 0, 0],
+  1: [138, 79, 214, 255],    // badan ungu
+  2: [255, 210, 63, 255],    // mata kuning menyala
+  3: [61, 29, 102, 255],     // armor ungu gelap
+  4: [195, 155, 232, 255]    // sorot armor ungu terang
+};
+
 const PANAH_PAL = {
   0: [0, 0, 0, 0],
   1: [139, 90, 43, 255],    // kayu gelap (frame busur)
@@ -154,7 +171,7 @@ const PEDANG_PAL = {
 // SPRITE RESOLUSI TINGGI (16 piksel lebar untuk karakter)
 // ============================================================
 
-// Karakter 16x16
+// Karakter 16x16 (desain semula — kesatria)
 const KENJI_SPRITE = [
   [0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0],
   [0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0],
@@ -176,7 +193,6 @@ const KENJI_SPRITE = [
 
 const RIN_SPRITE = KENJI_SPRITE;
 
-// Musuh 16x9
 const MUSUH_SPRITE = [
   [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
   [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
@@ -187,6 +203,35 @@ const MUSUH_SPRITE = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
   [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+];
+
+// Cepat: ramping & tajam seperti proyektil, ekor mengecil.
+const CEPET_SPRITE = [
+  [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 1, 1, 1, 0, 0, 0],
+  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+  [0, 0, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 0],
+  [0, 1, 1, 1, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+];
+
+// Tank: gempal, berzirah, mata menyala — jauh lebih tebal.
+const TANK_SPRITE = [
+  [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+  [0, 0, 1, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 1, 0, 0],
+  [0, 1, 1, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 0],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 1, 4, 1, 1, 1, 4, 4, 4, 1, 1, 1, 4, 1, 1, 1],
+  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
 ];
 
 // Senjata: Busur 10x16 — lengkungan frame + tali vertikal di kanan.
@@ -225,6 +270,9 @@ const PEDANG_SPRITE = [
 // ---------- Buat semua file ----------
 // NOTE: panah.png & pedang.png TIDAK dibuat di sini — kedua senjata
 // dikelola manual oleh pemilik proyek. Jangan dihasilkan/timpa oleh script ini!
+// Karakter disimpan 32x32 (16x16 diperbesar 2x), tampil ~32px (config skala 1).
 simpan("characters", "kenji.png", perbesar2(KENJI_SPRITE), KENJI_PAL);
 simpan("characters", "rin.png", perbesar2(RIN_SPRITE), RIN_PAL);
 simpan("enemies", "musuh.png", perbesar2(MUSUH_SPRITE), MUSUH_PAL);
+simpan("enemies", "cepet.png", perbesar2(CEPET_SPRITE), CEPET_PAL);
+simpan("enemies", "tank.png", perbesar2(TANK_SPRITE), TANK_PAL);

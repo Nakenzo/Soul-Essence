@@ -57,6 +57,7 @@ function castSpecial() {
   for (const e of enemies) {
     if (dist(player.x, player.y, e.x, e.y) < karakter.specialRadius) {
       e.hp -= karakter.specialDmg;
+      spawnDamage(e.x, e.y - e.r - 8, karakter.specialDmg, "#ffd23f");
       const angle = Math.atan2(e.y - player.y, e.x - player.x);
       e.x += Math.cos(angle) * 40;
       e.y += Math.sin(angle) * 40;
@@ -88,6 +89,7 @@ function spawnEnemy() {
     x: x,
     y: y,
     tipe: tipe,
+    kunci: t.kunci,
     hp: hp,
     maxHp: hp,
     speed: (kecepatanMin + Math.random() * (kecepatanMax - kecepatanMin)) * t.kecepatanKali,
@@ -162,6 +164,7 @@ function update(dt) {
       if (dist(b.x, b.y, e.x, e.y) < e.r + 4) {
         e.hp -= karakter.damage;
         e.hitFlash = 0.1;
+        spawnDamage(e.x, e.y - e.r - 8, karakter.damage, "#ffd23f");
         bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(e);
         break;
@@ -184,6 +187,7 @@ function update(dt) {
         sl.hit.add(e);
         e.hp -= karakter.damage;
         e.hitFlash = 0.1;
+        spawnDamage(e.x, e.y - e.r - 8, karakter.damage, "#ffd23f");
         e.x += Math.cos(sl.angle) * 30;
         e.y += Math.sin(sl.angle) * 30;
         spawnParticles(e.x, e.y, "#ffffff", 6);
@@ -212,6 +216,7 @@ function update(dt) {
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 16) {
       player.hp -= 20;
+      spawnDamage(player.x, player.y - 26, 20, "#ff4d4d");
       shake = 0.3;
       enemies.splice(i, 1);
       spawnParticles(player.x, player.y, "#3aa0ff", 10);
@@ -236,6 +241,13 @@ function update(dt) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     if (p.t >= p.life) particles.splice(i, 1);
+  }
+
+  for (let i = damages.length - 1; i >= 0; i--) {
+    const dm = damages[i];
+    dm.t += dt;
+    dm.y -= 30 * dt;
+    if (dm.t >= dm.life) damages.splice(i, 1);
   }
 
   for (let i = rings.length - 1; i >= 0; i--) {

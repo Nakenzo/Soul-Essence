@@ -12,7 +12,7 @@ const H = canvas.height;
 let karakter = null;
 let statusGame = "title";
 let pernahMain = false;
-let player, bullets, enemies, particles, rings, slashes;
+let player, bullets, enemies, particles, rings, slashes, damages;
 let score, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
 
@@ -34,6 +34,7 @@ function resetArena({ skorBaru }) {
   particles = [];
   rings = [];
   slashes = [];
+  damages = [];
   // Level baru selalu mulai dari LEVEL 1.
   level = 0;
   levelSpawn = 0;
@@ -94,4 +95,16 @@ function spawnParticles(x, y, color, n) {
       color: color
     });
   }
+}
+
+// Teks damage melayang: kuning = damage ke musuh, merah = ke karakter.
+function spawnDamage(x, y, teks, warna) {
+  damages.push({
+    x: x,
+    y: y,
+    teks: String(teks),
+    warna: warna,
+    t: 0,
+    life: 0.8
+  });
 }

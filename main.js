@@ -30,7 +30,11 @@ function mulai() {
       KARAKTER.map((k) => ({ kunci: k.kunci, src: k.gambar })),
       KARAKTER.map((k) => ({ kunci: k.senjata, src: k.senjataGambar }))
     )
-    .concat([{ kunci: "musuh", src: "assets/enemies/musuh.png" }]);
+    .concat([
+      { kunci: "musuh", src: "assets/enemies/musuh.png" },
+      { kunci: "cepet", src: "assets/enemies/cepet.png" },
+      { kunci: "tank", src: "assets/enemies/tank.png" }
+    ]);
 
   // Texture yang gagal tidak menggagalkan semua — dipakai kotak pengganti.
   const muat = listSrc.map((item) =>

@@ -87,15 +87,10 @@ function draw() {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-    // Aura warna sesuai tipe musuh (biasa merah, cepet biru, tank ungu).
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = e.warna;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.r * 1.9, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    if (tekstur.musuh) {
-      gambarPixel(tekstur.musuh, e.x, e.y, e.skala || 1);
+// Sprite sesuai tipe: musuh.png / cepet.png / tank.png.
+    const imgMusuh = tekstur[e.kunci] || tekstur.musuh;
+    if (imgMusuh) {
+      gambarPixel(imgMusuh, e.x, e.y, e.skala || 1);
     }
     ctx.fillStyle = "#000";
     ctx.fillRect(e.x - 16, e.y - 22, 32, 3);
@@ -107,9 +102,10 @@ function draw() {
   // (tepian luar) hitbox ayunan sabit — dari ujung kiri ke ujung kanan,
   // muncul perlahan (linear, tanpa fade-in/fade-out), hilang seketika.
   for (const sl of slashes) {
-    // Fase 1 (muncul): garis merayap dari ujung kiri ke kanan.
-    // Fase 2 (hilang): ujung KIRI memudar, mengejar ke arah kanan,
-    // seperti munculnya tapi terbalik.
+    // Fase 1 (muncul): sabit merayap dari ujung kiri ke kanan.
+    // Fase 2 (hilang): ujung KIRI mengecil, mengejar ke arah kanan.
+    // Seluruh bentuk mengecil jadi RUNClNG (lancip) di KEDUA ujung —
+    // seperti sabit/crescent: tipis di kiri-kanan, paling tebal di tengah.
     const full = sl.halfArc * 2;
     const half = sl.life / 2;
     let a1, a2;
@@ -123,30 +119,44 @@ function draw() {
       a2 = sl.angle + sl.halfArc;
     }
     const r = sl.reach;
+    const span = a2 - a1;
+    const N = 20;
 
-    ctx.lineCap = "round";
-    // Bara lebar di tepi.
-    ctx.strokeStyle = "rgba(255, 70, 20, 0.5)";
-    ctx.lineWidth = 12;
-    ctx.beginPath();
-    ctx.arc(sl.x, sl.y, r, a1, a2);
-    ctx.stroke();
-    // Garis api utama.
-    ctx.strokeStyle = "rgba(255, 150, 40, 0.95)";
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.arc(sl.x, sl.y, r, a1, a2);
-    ctx.stroke();
+    // Bangun sabit lancip: lebar = 0 di kedua ujung, maksimal di tengah.
+    function sabit(maxW, warna) {
+      ctx.fillStyle = warna;
+      ctx.beginPath();
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const a = a1 + span * t;
+        const w = maxW * Math.sin(Math.PI * t); // 0 di ujung, tebal di tengah
+        const rad = r + w / 2;
+        const x = sl.x + Math.cos(a) * rad;
+        const y = sl.y + Math.sin(a) * rad;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      for (let i = N; i >= 0; i--) {
+        const t = i / N;
+        const a = a1 + span * t;
+        const w = maxW * Math.sin(Math.PI * t);
+        ctx.lineTo(sl.x + Math.cos(a) * (r - w / 2), sl.y + Math.sin(a) * (r - w / 2));
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Bara lebar.
+    sabit(22, "rgba(255, 70, 20, 0.55)");
+    // Badan api.
+    sabit(13, "rgba(255, 150, 40, 0.95)");
     // Inti kuning terang.
-    ctx.strokeStyle = "#ffd75f";
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.arc(sl.x, sl.y, r, a1, a2);
-    ctx.stroke();
-    // Titik terang di ujung yang merayap.
+    sabit(6.5, "#ffd75f");
+
+    // Titik terang kecil di ujung yang sedang merayap/menghilang.
+    const tipA = sl.t < half ? a2 : a1;
     ctx.fillStyle = "#fff7cc";
     ctx.beginPath();
-    ctx.arc(sl.x + Math.cos(a2) * r, sl.y + Math.sin(a2) * r, 5, 0, Math.PI * 2);
+    ctx.arc(sl.x + Math.cos(tipA) * r, sl.y + Math.sin(tipA) * r, 4, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -181,6 +191,20 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
+  // Angka damage melayang: kuning = ke musuh, merah = ke karakter.
+  for (const dm of damages) {
+    ctx.globalAlpha = 1 - dm.t / dm.life;
+    ctx.font = "bold 14px Zen Dots";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#000";
+    ctx.strokeText(dm.teks, dm.x, dm.y);
+    ctx.fillStyle = dm.warna;
+    ctx.fillText(dm.teks, dm.x, dm.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = "left";
+
   ctx.restore();
 
   // Banner transisi level (muncul-fade sederhana).
@@ -194,11 +218,11 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.strokeRect(W / 2 - 160, H / 2 - 45, 320, 76);
     ctx.fillStyle = "#ffd23f";
-    ctx.font = "bold 34px DotGothic16";
+    ctx.font = "bold 34px Zen Dots";
     ctx.textAlign = "center";
     ctx.fillText(levelBanner.teks, W / 2, H / 2 + 4);
     ctx.fillStyle = "#fff";
-    ctx.font = "14px DotGothic16";
+    ctx.font = "14px Zen Dots";
     ctx.fillText("Habiskan semua musuh!", W / 2, H / 2 + 26);
     ctx.textAlign = "left";
     ctx.globalAlpha = 1;
@@ -211,7 +235,7 @@ function draw() {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(0, H - 30, W, 30);
     ctx.fillStyle = "#ff6b6b";
-    ctx.font = "bold 14px DotGothic16";
+    ctx.font = "bold 14px Zen Dots";
     ctx.fillText("ERROR: " + errorBanner, 8, H - 9);
   }
 }
@@ -225,27 +249,23 @@ function drawHUD() {
   ctx.lineWidth = 1;
   ctx.strokeRect(10.5, 10.5, 131, 13);
 
-  ctx.font = "14px DotGothic16";
+  ctx.font = "14px Zen Dots";
   ctx.fillStyle = "#fff";
   ctx.fillText("HP", 146, 23);
 
-  ctx.fillStyle = "#4ade80";
-  ctx.font = "bold 18px DotGothic16";
-  ctx.fillText("SKOR " + score, 470, 23);
-
   if (karakter) {
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 14px DotGothic16";
-    ctx.fillText(karakter.nama.toUpperCase(), 470, 42);
+    ctx.font = "bold 14px Zen Dots";
+    ctx.fillText(karakter.nama.toUpperCase(), 470, 23);
   }
 
   // Info level & sisa musuh.
   ctx.fillStyle = "#ffd23f";
-  ctx.font = "bold 14px DotGothic16";
-  ctx.fillText("LEVEL " + (level + 1) + "/" + LEVELS.length, 470, 58);
+  ctx.font = "bold 14px Zen Dots";
+  ctx.fillText("LEVEL " + (level + 1) + "/" + LEVELS.length, 470, 42);
   const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#fff";
-  ctx.fillText("MUSUH " + sisa, 470, 74);
+  ctx.fillText("MUSUH " + sisa, 470, 60);
 
   ctx.fillStyle = "#000";
   ctx.fillRect(10, 32, 132, 14);

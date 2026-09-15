@@ -6,9 +6,9 @@
 // Tipe musuh. Semua memakai sprite musuh.png; bedanya lewat ukuran,
 // kecepatan, pengali HP, dan warna aura/HP bar.
 const TIPE_MUSUH = {
-  biasa: { r: 12, skala: 1, hpKali: 1, kecepatanKali: 1, warna: "#ff4d4d" },
-  cepet: { r: 9, skala: 0.75, hpKali: 0.6, kecepatanKali: 1.45, warna: "#4dc3ff" },
-  tank: { r: 16, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" }
+  biasa: { kunci: "musuh", r: 12, skala: 1, hpKali: 1, kecepatanKali: 1, warna: "#ff4d4d" },
+  cepet: { kunci: "cepet", r: 9, skala: 0.75, hpKali: 0.6, kecepatanKali: 1.45, warna: "#4dc3ff" },
+  tank: { kunci: "tank", r: 16, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" }
 };
 
 // campur: bobot tiap tipe musuh di level itu (tinggi bobot = makin sering).
