@@ -49,7 +49,7 @@ function mutarBanner(teks, durasi) {
 }
 
 function tampilkanBannerLevel(lv) {
-  mutarBanner("LEVEL " + (lv + 1), 1.6);
+  mutarBanner("WAVES " + (lv + 1), 1.6);
 }
 
 // Semua musuh level ini habis -> level berikutnya (atau menang).

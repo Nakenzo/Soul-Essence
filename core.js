@@ -12,9 +12,14 @@ const H = canvas.height;
 let karakter = null;
 let statusGame = "title";
 let pernahMain = false;
-let player, bullets, enemies, particles, rings, slashes, damages;
+let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let score, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
+
+// Sistem ultimate: musuh menjatuhkan jiwa (partikel hijau) yang diserap
+// untuk mengisi SOUL METER. Penebusan dengan tombol R (lihat skills.js).
+const SOUL_MAX = 50;
+const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5 };
 
 // ---------- Setup arena ----------
 function resetArena({ skorBaru }) {
@@ -26,7 +31,8 @@ function resetArena({ skorBaru }) {
     speed: karakter ? karakter.kecepatan : 180,
     attackCd: 0,
     specialCd: 0,
-    specialMax: 3,
+    specialMax: karakter ? karakter.specialCd : 3,
+    specialBuff: 0,
     dir: -1
   };
   bullets = [];
@@ -35,6 +41,8 @@ function resetArena({ skorBaru }) {
   rings = [];
   slashes = [];
   damages = [];
+  souls = [];
+  soul = 0;
   // Level baru selalu mulai dari LEVEL 1.
   level = 0;
   levelSpawn = 0;

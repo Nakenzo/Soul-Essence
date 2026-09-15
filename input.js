@@ -27,10 +27,11 @@ window.addEventListener("keydown", (e) => {
   }
 
   if (k === "r") {
-    if (statusGame === "main" && karakter) {
+    // Di dalam game: R = tebus ultimate. R di layar game over tetap ulang.
+    if (statusGame === "over") {
       ulangDenganKarakter();
-    } else if (statusGame === "over") {
-      ulangDenganKarakter();
+    } else if (statusGame === "main" && karakter) {
+      rilisUltimate();
     }
   }
 

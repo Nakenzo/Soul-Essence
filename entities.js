@@ -21,7 +21,9 @@ function shoot() {
     y: player.y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    life: 2.0
+    life: 2.0,
+    // Panah yang ditembakkan saat buff aktif akan membekukan musuh.
+    beku: player.specialBuff > 0
   });
   spawnParticles(player.x, player.y, "#ffd23f", 4);
 }
@@ -47,26 +49,6 @@ function slashSwing() {
     hit: new Set()
   });
   spawnParticles(ox, oy, "#ffffff", 6);
-}
-
-function castSpecial() {
-  if (gameOver || karakter === null || statusGame !== "main" || player.specialCd > 0) return;
-  player.specialCd = player.specialMax;
-  rings.push({ x: player.x, y: player.y, r: 10, maxR: karakter.specialRadius, life: 0.4, t: 0 });
-
-  for (const e of enemies) {
-    if (dist(player.x, player.y, e.x, e.y) < karakter.specialRadius) {
-      e.hp -= karakter.specialDmg;
-      spawnDamage(e.x, e.y - e.r - 8, karakter.specialDmg, "#ffd23f");
-      const angle = Math.atan2(e.y - player.y, e.x - player.x);
-      e.x += Math.cos(angle) * 40;
-      e.y += Math.sin(angle) * 40;
-      spawnParticles(e.x, e.y, "#ff4d4d", 8);
-      if (e.hp <= 0) {
-        killEnemy(e);
-      }
-    }
-  }
 }
 
 // ---------- Musuh ----------
@@ -96,7 +78,8 @@ function spawnEnemy() {
     r: t.r,
     skala: t.skala,
     warna: t.warna,
-    hitFlash: 0
+    hitFlash: 0,
+    freeze: 0
   });
 }
 
@@ -104,6 +87,20 @@ function killEnemy(e) {
   const i = enemies.indexOf(e);
   if (i === -1) return;
   score += 10;
+  // Jatuhkan jiwa: biasa 3, cepet 2, tank 5.
+  const n = DROP_SOUL[e.tipe] || 3;
+  for (let k = 0; k < n; k++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 40 + Math.random() * 90;
+    souls.push({
+      x: e.x,
+      y: e.y,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp,
+      t: 0,
+      life: 8
+    });
+  }
   spawnParticles(e.x, e.y, "#ff4d4d", 14);
   spawnParticles(e.x, e.y, "#ffd23f", 6);
   enemies.splice(i, 1);
@@ -143,6 +140,7 @@ function update(dt) {
 
   player.attackCd -= dt;
   player.specialCd = Math.max(0, player.specialCd - dt);
+  player.specialBuff = Math.max(0, (player.specialBuff || 0) - dt);
   player.swing = Math.max(0, (player.swing || 0) - dt);
 
   if (mouse.down) {
@@ -159,11 +157,29 @@ function update(dt) {
       bullets.splice(i, 1);
       continue;
     }
+    // Panah pembeku: sisakan pecahan es kecil yang cepat hilang (kosmetik).
+    if (b.beku && Math.random() < 0.6) {
+      particles.push({
+        x: b.x,
+        y: b.y,
+        vx: (Math.random() - 0.5) * 60,
+        vy: (Math.random() - 0.5) * 60,
+        life: 0.15 + Math.random() * 0.15,
+        t: 0,
+        size: 1 + Math.random() * 2,
+        color: "#bfe9ff"
+      });
+    }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
       if (dist(b.x, b.y, e.x, e.y) < e.r + 4) {
         e.hp -= karakter.damage;
         e.hitFlash = 0.1;
+        if (b.beku) {
+          e.freeze = karakter.bekuDurasi;
+          spawnParticles(e.x, e.y, "#7dd3fc", 8);
+          spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
+        }
         spawnDamage(e.x, e.y - e.r - 8, karakter.damage, "#ffd23f");
         bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(e);
@@ -176,6 +192,38 @@ function update(dt) {
   for (let s = slashes.length - 1; s >= 0; s--) {
     const sl = slashes[s];
     sl.t += dt;
+
+    // Kobaran api singkat di KEDUA ujung tebasan besar (kosmetik).
+    if (sl.skill) {
+      const fullA = sl.halfArc * 2;
+      const halfA = sl.life / 2;
+      const u1 = sl.t < halfA
+        ? sl.angle - sl.halfArc
+        : sl.angle - sl.halfArc + fullA * ((sl.t - halfA) / halfA);
+      const u2 = sl.t < halfA
+        ? sl.angle - sl.halfArc + fullA * (sl.t / halfA)
+        : sl.angle + sl.halfArc;
+      for (const [fracA, cnt] of [[0, 8], [0.35, 5], [0.5, 10], [0.65, 5], [1, 8]]) {
+        const a = u1 + (u2 - u1) * fracA;
+        const fx = sl.x + Math.cos(a) * sl.reach;
+        const fy = sl.y + Math.sin(a) * sl.reach;
+        for (let k = 0; k < cnt; k++) {
+          const ang = Math.random() * Math.PI * 2;
+          const sp = 45 + Math.random() * 130;
+          particles.push({
+            x: fx,
+            y: fy,
+            vx: Math.cos(ang) * sp,
+            vy: Math.sin(ang) * sp - 35,
+            life: 0.32 + Math.random() * 0.3,
+            t: 0,
+            size: 3.5 + Math.random() * 4.5,
+            color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
+          });
+        }
+      }
+    }
+
     for (const e of enemies) {
       if (sl.hit.has(e)) continue;
       const d = dist(sl.x, sl.y, e.x, e.y);
@@ -185,12 +233,18 @@ function update(dt) {
       while (diff < -Math.PI) diff += Math.PI * 2;
       if (d < sl.reach + e.r && Math.abs(diff) < sl.halfArc + 0.2) {
         sl.hit.add(e);
-        e.hp -= karakter.damage;
+        const dmg = sl.dmg || karakter.damage;
+        e.hp -= dmg;
         e.hitFlash = 0.1;
-        spawnDamage(e.x, e.y - e.r - 8, karakter.damage, "#ffd23f");
+        spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
+        // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
+        if (sl.skill && e.hp > 0) {
+          e.burn = { durasi: 3, tick: 0.5, timer: 0, dmg: sl.burst ? 2 : 1 };
+          spawnDamage(e.x, e.y - e.r - 28, "TERBAKAR", "#ff8c3f");
+        }
         e.x += Math.cos(sl.angle) * 30;
         e.y += Math.sin(sl.angle) * 30;
-        spawnParticles(e.x, e.y, "#ffffff", 6);
+        spawnParticles(e.x, e.y, "#ff8c3f", 8);
         if (e.hp <= 0) killEnemy(e);
       }
     }
@@ -210,9 +264,30 @@ function update(dt) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     e.hitFlash = Math.max(0, e.hitFlash - dt);
-    const angle = Math.atan2(player.y - e.y, player.x - e.x);
-    e.x += Math.cos(angle) * e.speed * dt;
-    e.y += Math.sin(angle) * e.speed * dt;
+    e.freeze = Math.max(0, (e.freeze || 0) - dt);
+
+    // Efek terbakar: -HP tiap 0.5 dtk selama durasi.
+    if (e.burn) {
+      e.burn.timer += dt;
+      while (e.burn.timer >= e.burn.tick) {
+        e.burn.timer -= e.burn.tick;
+        e.hp -= e.burn.dmg;
+        e.hitFlash = 0.1;
+        spawnDamage(e.x, e.y - e.r - 8, e.burn.dmg, "#ff8c3f");
+      }
+      e.burn.durasi -= dt;
+      if (e.burn.durasi <= 0) e.burn = null;
+      if (e.hp <= 0) {
+        killEnemy(e);
+        continue;
+      }
+    }
+
+    if (e.freeze <= 0) {
+      const angle = Math.atan2(player.y - e.y, player.x - e.x);
+      e.x += Math.cos(angle) * e.speed * dt;
+      e.y += Math.sin(angle) * e.speed * dt;
+    }
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 16) {
       player.hp -= 20;
@@ -255,5 +330,31 @@ function update(dt) {
     r.t += dt;
     r.r = 10 + (r.maxR - 10) * (r.t / r.life);
     if (r.t >= r.life) rings.splice(i, 1);
+  }
+
+  // Jiwa (soul): melayang, lalu tertarik & diserap pemain.
+  for (let i = souls.length - 1; i >= 0; i--) {
+    const s = souls[i];
+    s.t += dt;
+    const d = dist(s.x, s.y, player.x, player.y);
+    if (d < 90) {
+      const ang = Math.atan2(player.y - s.y, player.x - s.x);
+      s.vx += Math.cos(ang) * 300 * dt;
+      s.vy += Math.sin(ang) * 300 * dt;
+    } else {
+      s.vx *= 0.96;
+      s.vy *= 0.96;
+    }
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    if (d < 13) {
+      if (soul < SOUL_MAX) {
+        soul += 1;
+        spawnParticles(s.x, s.y, "#7cff5e", 4);
+      }
+      souls.splice(i, 1);
+      continue;
+    }
+    if (s.t >= s.life) souls.splice(i, 1);
   }
 }
