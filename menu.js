@@ -5,10 +5,13 @@
 const layarJudul = document.getElementById("layarJudul");
 const layarPilih = document.getElementById("layarPilih");
 const layarGameOver = document.getElementById("layarGameOver");
+const layarMenang = document.getElementById("layarMenang");
 const layarPause = document.getElementById("layarPause");
 const tombolPause = document.getElementById("tombolPause");
 const daftarKarakter = document.getElementById("daftarKarakter");
 const skorAkhirEl = document.getElementById("skorAkhir");
+const skorMenangEl = document.getElementById("skorMenang");
+const judulAkhirEl = document.getElementById("judulAkhir");
 const menuStatus = document.getElementById("menuStatus");
 
 // Tombol pause (II) hanya tampil saat permainan berjalan.
@@ -25,6 +28,7 @@ function sembunyiSemua() {
   layarPilih.classList.add("hidden");
   layarGameOver.classList.add("hidden");
   layarPause.classList.add("hidden");
+  layarMenang.classList.add("hidden");
 }
 
 // ---------- Layar Judul (tombol PLAY) ----------
@@ -53,8 +57,18 @@ function tampilkanPilih() {
 function tampilkanGameOver() {
   sembunyiSemua();
   statusGame = "over";
+  judulAkhirEl.textContent = "GAME OVER";
   skorAkhirEl.textContent = "SKOR: " + score;
   layarGameOver.classList.remove("hidden");
+  aturTombolPause();
+}
+
+// ---------- Layar Menang (selesai semua level) ----------
+function tampilkanMenang() {
+  sembunyiSemua();
+  statusGame = "over";
+  skorMenangEl.textContent = "SKOR: " + score;
+  layarMenang.classList.remove("hidden");
   aturTombolPause();
 }
 
@@ -94,10 +108,13 @@ function ulangDenganKarakter() {
 function pasangTombol() {
   document.getElementById("tombolPlay").addEventListener("click", tampilkanPilih);
   document.getElementById("tombolUlang").addEventListener("click", ulangDenganKarakter);
-  document.getElementById("tombolMenu").addEventListener("click", tampilkanJudul);
+  // "Ganti karakter" langsung ke layar pemilihan karakter.
+  document.getElementById("tombolMenu").addEventListener("click", tampilkanPilih);
   tombolPause.addEventListener("click", tampilkanPause);
   document.getElementById("tombolLanjut").addEventListener("click", lanjutDariPause);
-  document.getElementById("tombolMenuPause").addEventListener("click", tampilkanJudul);
+  document.getElementById("tombolMenuPause").addEventListener("click", tampilkanPilih);
+  document.getElementById("tombolUlangMenang").addEventListener("click", tampilkanPilih);
+  document.getElementById("tombolMenuMenang").addEventListener("click", tampilkanJudul);
 }
 
 // ---------- Kartu karakter (minimalis: kotak kecil) ----------

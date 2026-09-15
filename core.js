@@ -34,6 +34,11 @@ function resetArena({ skorBaru }) {
   particles = [];
   rings = [];
   slashes = [];
+  // Level baru selalu mulai dari LEVEL 1.
+  level = 0;
+  levelSpawn = 0;
+  spawnTimer = 0.8;
+  tampilkanBannerLevel(0);
   if (skorBaru) {
     score = 0;
   }

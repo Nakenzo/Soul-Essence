@@ -70,6 +70,11 @@ function castSpecial() {
 
 // ---------- Musuh ----------
 function spawnEnemy() {
+  const def = LEVELS[level];
+  const tipe = pilihTipeMusuh(def.campur);
+  const t = TIPE_MUSUH[tipe];
+  const hp = Math.max(8, Math.round(def.hp * t.hpKali));
+
   let x, y;
   const edge = Math.floor(Math.random() * 4);
   if (edge === 0) { x = -20; y = Math.random() * H; }
@@ -77,14 +82,18 @@ function spawnEnemy() {
   else if (edge === 2) { x = Math.random() * W; y = -20; }
   else { x = Math.random() * W; y = H + 20; }
 
-  const level = 1 + Math.floor(score / 100);
+  const kecepatanMin = def.kecepatan[0];
+  const kecepatanMax = def.kecepatan[1];
   enemies.push({
     x: x,
     y: y,
-    hp: 30,
-    maxHp: 30,
-    speed: 40 + Math.random() * 50 + level * 5,
-    r: 12,
+    tipe: tipe,
+    hp: hp,
+    maxHp: hp,
+    speed: (kecepatanMin + Math.random() * (kecepatanMax - kecepatanMin)) * t.kecepatanKali,
+    r: t.r,
+    skala: t.skala,
+    warna: t.warna,
     hitFlash: 0
   });
 }
@@ -107,6 +116,12 @@ function update(dt) {
   }
 
   if (gameOver || statusGame !== "main") return;
+
+  // Banner transisi level (dijeda saat bukan main).
+  if (levelBanner) {
+    levelBanner.t += dt;
+    if (levelBanner.t >= levelBanner.life) levelBanner = null;
+  }
 
   let dx = 0, dy = 0;
   if (keys["w"] || keys["arrowup"]) dy -= 1;
@@ -178,11 +193,14 @@ function update(dt) {
     if (sl.t >= sl.life) slashes.splice(s, 1);
   }
 
-  // Musuh
-  spawnTimer -= dt;
-  if (spawnTimer <= 0) {
-    spawnEnemy();
-    spawnTimer = Math.max(0.5, 1.3 - score / 2000);
+  // Musuh: spawn mengikuti definisi level sampai kuota terpenuhi.
+  if (levelSpawn < LEVELS[level].jumlah) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnEnemy();
+      levelSpawn += 1;
+      spawnTimer = LEVELS[level].jedaSpawn;
+    }
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -205,6 +223,11 @@ function update(dt) {
         tampilkanGameOver();
       }
     }
+  }
+
+  // Level tuntas: kuota level sudah di-spawn dan tak ada musuh yang hidup.
+  if (levelSpawn >= LEVELS[level].jumlah && enemies.length === 0) {
+    levelSelesai();
   }
 
   for (let i = particles.length - 1; i >= 0; i--) {

@@ -82,17 +82,24 @@ function draw() {
     if (e.hitFlash > 0) {
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(e.x, e.y, 16, 0, Math.PI * 2);
+      ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2);
       ctx.globalAlpha = 0.5;
       ctx.fill();
       ctx.globalAlpha = 1;
     }
+    // Aura warna sesuai tipe musuh (biasa merah, cepet biru, tank ungu).
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = e.warna;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r * 1.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
     if (tekstur.musuh) {
-      gambarPixel(tekstur.musuh, e.x, e.y, 1);
+      gambarPixel(tekstur.musuh, e.x, e.y, e.skala || 1);
     }
     ctx.fillStyle = "#000";
     ctx.fillRect(e.x - 16, e.y - 22, 32, 3);
-    ctx.fillStyle = "#ff4d4d";
+    ctx.fillStyle = e.warna;
     ctx.fillRect(e.x - 16, e.y - 22, 32 * (e.hp / e.maxHp), 3);
   }
 
@@ -176,6 +183,27 @@ function draw() {
 
   ctx.restore();
 
+  // Banner transisi level (muncul-fade sederhana).
+  if (levelBanner) {
+    const p = levelBanner.t / levelBanner.life;
+    const alpha = p < 0.15 ? p / 0.15 : p > 0.75 ? Math.max(0, 1 - (p - 0.75) / 0.25) : 1;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(W / 2 - 160, H / 2 - 45, 320, 76);
+    ctx.strokeStyle = "#ffd23f";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(W / 2 - 160, H / 2 - 45, 320, 76);
+    ctx.fillStyle = "#ffd23f";
+    ctx.font = "bold 34px DotGothic16";
+    ctx.textAlign = "center";
+    ctx.fillText(levelBanner.teks, W / 2, H / 2 + 4);
+    ctx.fillStyle = "#fff";
+    ctx.font = "14px DotGothic16";
+    ctx.fillText("Habiskan semua musuh!", W / 2, H / 2 + 26);
+    ctx.textAlign = "left";
+    ctx.globalAlpha = 1;
+  }
+
   drawHUD();
 
   // Biner error agar mudah terlihat bila ada runtime error.
@@ -210,6 +238,14 @@ function drawHUD() {
     ctx.font = "bold 14px DotGothic16";
     ctx.fillText(karakter.nama.toUpperCase(), 470, 42);
   }
+
+  // Info level & sisa musuh.
+  ctx.fillStyle = "#ffd23f";
+  ctx.font = "bold 14px DotGothic16";
+  ctx.fillText("LEVEL " + (level + 1) + "/" + LEVELS.length, 470, 58);
+  const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
+  ctx.fillStyle = "#fff";
+  ctx.fillText("MUSUH " + sisa, 470, 74);
 
   ctx.fillStyle = "#000";
   ctx.fillRect(10, 32, 132, 14);
