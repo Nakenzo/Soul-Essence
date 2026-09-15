@@ -115,7 +115,7 @@ function buatPilihanKarakter() {
     const c = cv.getContext("2d");
     c.imageSmoothingEnabled = false;
     if (img && img.width) {
-      const s = 3; // 16px sprite -> 48px
+      const s = 48 / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
       c.drawImage(img, (48 - w) / 2, (48 - h) / 2, w, h);

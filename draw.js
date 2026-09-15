@@ -3,10 +3,12 @@
 // ============================================================
 
 // Senjata mengorbit mengelilingi karakter, selalu di sisi pointer/mouse.
+// Ditampilkan apa adanya (tanpa rotasi) agar pixelnya tidak tercampur
+// dan warnanya tidak bergeser — terlihat berputar-putar mengelilingi pemain.
 function gambarSenjata() {
   const img = tekstur[karakter.senjata];
   if (!img) return;
-  const skala = karakter.skala;
+  const skala = karakter.senjataSkala || karakter.skala;
   const w = img.width * skala;
   const h = img.height * skala;
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
@@ -16,12 +18,12 @@ function gambarSenjata() {
 
   ctx.save();
   ctx.translate(
-    player.x + Math.cos(angle) * jarak,
-    player.y + Math.sin(angle) * jarak
+    Math.round(player.x + Math.cos(angle) * jarak),
+    Math.round(player.y + Math.sin(angle) * jarak)
   );
-  ctx.rotate(angle + (karakter.rot || 0));
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  ctx.rotate(angle + (karakter.rot || 0));
+  ctx.drawImage(img, -Math.round(w / 2), -Math.round(h / 2), Math.round(w), Math.round(h));
   ctx.restore();
 }
 
@@ -78,7 +80,7 @@ function draw() {
       ctx.globalAlpha = 1;
     }
     if (tekstur.musuh) {
-      gambarPixel(tekstur.musuh, e.x, e.y, 2);
+      gambarPixel(tekstur.musuh, e.x, e.y, 1);
     }
     ctx.fillStyle = "#000";
     ctx.fillRect(e.x - 16, e.y - 22, 32, 3);

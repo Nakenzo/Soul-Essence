@@ -84,6 +84,28 @@ function simpan(subfolder, namaFile, sprite, pal) {
   console.log("Berhasil: " + subfolder + "/" + namaFile + " (" + lebar + "x" + tinggi + ")");
 }
 
+// Naikkan resolusi pixel art 2x (tiap pixel digandakan menjadi blok 2x2).
+// Tampilan layar TIDAK berubah (skala di config/draw ikut disesuaikan),
+// hanya file PNG yang lebih besar agar mudah ditambahkan detail.
+function perbesar2(sprite) {
+  const lebar = sprite[0].length;
+  const tinggi = sprite.length;
+  const hasil = [];
+  for (let y = 0; y < tinggi; y++) {
+    const barisAtas = [];
+    const barisBawah = [];
+    for (let x = 0; x < lebar; x++) {
+      const v = sprite[y][x];
+      for (let k = 0; k < 2; k++) {
+        barisAtas.push(v);
+        barisBawah.push(v);
+      }
+    }
+    hasil.push(barisAtas, barisBawah);
+  }
+  return hasil;
+}
+
 // ============================================================
 // PALETTE
 // ============================================================
@@ -121,11 +143,11 @@ const PANAH_PAL = {
 
 const PEDANG_PAL = {
   0: [0, 0, 0, 0],
-  1: [215, 215, 235, 255],  // bilah terang
-  2: [170, 170, 195, 255],  // bayangan bilah
-  3: [139, 90, 43, 255],    // gagang
-  4: [255, 210, 63, 255],   // pelindung tangan & pommel (emas)
-  5: [255, 255, 255, 255]   // sorot bilah
+  1: [200, 30, 30, 255],    // bilah sabit (merah)
+  2: [255, 90, 90, 255],    // sorot bilah (merah terang)
+  3: [20, 20, 20, 255],     // gagang (hitam)
+  4: [120, 12, 12, 255],    // tepi dalam bilah (merah gelap)
+  5: [60, 10, 10, 255]      // aksen gelap
 };
 
 // ============================================================
@@ -189,20 +211,20 @@ const PANAH_SPRITE = [
   [0, 0, 0, 0, 2, 2, 0, 0, 0, 0]
 ];
 
-// Senjata: Pedang 20x6 — menghadap KANAN (+x = arah pointer).
-// Pelindung tangan emas di tengah (grip), bilah ke kanan, gagang ke kiri.
+// Senjata: Sabit 20x6 — gagang hitam (3), bilah sabit merah (1)
+// dengan tepi dalam merah gelap (4). Menghadap KANAN (+x).
 const PEDANG_SPRITE = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 1, 1, 1, 1, 1, 0, 0, 0],
-  [4, 4, 0, 3, 3, 3, 3, 3, 0, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 5],
-  [4, 4, 0, 3, 3, 3, 3, 3, 0, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 5],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 2, 2, 2, 2, 2, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0]
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+  [0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 4, 1, 1, 1, 1, 1, 1, 0, 0],
+  [0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 1, 4, 1, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
 ];
 
 // ---------- Buat semua file ----------
-simpan("characters", "kenji.png", KENJI_SPRITE, KENJI_PAL);
-simpan("characters", "rin.png", RIN_SPRITE, RIN_PAL);
-simpan("weapons", "panah.png", PANAH_SPRITE, PANAH_PAL);
-simpan("weapons", "pedang.png", PEDANG_SPRITE, PEDANG_PAL);
-simpan("enemies", "musuh.png", MUSUH_SPRITE, MUSUH_PAL);
+// NOTE: panah.png & pedang.png TIDAK dibuat di sini — kedua senjata
+// dikelola manual oleh pemilik proyek. Jangan dihasilkan/timpa oleh script ini!
+simpan("characters", "kenji.png", perbesar2(KENJI_SPRITE), KENJI_PAL);
+simpan("characters", "rin.png", perbesar2(RIN_SPRITE), RIN_PAL);
+simpan("enemies", "musuh.png", perbesar2(MUSUH_SPRITE), MUSUH_PAL);
