@@ -144,66 +144,72 @@ function draw() {
     const span = a2 - a1;
     const N = 20;
 
-    // ULTIMATE Vender: cakram api tebal seluruh area + sabit besar yang MENGORBIT
-    // keluar dari pemain, berputar 360° menebas seluruh arena.
+    // ULTIMATE Vender: cakram api tebal seluruh area + sabit besar mengorbit.
+    // Muncul (fase 1): sabit menyebar dari kiri ke kanan penuhi arena.
+    // Menghilang (fase 2): busur terhapus dari kiri sampai habis.
     if (sl.burst) {
       const wSabit = tekstur[karakter.senjata];
       const rot = sl.t / sl.life;
-      ctx.globalAlpha = Math.max(0.35, 1 - rot * 0.6);
-      const theta = sl.angle - Math.PI + rot * Math.PI * 2; // orbit 360°
+      const tipA = sl.t < half ? a2 : a1; // ujung aktif (muncul/hapus)
+      ctx.globalAlpha = Math.max(0.4, 1 - rot * 0.55);
 
-      // Piringan api tembus pandang menutupi area (bikin tebal & penuh).
-      ctx.fillStyle = "rgba(255, 60, 0, 0.14)";
+      // Piringan api tembus pandang mengikuti busur aktif saat ini.
+      ctx.fillStyle = "rgba(255, 60, 0, 0.18)";
       ctx.beginPath();
-      ctx.arc(sl.x, sl.y, sl.reach * (0.5 + 0.5 * rot), 0, Math.PI * 2);
+      ctx.moveTo(sl.x, sl.y);
+      for (let i = 0; i <= 28; i++) {
+        const t = i / 28;
+        const a = a1 + span * t;
+        ctx.lineTo(sl.x + Math.cos(a) * sl.reach, sl.y + Math.sin(a) * sl.reach);
+      }
+      ctx.closePath();
       ctx.fill();
 
-      // Bilah bara luar (16) tebal, memanjang mengikuti rot.
-      const B = 16;
+      // Bilah bara luar (18) tebal, tersebar di sepanjang busur aktif.
+      const B = 18;
       for (let b = 0; b < B; b++) {
-        const ang = theta + (b / B) * Math.PI * 2;
-        const panj = sl.reach * (0.4 + 0.6 * rot);
+        const a = a1 + span * (b / (B - 1));
+        const panj = sl.reach * (0.45 + 0.55 * rot);
         ctx.save();
         ctx.translate(sl.x, sl.y);
-        ctx.rotate(ang);
-        ctx.fillStyle = "rgba(255, 70, 10, 0.6)";
+        ctx.rotate(a);
+        ctx.fillStyle = "rgba(255, 70, 10, 0.65)";
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(panj * 0.9, -24);
+        ctx.lineTo(panj * 0.9, -30);
         ctx.lineTo(panj, 0);
-        ctx.lineTo(panj * 0.9, 24);
+        ctx.lineTo(panj * 0.9, 30);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
       }
-      // Inti kuning terang (12) tebal di lapisan atas.
-      const B2 = 12;
+      // Inti kuning terang (14) tebal di lapisan atas.
+      const B2 = 14;
       for (let b = 0; b < B2; b++) {
-        const ang = theta + (b / B2) * Math.PI * 2;
-        const panj = sl.reach * (0.26 + 0.45 * rot);
+        const a = a1 + span * (b / (B2 - 1));
+        const panj = sl.reach * (0.28 + 0.45 * rot);
         ctx.save();
         ctx.translate(sl.x, sl.y);
-        ctx.rotate(ang);
+        ctx.rotate(a);
         ctx.fillStyle = "#ffd75f";
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(panj * 0.9, -14);
+        ctx.lineTo(panj * 0.9, -18);
         ctx.lineTo(panj, 0);
-        ctx.lineTo(panj * 0.9, 14);
+        ctx.lineTo(panj * 0.9, 18);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
       }
-      // Sabit ASLI dibesarkan 10x, posisinya MENGORBIT keluar mengitari
-      // pemain (radius bertambah seiring rot) dan berputar 360°.
+      // Sabit ASLI dibesarkan 10x, mengorbit di ujung aktif tebasan.
       if (wSabit) {
-        const orbR = sl.reach * (0.55 + 0.45 * rot);
-        const bx = sl.x + Math.cos(theta) * orbR;
-        const by = sl.y + Math.sin(theta) * orbR;
+        const orbR = sl.reach * (0.6 + 0.4 * rot);
+        const bx = sl.x + Math.cos(tipA) * orbR;
+        const by = sl.y + Math.sin(tipA) * orbR;
         const skalaB = karakter.senjataSkala * 10;
         ctx.save();
         ctx.translate(bx, by);
-        ctx.rotate(theta + Math.PI / 2); // sejajar arah orbit
+        ctx.rotate(tipA + Math.PI / 2); // sejajar arah orbit
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(
           wSabit,
@@ -321,19 +327,151 @@ function draw() {
   // Dirotasi agar ujungnya sejajar arah tembak.
   for (const b of bullets) {
     const ang = Math.atan2(b.vy, b.vx);
-    // Panah pembeku (saat buff aktif) berwarna biru muda.
-    const wTip = b.beku ? "#ffffff" : "#ffffff";
-    const wBadan = b.beku ? "#9fd9ff" : "#d9d9d9";
-    const wEkor = b.beku ? "#5cb0e8" : "#a9a9a9";
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(ang + Math.PI / 2);
-    ctx.fillStyle = wTip;
-    ctx.fillRect(-1, -6, 2, 3);
-    ctx.fillStyle = wBadan;
-    ctx.fillRect(-1, -3, 2, 6);
-    ctx.fillStyle = wEkor;
-    ctx.fillRect(-2, 3, 4, 3);
+    if (b.raksasa) {
+      // PANAH RAKSASA ultimate — ramping, diselimuti aura es berdenyut
+      // (gaya seperti bilah api ultimate Vender).
+      ctx.imageSmoothingEnabled = false;
+      const g = 0.55 + 0.45 * Math.sin(performance.now() / 90);
+
+      // Aura es: pancaran menyebar ke segala arah TAPI tetap lurus sejajar
+      // dengan arah panah — seperti aliran es mengelilingi seluruh panah.
+      // Garis-garis es lurus paralel menyebar di sekeliling panah.
+      for (let i = 0; i < 26; i++) {
+        const ox = ((i * 53 + 17) % 130) - 65; // sebaran kiri-kanan
+        const oy = ((i * 31 + 7) % 170) - 100; // sebaran depan-belakang
+        const len = 40 + 45 * g + (i % 5) * 8;
+        const w = 1.5 + (i % 3);
+        const a = 0.18 + 0.3 * g + ((i * 7) % 3) * 0.08;
+        ctx.fillStyle = "rgba(191, 233, 255, " + a + ")";
+        ctx.fillRect(ox - w / 2, oy, w, len);
+      }
+      // Lapisan pendek lebih terang di antara garis.
+      for (let i = 0; i < 16; i++) {
+        const ox = ((i * 47 + 23) % 110) - 55;
+        const len = 18 + 24 * g;
+        ctx.fillStyle = "rgba(255, 255, 255, " + (0.25 + 0.25 * g) + ")";
+        ctx.fillRect(ox - 1, ((i * 29) % 120) - 60, 2, len);
+      }
+
+      // --- Anak panah raksasa versi "keren" ---
+      // Barb rendah (sayap) di pangkal mata panah.
+      ctx.fillStyle = "#8fd8ff";
+      ctx.beginPath();
+      ctx.moveTo(-18, -58);
+      ctx.lineTo(-32, -36);
+      ctx.lineTo(-16, -26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(18, -58);
+      ctx.lineTo(32, -36);
+      ctx.lineTo(16, -26);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mata panah putih menyala dengan rongga lebih terang.
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(0, -112);
+      ctx.lineTo(-24, -50);
+      ctx.lineTo(0, -34);
+      ctx.lineTo(24, -50);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(180, 230, 255, 0.9)";
+      ctx.beginPath();
+      ctx.moveTo(0, -112);
+      ctx.lineTo(-10, -50);
+      ctx.lineTo(0, -34);
+      ctx.lineTo(10, -50);
+      ctx.closePath();
+      ctx.fill();
+      // Permata inti di pangkal mata panah.
+      ctx.fillStyle = "#eaffff";
+      ctx.beginPath();
+      ctx.moveTo(0, -48);
+      ctx.lineTo(-5, -38);
+      ctx.lineTo(0, -28);
+      ctx.lineTo(5, -38);
+      ctx.closePath();
+      ctx.fill();
+
+      // Badan: panel sisi gelap + permukaan es + alur miring.
+      ctx.fillStyle = "#3f8fc9";
+      ctx.fillRect(-12, -54, 24, 118);
+      ctx.fillStyle = "#7cc9f0";
+      ctx.fillRect(-10, -52, 20, 112);
+      ctx.fillStyle = "#dff4ff";
+      ctx.fillRect(-3, -50, 6, 106);
+      ctx.strokeStyle = "rgba(63, 143, 201, 0.6)";
+      ctx.lineWidth = 2;
+      for (let oy = -44; oy <= 54; oy += 16) {
+        ctx.beginPath();
+        ctx.moveTo(-10, oy);
+        ctx.lineTo(10, oy + 8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(10, oy - 8);
+        ctx.lineTo(-10, oy);
+        ctx.stroke();
+      }
+      // Plasma inti: garis putih menyala + sel Energi kecil.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(-1.5, -50, 3, 106);
+      ctx.fillStyle = "rgba(111, 211, 255, " + (0.5 + 0.5 * g) + ")";
+      for (let oy = -46; oy <= 52; oy += 14) {
+        ctx.fillRect(-2.5, oy, 5, 5);
+      }
+
+      // Bulu ekor bentuk sirip menyapu (lebih kencang/keren).
+      ctx.fillStyle = "#3f8fc9";
+      ctx.beginPath();
+      ctx.moveTo(-8, 60);
+      ctx.lineTo(-30, 66);
+      ctx.lineTo(-26, 96);
+      ctx.lineTo(-8, 88);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(8, 60);
+      ctx.lineTo(30, 66);
+      ctx.lineTo(26, 96);
+      ctx.lineTo(8, 88);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#9fd9ff";
+      ctx.fillRect(-22, 70, 8, 18);
+      ctx.fillRect(14, 70, 8, 18);
+
+      // Outline tegas mengikuti kontur panah (berdenyut) — tegas & jelas.
+      ctx.strokeStyle = "rgba(125, 211, 252, " + (0.3 + 0.3 * g) + ")";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -114);
+      ctx.lineTo(-30, -52);
+      ctx.lineTo(-13, 52);
+      ctx.lineTo(-28, 96);
+      ctx.lineTo(0, 112);
+      ctx.lineTo(28, 96);
+      ctx.lineTo(13, 52);
+      ctx.lineTo(30, -52);
+      ctx.closePath();
+      ctx.stroke();
+    } else {
+      // Panah pembeku (saat buff aktif) berwarna biru muda.
+      const wTip = b.beku ? "#ffffff" : "#ffffff";
+      const wBadan = b.beku ? "#9fd9ff" : "#d9d9d9";
+      const wEkor = b.beku ? "#5cb0e8" : "#a9a9a9";
+      ctx.fillStyle = wTip;
+      ctx.fillRect(-1, -6, 2, 3);
+      ctx.fillStyle = wBadan;
+      ctx.fillRect(-1, -3, 2, 6);
+      ctx.fillStyle = wEkor;
+      ctx.fillRect(-2, 3, 4, 3);
+    }
     ctx.restore();
   }
 
@@ -347,6 +485,32 @@ function draw() {
       ctx.beginPath();
       ctx.arc(player.x, player.y, 24, 0, Math.PI * 2);
       ctx.stroke();
+    }
+    // Aura dingin ultimate: wajah lebih terang & berdenyut.
+    if (player.ultBuff) {
+      const pu = 0.7 + 0.3 * Math.sin(performance.now() / 120);
+      ctx.strokeStyle = "rgba(125, 211, 252, " + (0.85 * pu) + ")";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(191, 233, 255, " + (0.45 * pu) + ")";
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 42, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Preview panah raksasa: bar kecil di BAWAH karakter, terisi saat cooldown.
+    if (player.ultCd > 0 && (player.ultArrows || 0) > 0) {
+      const prog = 1 - player.ultCd / ULT_CHARGE;
+      const bw = 40, bh = 5;
+      const bx = player.x - bw / 2, by = player.y + 26;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle = "#7dd3fc";
+      ctx.fillRect(bx, by, bw * prog, bh);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, bw, bh);
     }
     if (tekstur[karakter.kunci]) {
       gambarPixel(tekstur[karakter.kunci], player.x, player.y, karakter.skala);
@@ -454,6 +618,10 @@ function drawHUD() {
     ctx.fillStyle = "#7dd3fc";
     ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), 450, 86);
   }
+  if (player.ultBuff) {
+    ctx.fillStyle = "#7dd3fc";
+    ctx.fillText("PANAH RAKSASA " + player.ultArrows, 450, 104);
+  }
 
   // Bar cooldown jurus — teksnya berada DI DALAM bar.
   const namaSkill = karakter && karakter.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
@@ -498,5 +666,73 @@ function drawHUD() {
     ctx.font = "bold 11px Zen Dots";
     ctx.fillStyle = "#ffd23f";
     ctx.fillText("ULTIMATE SIAP [R]", 10, 77);
+  }
+
+  // UI dash: lingkaran hitam transparan pojok kanan bawah + logo sepatu.
+  const cx = W - 44, cy = H - 44, R = 30;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Gambar satu sepatu mini (bisa dipakai ulang).
+  const gambarSepatu = (sx, sy, bad, sol, tali) => {
+    ctx.fillStyle = bad;
+    ctx.beginPath();
+    ctx.moveTo(sx - 10, sy + 5);
+    ctx.lineTo(sx - 10, sy - 2);
+    ctx.lineTo(sx - 8, sy - 6);
+    ctx.lineTo(sx - 1, sy - 5);
+    ctx.lineTo(sx + 2, sy + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = sol;
+    ctx.fillRect(sx - 10, sy + 5, 21, 5);
+    ctx.fillStyle = tali;
+    ctx.fillRect(sx - 6, sy - 4, 9, 3);
+    ctx.fillRect(sx - 5, sy - 1, 9, 3);
+  };
+
+  if (player.dashMax > 1) {
+    // Kenzro (2 dash): cooldown tiap dash MANDIRI, angka tampilannya digabung.
+    // Sepatu: normal saat 2 dash siap, agak transparan saat hanya 1.
+    ctx.globalAlpha = player.dashStacks >= 2 ? 1 : player.dashStacks === 1 ? 0.5 : 0.25;
+    // Sepasang sepatu.
+    gambarSepatu(cx - 4, cy, "rgba(125,211,252,0.85)", "#4a9fd8", "#dff4ff");
+    gambarSepatu(cx + 6, cy, "#ffffff", "#9fd9ff", "#7dd3fc");
+    ctx.globalAlpha = 1;
+    // Titik charge di sisi kanan.
+    for (let i = 0; i < player.dashMax; i++) {
+      const px = cx + R - 6, py = cy - 10 + i * 16;
+      ctx.fillStyle = i < player.dashStacks ? "#7dd3fc" : "rgba(255,255,255,0.2)";
+      ctx.beginPath();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Angka gabungan di DALAM sepatu, putih pekat.
+    if (player.dashCd > 0) {
+      ctx.font = "bold 14px Zen Dots";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 7);
+      ctx.textAlign = "left";
+    }
+  } else {
+    // Vender (1 dash): angka bersih di tengah saat cooldown.
+    if (player.dashCd > 0) {
+      ctx.font = "bold 18px Zen Dots";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 7);
+      ctx.textAlign = "left";
+    } else {
+      // Siap: sepatu putih-merah.
+      gambarSepatu(cx, cy, "#ffffff", "#ff4d4d", "#ff2030");
+    }
   }
 }

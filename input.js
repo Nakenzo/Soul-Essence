@@ -53,8 +53,11 @@ canvas.addEventListener("mousemove", (e) => {
   mouse.y = (e.clientY - rect.top) * (H / rect.height);
 });
 
-canvas.addEventListener("mousedown", () => {
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+canvas.addEventListener("mousedown", (e) => {
   mouse.down = true;
+  if (e.button === 2) dashLari();
 });
 
 window.addEventListener("mouseup", () => {

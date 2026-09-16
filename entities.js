@@ -6,9 +6,60 @@
 function attack() {
   if (karakter.tipe === "dekat") {
     slashSwing();
-  } else {
-    shoot();
+    return;
   }
+  // Mode ultimate Kenzro: panah raksasa langsung meluncur, jeda charge
+  // berjalan SETELAH diluncurkan (seperti cooldown).
+  if ((player.ultArrows || 0) > 0) {
+    if (player.ultCd <= 0) {
+      tembakPanahRaksasa(Math.atan2(mouse.y - player.y, mouse.x - player.x));
+      player.ultCd = ULT_CHARGE;
+    }
+    return;
+  }
+  shoot();
+}
+
+// Dash/menghindar: klik kanan, lari cepat + kebal sejenak.
+// Warna efek mengikuti karakter (Vender merah api, Kenzro biru es).
+function dashLari() {
+  if (statusGame !== "main" || !karakter) return;
+  if (player.dashStacks <= 0) return;
+  player.dashStacks--;
+  // Setiap penggunaan dash membuat cooldown MANDIRI 2 dtk (tumpuk tetap).
+  player.dashTimers.push(DASH_CD);
+  player.dashT = DASH_WAKTU;
+  player.invuln = DASH_INVULN;
+  const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
+  // Arah dash = arah gerak tombol (WASD). Kalau diam, ke arah pointer.
+  let dx = 0, dy = 0;
+  if (keys["w"] || keys["arrowup"]) dy -= 1;
+  if (keys["s"] || keys["arrowdown"]) dy += 1;
+  if (keys["a"] || keys["arrowleft"]) dx -= 1;
+  if (keys["d"] || keys["arrowright"]) dx += 1;
+  player.dashAngle = (dx !== 0 || dy !== 0)
+    ? Math.atan2(dy, dx)
+    : Math.atan2(mouse.y - player.y, mouse.x - player.x);
+  spawnParticles(player.x, player.y, dashWarna, 10);
+  rings.push({ x: player.x, y: player.y, r: 14, maxR: 60, life: 0.25, t: 0 });
+}
+
+// Lepas satu panah raksasa (langsung, tanpa menunggu charge).
+function tembakPanahRaksasa(ang) {
+  const speed = 700;
+  bullets.push({
+    x: player.x,
+    y: player.y,
+    vx: Math.cos(ang) * speed,
+    vy: Math.sin(ang) * speed,
+    life: 3.0,
+    beku: false,
+    raksasa: true
+  });
+  player.ultArrows = Math.max(0, player.ultArrows - 1);
+  if (player.ultArrows <= 0) player.ultBuff = false;
+  shake = 0.35;
+  spawnParticles(player.x, player.y, "#7dd3fc", 22);
 }
 
 function shoot() {
@@ -123,16 +174,35 @@ function update(dt) {
   }
 
   let dx = 0, dy = 0;
-  if (keys["w"] || keys["arrowup"]) dy -= 1;
-  if (keys["s"] || keys["arrowdown"]) dy += 1;
-  if (keys["a"] || keys["arrowleft"]) dx -= 1;
-  if (keys["d"] || keys["arrowright"]) dx += 1;
-
-  if (dx !== 0 || dy !== 0) {
-    const len = Math.hypot(dx, dy);
-    player.x += (dx / len) * player.speed * dt;
-    player.y += (dy / len) * player.speed * dt;
-    if (dx !== 0) player.dir = dx < 0 ? -1 : 1;
+  if (player.dashT > 0) {
+    // Sedang dash: gerak cepat mengikuti arah, abaikan tombol gerak.
+    player.dashT -= dt;
+    player.x += Math.cos(player.dashAngle) * DASH_SPEED * dt;
+    player.y += Math.sin(player.dashAngle) * DASH_SPEED * dt;
+    const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
+    if (Math.random() < 0.8) {
+      particles.push({
+        x: player.x,
+        y: player.y,
+        vx: (Math.random() - 0.5) * 40,
+        vy: (Math.random() - 0.5) * 40,
+        life: 0.25,
+        t: 0,
+        size: 3 + Math.random() * 3,
+        color: Math.random() < 0.5 ? dashWarna : (karakter && karakter.tipe === "dekat" ? "#ffd75f" : "#ffffff")
+      });
+    }
+  } else {
+    if (keys["w"] || keys["arrowup"]) dy -= 1;
+    if (keys["s"] || keys["arrowdown"]) dy += 1;
+    if (keys["a"] || keys["arrowleft"]) dx -= 1;
+    if (keys["d"] || keys["arrowright"]) dx += 1;
+    if (dx !== 0 || dy !== 0) {
+      const len = Math.hypot(dx, dy);
+      player.x += (dx / len) * player.speed * dt;
+      player.y += (dy / len) * player.speed * dt;
+      if (dx !== 0) player.dir = dx < 0 ? -1 : 1;
+    }
   }
 
   player.x = Math.max(20, Math.min(W - 20, player.x));
@@ -143,6 +213,24 @@ function update(dt) {
   player.specialBuff = Math.max(0, (player.specialBuff || 0) - dt);
   player.swing = Math.max(0, (player.swing || 0) - dt);
 
+  // UltCd (Kenzro): jeda/charge SETELAH panah raksasa meluncur.
+  player.ultCd = Math.max(0, (player.ultCd || 0) - dt);
+
+  // Dash: tiap charge ber-cooldown MANDIRI. Begitu satu selesai (2 dtk),
+  // dash langsung bisa dipakai walau timer lain masih berjalan.
+  player.invuln = Math.max(0, (player.invuln || 0) - dt);
+  if (player.dashTimers.length) {
+    for (let i = player.dashTimers.length - 1; i >= 0; i--) {
+      player.dashTimers[i] -= dt;
+      if (player.dashTimers[i] <= 0) {
+        player.dashTimers.splice(i, 1);
+        if (player.dashStacks < player.dashMax) player.dashStacks++;
+      }
+    }
+  }
+  // dashCd = tampilan gabungan sisa waktu semua charge.
+  player.dashCd = player.dashTimers.reduce((a, b) => a + b, 0);
+
   if (mouse.down) {
     attack();
   }
@@ -150,6 +238,8 @@ function update(dt) {
   // Peluru
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    b.px = b.x;
+    b.py = b.y;
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
@@ -157,8 +247,8 @@ function update(dt) {
       bullets.splice(i, 1);
       continue;
     }
-    // Panah pembeku: sisakan pecahan es kecil yang cepat hilang (kosmetik).
-    if (b.beku && Math.random() < 0.6) {
+    // Panah pembeku / raksasa: sisakan pecahan es kecil (kosmetik).
+    if ((b.beku || b.raksasa) && Math.random() < 0.6) {
       particles.push({
         x: b.x,
         y: b.y,
@@ -172,15 +262,46 @@ function update(dt) {
     }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
-      if (dist(b.x, b.y, e.x, e.y) < e.r + 4) {
-        e.hp -= karakter.damage;
+      // Hit raksasa: zona besar + cek lintasan (biar tak tembus antar frame).
+      const hitR = b.raksasa ? e.r + 30 : e.r + 4;
+      const hit = b.raksasa
+        ? segDist(b.px, b.py, b.x, b.y, e.x, e.y) < hitR
+        : dist(b.x, b.y, e.x, e.y) < hitR;
+      if (hit) {
+        if (b.raksasa) {
+          // Panah raksasa TIDAK hilang: menembus, tiap kena = ledakan es AoE.
+          if (!b.hitSet) b.hitSet = new Set();
+          const dmg = 100;
+          const impuls = [];
+          for (let k = enemies.length - 1; k >= 0; k--) {
+            const e2 = enemies[k];
+            if (!b.hitSet.has(e2) && dist(e.x, e.y, e2.x, e2.y) <= 90) {
+              impuls.push(e2);
+            }
+          }
+          for (const e2 of impuls) {
+            b.hitSet.add(e2);
+            e2.hp -= dmg;
+            e2.hitFlash = 0.1;
+            e2.freeze = 7;
+            spawnParticles(e2.x, e2.y, "#7dd3fc", 10);
+            spawnDamage(e2.x, e2.y - e2.r - 28, "BEKU 7D", "#7dd3fc");
+            spawnDamage(e2.x, e2.y - e2.r - 8, dmg, "#ffd23f");
+            if (e2.hp <= 0) killEnemy(e2);
+          }
+          rings.push({ x: e.x, y: e.y, r: 12, maxR: 90, life: 0.3, t: 0 });
+          rings.push({ x: e.x, y: e.y, r: 6, maxR: 55, life: 0.25, t: 0 });
+          break;
+        }
+        const dmg = karakter.damage;
+        e.hp -= dmg;
         e.hitFlash = 0.1;
         if (b.beku) {
           e.freeze = karakter.bekuDurasi;
           spawnParticles(e.x, e.y, "#7dd3fc", 8);
           spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
         }
-        spawnDamage(e.x, e.y - e.r - 8, karakter.damage, "#ffd23f");
+        spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
         bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(e);
         break;
@@ -289,7 +410,7 @@ function update(dt) {
       e.y += Math.sin(angle) * e.speed * dt;
     }
 
-    if (dist(e.x, e.y, player.x, player.y) < e.r + 16) {
+    if (dist(e.x, e.y, player.x, player.y) < e.r + 16 && player.invuln <= 0) {
       player.hp -= 20;
       spawnDamage(player.x, player.y - 26, 20, "#ff4d4d");
       shake = 0.3;

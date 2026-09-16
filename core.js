@@ -21,6 +21,15 @@ let errorBanner = null;
 const SOUL_MAX = 50;
 const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5 };
 
+// Durasi charge tiap panah raksasa ultimate Kenzro (detik).
+const ULT_CHARGE = 0.8;
+
+// Sistem dash/menghindar (klik kanan).
+const DASH_CD = 2; // cooldown per charge (detik)
+const DASH_WAKTU = 0.18; // lama dash
+const DASH_SPEED = 620; // kecepatan dash
+const DASH_INVULN = 0.3; // kebal sejenak setelah dash
+
 // ---------- Setup arena ----------
 function resetArena({ skorBaru }) {
   player = {
@@ -33,6 +42,18 @@ function resetArena({ skorBaru }) {
     specialCd: 0,
     specialMax: karakter ? karakter.specialCd : 3,
     specialBuff: 0,
+    // Ultimate panah raksasa (Kenzro).
+    ultBuff: false,
+    ultArrows: 0,
+    ultCd: 0,
+    // Dash/menghindar (klik kanan). Kenzro punya 2 charge, Vender 1.
+    dashMax: karakter && karakter.tipe === "jarak" ? 2 : 1,
+    dashStacks: karakter && karakter.tipe === "jarak" ? 2 : 1,
+    dashTimers: [],
+    dashCd: 0,
+    dashT: 0,
+    dashAngle: 0,
+    invuln: 0,
     dir: -1
   };
   bullets = [];
@@ -86,6 +107,16 @@ function updateBgPartikel(dt) {
 // ---------- Utilitas ----------
 function dist(ax, ay, bx, by) {
   return Math.hypot(ax - bx, ay - by);
+}
+
+// Jarak titik ke ruas garis (untuk deteksi tabrakan lintasan cepat).
+function segDist(sx, sy, ex, ey, px, py) {
+  const dx = ex - sx, dy = ey - sy;
+  const l2 = dx * dx + dy * dy;
+  let t = l2 === 0 ? 0 : ((px - sx) * dx + (py - sy) * dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = sx + t * dx, cy = sy + t * dy;
+  return Math.hypot(px - cx, py - cy);
 }
 
 function spawnParticles(x, y, color, n) {

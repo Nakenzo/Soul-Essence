@@ -52,6 +52,18 @@ function rilisUltimate() {
 // Dispatcher peluncuran ultimate sesuai karakter.
 function lancarkanUltimate() {
   if (karakter.tipe === "dekat") jurusUltimateVender();
+  else jurusUltimateKenzro();
+}
+
+// Kenzro: aura dingin menyala — 3 tembakan berikutnya jadi panah RAKSASA
+// (charge dulu, baru ditembakkan) yang membekukan musuh lama.
+function jurusUltimateKenzro() {
+  player.ultBuff = true;
+  player.ultArrows = 3;
+  player.ultCd = 0;
+  rings.push({ x: player.x, y: player.y, r: 10, maxR: 130, life: 0.45, t: 0 });
+  spawnParticles(player.x, player.y, "#7dd3fc", 26);
+  shake = 0.4;
 }
 
 // Vender: sabit raksasa menebas SELURUH arena dalam satu putaran 360°.
