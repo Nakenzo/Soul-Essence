@@ -137,11 +137,12 @@ function buatPilihanKarakter() {
     cv.width = 48;
     cv.height = 48;
     const c = cv.getContext("2d");
-    c.imageSmoothingEnabled = false;
     if (img && img.width) {
       const s = 48 / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
+      // Perkecil → smoothing agar kartu tidak tampak pecah.
+      c.imageSmoothingEnabled = s < 1;
       c.drawImage(img, (48 - w) / 2, (48 - h) / 2, w, h);
     } else {
       c.fillStyle = "#ff8844";

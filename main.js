@@ -30,11 +30,38 @@ function mulai() {
       KARAKTER.map((k) => ({ kunci: k.kunci, src: k.gambar })),
       KARAKTER.map((k) => ({ kunci: k.senjata, src: k.senjataGambar }))
     )
+    // Frame animasi karakter (idle: 12, jalan: 12) di assets/animasi/<kunci>/.
+// Nama file ber-prefix kunci → unik antar karakter/musuh.
+    .concat(
+      KARAKTER.flatMap((k) => {
+        const daftar = [];
+        for (let i = 0; i < 12; i++) {
+          daftar.push({ kunci: k.kunci + "-idle-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-idle-" + i + ".png" });
+        }
+        for (let i = 0; i < 12; i++) {
+          daftar.push({ kunci: k.kunci + "-walk-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-walk-" + i + ".png" });
+        }
+        return daftar;
+      })
+    )
     .concat([
       { kunci: "musuh", src: "assets/enemies/musuh.png" },
       { kunci: "cepet", src: "assets/enemies/cepet.png" },
       { kunci: "tank", src: "assets/enemies/tank.png" }
-    ]);
+    ])
+    // Frame animasi musuh (idle & jalan: 2 frame) di assets/animasi/<nama>/.
+    .concat(
+      ["musuh", "cepet", "tank"].flatMap((nama) => {
+        const daftar = [];
+        for (let i = 0; i < 2; i++) {
+          daftar.push({ kunci: nama + "-idle-" + i, src: "assets/animasi/" + nama + "/" + nama + "-idle-" + i + ".png" });
+        }
+        for (let i = 0; i < 2; i++) {
+          daftar.push({ kunci: nama + "-walk-" + i, src: "assets/animasi/" + nama + "/" + nama + "-walk-" + i + ".png" });
+        }
+        return daftar;
+      })
+    );
 
   // Texture yang gagal tidak menggagalkan semua — dipakai kotak pengganti.
   const muat = listSrc.map((item) =>

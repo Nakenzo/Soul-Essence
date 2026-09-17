@@ -42,12 +42,12 @@ function dashLari() {
     ? Math.atan2(dy, dx)
     : Math.atan2(mouse.y - player.y, mouse.x - player.x);
   spawnParticles(player.x, player.y, dashWarna, 10);
-  rings.push({ x: player.x, y: player.y, r: 14, maxR: 60, life: 0.25, t: 0 });
+  rings.push({ x: player.x, y: player.y, r: 28, maxR: 120, life: 0.25, t: 0 });
 }
 
 // Lepas satu panah raksasa (langsung, tanpa menunggu charge).
 function tembakPanahRaksasa(ang) {
-  const speed = 1250;
+  const speed = 2500;
   sfxPanahRaksasa();
   // Koridor beku pasif: es muncul PERLAHAN mengikuti posisi anak panah —
   // area ter-render seiring panah melintas, lalu menetap selama beberapa detik.
@@ -67,9 +67,9 @@ function tembakPanahRaksasa(ang) {
     ny: ny,
     px: px,
     py: py,
-    half: 30, // selebar lintasan hit panah (segDist + jangkauan di update).
-    length: tExit + 30,
-    reveal: 40, // panjang koridor yang sudah tampak (ikut maju dengan panah)
+    half: 60, // selebar lintasan hit panah (segDist + jangkauan di update).
+    length: tExit + 60,
+    reveal: 80, // panjang koridor yang sudah tampak (ikut maju dengan panah)
     t: 0,
     life: BEKU_ZONE_LIFE,
     seed: Math.random() * 1000
@@ -96,7 +96,7 @@ function shoot() {
   player.attackCd = karakter.attackRate;
   sfxTembak();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
-  const speed = 420;
+  const speed = 840;
   bullets.push({
     x: player.x,
     y: player.y,
@@ -117,8 +117,8 @@ function slashSwing() {
   player.swing = karakter.swingDuration || 0.2;
   // Efek tebasan muncul dari lokasi bilah sabit (titik orbit senjata),
   // bukan dari pusat karakter.
-  const ox = player.x + Math.cos(angle) * 35;
-  const oy = player.y + Math.sin(angle) * 35;
+  const ox = player.x + Math.cos(angle) * 70;
+  const oy = player.y + Math.sin(angle) * 70;
   slashes.push({
     x: ox,
     y: oy,
@@ -142,10 +142,10 @@ function spawnEnemy() {
 
   let x, y;
   const edge = Math.floor(Math.random() * 4);
-  if (edge === 0) { x = -20; y = Math.random() * H; }
-  else if (edge === 1) { x = W + 20; y = Math.random() * H; }
-  else if (edge === 2) { x = Math.random() * W; y = -20; }
-  else { x = Math.random() * W; y = H + 20; }
+  if (edge === 0) { x = -40; y = Math.random() * H; }
+  else if (edge === 1) { x = W + 40; y = Math.random() * H; }
+  else if (edge === 2) { x = Math.random() * W; y = -40; }
+  else { x = Math.random() * W; y = H + 40; }
 
   const kecepatanMin = def.kecepatan[0];
   const kecepatanMax = def.kecepatan[1];
@@ -174,7 +174,7 @@ function killEnemy(e) {
   const n = DROP_SOUL[e.tipe] || 3;
   for (let k = 0; k < n; k++) {
     const ang = Math.random() * Math.PI * 2;
-    const sp = 40 + Math.random() * 90;
+    const sp = 80 + Math.random() * 180;
     souls.push({
       x: e.x,
       y: e.y,
@@ -216,11 +216,11 @@ function update(dt) {
       particles.push({
         x: player.x,
         y: player.y,
-        vx: (Math.random() - 0.5) * 40,
-        vy: (Math.random() - 0.5) * 40,
+        vx: (Math.random() - 0.5) * 80,
+        vy: (Math.random() - 0.5) * 80,
         life: 0.25,
         t: 0,
-        size: 3 + Math.random() * 3,
+        size: 6 + Math.random() * 6,
         color: Math.random() < 0.5 ? dashWarna : (karakter && karakter.tipe === "dekat" ? "#ffd75f" : "#ffffff")
       });
     }
@@ -239,6 +239,9 @@ function update(dt) {
 
   player.x = Math.max(20, Math.min(W - 20, player.x));
   player.y = Math.max(20, Math.min(H - 20, player.y));
+
+  // Untuk animasi: sedang bergerak (jalan/dash) atau diam (idle).
+  player.gerak = player.dashT > 0 || dx !== 0 || dy !== 0;
 
   player.attackCd -= dt;
   player.specialCd = Math.max(0, player.specialCd - dt);
@@ -281,7 +284,7 @@ function update(dt) {
     }
     // Panah raksasa: perluas koridor beku yang ter-render mengikuti jalurnya.
     if (b.raksasa && b.fz) {
-      const prog = (b.x - b.fz.x0) * b.fz.nx + (b.y - b.fz.y0) * b.fz.ny + 60;
+      const prog = (b.x - b.fz.x0) * b.fz.nx + (b.y - b.fz.y0) * b.fz.ny + 120;
       if (prog > b.fz.reveal) b.fz.reveal = prog;
     }
     // Panah beku biasa: sisakan pecahan es kecil (jejak singkat).
@@ -289,11 +292,11 @@ function update(dt) {
       particles.push({
         x: b.x,
         y: b.y,
-        vx: (Math.random() - 0.5) * 60,
-        vy: (Math.random() - 0.5) * 60,
+        vx: (Math.random() - 0.5) * 120,
+        vy: (Math.random() - 0.5) * 120,
         life: 0.15 + Math.random() * 0.15,
         t: 0,
-        size: 1 + Math.random() * 2,
+        size: 2 + Math.random() * 4,
         color: "#bfe9ff"
       });
     }
@@ -301,20 +304,20 @@ function update(dt) {
     // mengambang di area (jalur koridor) yang dilewatinya.
     if (b.raksasa && Math.random() < 0.9) {
       particles.push({
-        x: b.x + (Math.random() - 0.5) * 12,
-        y: b.y + (Math.random() - 0.5) * 12,
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.5) * 16,
+        x: b.x + (Math.random() - 0.5) * 24,
+        y: b.y + (Math.random() - 0.5) * 24,
+        vx: (Math.random() - 0.5) * 32,
+        vy: (Math.random() - 0.5) * 32,
         life: 0.6 + Math.random() * 0.6,
         t: 0,
-        size: 1.5 + Math.random() * 2,
+        size: 3 + Math.random() * 4,
         color: Math.random() < 0.5 ? "#bfe9ff" : "#d7f2ff"
       });
     }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
       // Hit raksasa: zona besar + cek lintasan (biar tak tembus antar frame).
-      const hitR = b.raksasa ? e.r + 30 : e.r + 4;
+      const hitR = b.raksasa ? e.r + 60 : e.r + 8;
       const hit = b.raksasa
         ? segDist(b.px, b.py, b.x, b.y, e.x, e.y) < hitR
         : dist(b.x, b.y, e.x, e.y) < hitR;
@@ -326,7 +329,7 @@ function update(dt) {
           const impuls = [];
           for (let k = enemies.length - 1; k >= 0; k--) {
             const e2 = enemies[k];
-            if (!b.hitSet.has(e2) && dist(e.x, e.y, e2.x, e2.y) <= 90) {
+            if (!b.hitSet.has(e2) && dist(e.x, e.y, e2.x, e2.y) <= 180) {
               impuls.push(e2);
             }
           }
@@ -337,12 +340,12 @@ function update(dt) {
             e2.freeze = 7;
             sfxBeku();
             spawnParticles(e2.x, e2.y, "#7dd3fc", 10);
-            spawnDamage(e2.x, e2.y - e2.r - 28, "BEKU 7D", "#7dd3fc");
-            spawnDamage(e2.x, e2.y - e2.r - 8, dmg, "#ffd23f");
+            spawnDamage(e2.x, e2.y - e2.r - 56, "BEKU 7D", "#7dd3fc");
+            spawnDamage(e2.x, e2.y - e2.r - 16, dmg, "#ffd23f");
             if (e2.hp <= 0) killEnemy(e2);
           }
-          rings.push({ x: e.x, y: e.y, r: 12, maxR: 90, life: 0.3, t: 0 });
-          rings.push({ x: e.x, y: e.y, r: 6, maxR: 55, life: 0.25, t: 0 });
+          rings.push({ x: e.x, y: e.y, r: 24, maxR: 180, life: 0.3, t: 0 });
+          rings.push({ x: e.x, y: e.y, r: 12, maxR: 110, life: 0.25, t: 0 });
           break;
         }
         const dmg = karakter.damage;
@@ -353,9 +356,9 @@ function update(dt) {
           e.freeze = karakter.bekuDurasi;
           sfxBeku();
           spawnParticles(e.x, e.y, "#7dd3fc", 8);
-          spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
+          spawnDamage(e.x, e.y - e.r - 56, "BEKU", "#7dd3fc");
         }
-        spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
+        spawnDamage(e.x, e.y - e.r - 16, dmg, "#ffd23f");
         bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(e);
         break;
@@ -384,15 +387,15 @@ function update(dt) {
         const fy = sl.y + Math.sin(a) * sl.reach;
         for (let k = 0; k < cnt; k++) {
           const ang = Math.random() * Math.PI * 2;
-          const sp = 45 + Math.random() * 130;
+          const sp = 90 + Math.random() * 260;
           particles.push({
             x: fx,
             y: fy,
             vx: Math.cos(ang) * sp,
-            vy: Math.sin(ang) * sp - 35,
+            vy: Math.sin(ang) * sp - 70,
             life: 0.32 + Math.random() * 0.3,
             t: 0,
-            size: 3.5 + Math.random() * 4.5,
+            size: 7 + Math.random() * 9,
             color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
           });
         }
@@ -415,10 +418,10 @@ function update(dt) {
         // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
         if (sl.skill && e.hp > 0) {
           e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
-          spawnDamage(e.x, e.y - e.r - 28, "TERBAKAR", "#ff8c3f");
+          spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         }
-        e.x += Math.cos(sl.angle) * 30;
-        e.y += Math.sin(sl.angle) * 30;
+        e.x += Math.cos(sl.angle) * 60;
+        e.y += Math.sin(sl.angle) * 60;
         spawnParticles(e.x, e.y, "#ff8c3f", 8);
         if (e.hp <= 0) killEnemy(e);
       }
@@ -437,11 +440,11 @@ function update(dt) {
       particles.push({
         x: fl.x + (Math.random() - 0.5) * fl.radius * 1.4,
         y: fl.y + (Math.random() - 0.5) * fl.radius,
-        vx: (Math.random() - 0.5) * 30,
-        vy: -40 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 60,
+        vy: -80 - Math.random() * 120,
         life: 0.35 + Math.random() * 0.3,
         t: 0,
-        size: 3 + Math.random() * 4,
+        size: 6 + Math.random() * 8,
         color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
       });
     }
@@ -449,7 +452,7 @@ function update(dt) {
     for (const e of enemies) {
       if (!e.burn && dist(fl.x, fl.y, e.x, e.y) < fl.radius * 0.8 + e.r) {
         e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: 1 };
-        spawnDamage(e.x, e.y - e.r - 28, "TERBAKAR", "#ff8c3f");
+        spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         spawnParticles(e.x, e.y, "#ff8c3f", 6);
       }
     }
@@ -467,13 +470,13 @@ function update(dt) {
       const dx = e.x - fz.x0;
       const dy = e.y - fz.y0;
       const seg = dx * fz.nx + dy * fz.ny;
-      if (seg > -10 && seg < effLen + 10) {
+      if (seg > -20 && seg < effLen + 20) {
         const off = dx * fz.px + dy * fz.py;
         if (Math.abs(off) < fz.half + e.r) {
           const sisa = fz.life - fz.t;
           if (sisa > (e.freeze || 0)) {
             e.freeze = sisa;
-            spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
+            spawnDamage(e.x, e.y - e.r - 56, "BEKU", "#7dd3fc");
             spawnParticles(e.x, e.y, "#bfe9ff", 6);
           }
         }
@@ -504,7 +507,7 @@ function update(dt) {
         e.burn.timer -= e.burn.tick;
         e.hp -= e.burn.dmg;
         e.hitFlash = 0.1;
-        spawnDamage(e.x, e.y - e.r - 8, e.burn.dmg, "#ff8c3f");
+        spawnDamage(e.x, e.y - e.r - 16, e.burn.dmg, "#ff8c3f");
       }
       e.burn.durasi -= dt;
       if (e.burn.durasi <= 0) e.burn = null;
@@ -520,9 +523,9 @@ function update(dt) {
       e.y += Math.sin(angle) * e.speed * dt;
     }
 
-    if (dist(e.x, e.y, player.x, player.y) < e.r + 16 && player.invuln <= 0) {
+    if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0) {
       player.hp -= 20;
-      spawnDamage(player.x, player.y - 26, 20, "#ff4d4d");
+      spawnDamage(player.x, player.y - 52, 20, "#ff4d4d");
       sfxPemainKena();
       hurtVig = 0.9;
       shake = 0.3;
@@ -563,14 +566,14 @@ function update(dt) {
   for (let i = damages.length - 1; i >= 0; i--) {
     const dm = damages[i];
     dm.t += dt;
-    dm.y -= 30 * dt;
+    dm.y -= 60 * dt;
     if (dm.t >= dm.life) damages.splice(i, 1);
   }
 
   for (let i = rings.length - 1; i >= 0; i--) {
     const r = rings[i];
     r.t += dt;
-    r.r = 10 + (r.maxR - 10) * (r.t / r.life);
+    r.r = 20 + (r.maxR - 20) * (r.t / r.life);
     if (r.t >= r.life) rings.splice(i, 1);
   }
 
@@ -579,17 +582,17 @@ function update(dt) {
     const s = souls[i];
     s.t += dt;
     const d = dist(s.x, s.y, player.x, player.y);
-    if (d < 90) {
+    if (d < 180) {
       const ang = Math.atan2(player.y - s.y, player.x - s.x);
-      s.vx += Math.cos(ang) * 300 * dt;
-      s.vy += Math.sin(ang) * 300 * dt;
+      s.vx += Math.cos(ang) * 600 * dt;
+      s.vy += Math.sin(ang) * 600 * dt;
     } else {
       s.vx *= 0.96;
       s.vy *= 0.96;
     }
     s.x += s.vx * dt;
     s.y += s.vy * dt;
-    if (d < 13) {
+    if (d < 26) {
       if (soul < SOUL_MAX) {
         soul += 1;
         sfxSoul();

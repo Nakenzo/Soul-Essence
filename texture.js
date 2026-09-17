@@ -26,6 +26,9 @@ function gambarPixel(img, px, py, skala) {
   }
   const w = img.width * skala;
   const h = img.height * skala;
-  ctx.imageSmoothingEnabled = false;
+  // Perkecil (mis. PNG 64x64 dimuat di skala 0.5 -> 32px):
+  // pakai smoothing agar tidak "pecah". Ukuran asli/naik tetap nearest agar tajam.
+  ctx.imageSmoothingEnabled = w < img.width || h < img.height;
+  if (ctx.imageSmoothingEnabled) ctx.imageSmoothingQuality = "medium";
   ctx.drawImage(img, px - w / 2, py - h / 2, w, h);
 }

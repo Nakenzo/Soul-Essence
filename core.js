@@ -37,7 +37,8 @@ const BEKU_ZONE_LIFE = 6;
 // Sistem dash/menghindar (klik kanan).
 const DASH_CD = 2; // cooldown per charge (detik)
 const DASH_WAKTU = 0.18; // lama dash
-const DASH_SPEED = 620; // kecepatan dash
+// World 1280x960: kecepatan px/detik digandakan agar terasa sama.
+const DASH_SPEED = 1240; // kecepatan dash
 const DASH_INVULN = 0.3; // kebal sejenak setelah dash
 
 // ---------- Setup arena ----------
@@ -101,8 +102,8 @@ function buatBgPartikel() {
     bgPartikels.push({
       x: Math.random() * W,
       y: Math.random() * H,
-      size: 1 + Math.random() * 2,
-      speed: 8 + Math.random() * 18,
+      size: 2 + Math.random() * 2,
+      speed: 16 + Math.random() * 24,
       alpha: 0.15 + Math.random() * 0.4
     });
   }
@@ -136,7 +137,7 @@ function segDist(sx, sy, ex, ey, px, py) {
 function spawnParticles(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 40 + Math.random() * 120;
+    const speed = 80 + Math.random() * 240;
     particles.push({
       x: x,
       y: y,
@@ -144,7 +145,7 @@ function spawnParticles(x, y, color, n) {
       vy: Math.sin(angle) * speed,
       life: 0.4 + Math.random() * 0.3,
       t: 0,
-      size: 2 + Math.random() * 3,
+      size: 4 + Math.random() * 6,
       color: color
     });
   }

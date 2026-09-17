@@ -1,9 +1,18 @@
 // Membuat tekstur PNG pixel art untuk game Pixel Strike.
 // Jalankan: node buat-asset.js
 // Struktur folder assets/:
-//   characters/  ← gambar karakter pemain
-//   weapons/     ← gambar senjata
-//   enemies/     ← gambar musuh
+//   characters/  ← gambar dasar karakter (kenzro.png, rin.png) — 64×64
+//   weapons/     ← gambar senjata (dikelola manual, TIDAK dibuat di sini)
+//   enemies/     ← gambar dasar musuh (musuh.png, cepet.png, tank.png)
+//   animasi/     ← frame animasi per entity:
+//     <kunci>/<kunci>-idle-<i>.png   frame idle (12 karakter / 2 musuh)
+//     <kunci>/<kunci>-walk-<i>.png   frame jalan (12 karakter / 2 musuh)
+// Karakter PNG 64x64 tapi di layar 32px (config skala 0.5).
+// NAMA FILE memakai prefix <kunci> (kenzro, rin, musuh, cepet, tank) sehingga
+// unik global — meski folder di-flatten/tercampur, tidak pernah ketimpa antar
+// karakter/musuh. Contoh: assets/animasi/kenzro/kenzro-walk-0.png.
+// Versi buatan sendiri: ganti/isi PNG dengan nama persis sama (ukurannya
+// menyesuaikan file lama) lalu reload game — tidak perlu ubah kode.
 // Ganti palet/sprite lalu jalankan ulang untuk membuat ulang PNG.
 
 const zlib = require("zlib");
@@ -106,11 +115,17 @@ function perbesar2(sprite) {
   return hasil;
 }
 
+// Naikkan 4x (perbesar 2× dua kali) — dipakai untuk karakter pemain
+// agar hitbox di layar menjadi 64×64 px.
+function perbesar4(sprite) {
+  return perbesar2(perbesar2(sprite));
+}
+
 // ============================================================
 // PALETTE
 // ============================================================
 // 0 = transparan
-const KENJI_PAL = {
+const KENZRO_PAL = {
   0: [0, 0, 0, 0],
   1: [58, 160, 255, 255],   // badan biru
   2: [232, 213, 176, 255],  // kulit
@@ -172,7 +187,7 @@ const PEDANG_PAL = {
 // ============================================================
 
 // Karakter 16x16 (desain semula — kesatria)
-const KENJI_SPRITE = [
+const KENZRO_SPRITE = [
   [0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0],
   [0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0],
   [0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0],
@@ -191,7 +206,7 @@ const KENJI_SPRITE = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
-const RIN_SPRITE = KENJI_SPRITE;
+const RIN_SPRITE = KENZRO_SPRITE;
 
 const MUSUH_SPRITE = [
   [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
@@ -267,12 +282,97 @@ const PEDANG_SPRITE = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
 ];
 
+// ---------- Frame animasi ----------
+// Animasi dibangun dari sprite dasar (tanpa menggambar manual):
+//   * Frame DIP       : seluruh badan bergeser 1px ke bawah → napas/bob.
+//   * Karakter jalan  : DIP + telapak kaki digeser kiri/kanan → langkah.
+//   * Blob (musuh)    : idle & jalan sama (DIP) → efek memantul.
+function copySprite(s) {
+  return s.map((r) => r.slice());
+}
+
+function geserTegak(s, dy) {
+  const L = s.length;
+  const W = s[0].length;
+  const hasil = [];
+  for (let y = 0; y < L; y++) hasil.push(Array(W).fill(0));
+  for (let y = 0; y < L; y++) {
+    const ny = y + dy;
+    if (ny >= 0 && ny < L) {
+      for (let x = 0; x < W; x++) hasil[ny][x] = s[y][x];
+    }
+  }
+  return hasil;
+}
+
+function geserMendatar(s, dx, dari, sampai) {
+  const W = s[0].length;
+  const hasil = s.map((r) => r.slice());
+  for (let y = dari; y <= sampai; y++) {
+    const lama = hasil[y].slice();
+    for (let x = 0; x < W; x++) {
+      const nx = x + dx;
+      hasil[y][x] = nx >= 0 && nx < W ? lama[nx] : 0;
+    }
+  }
+  return hasil;
+}
+
+function frameKarakter(s) {
+  const dasar = copySprite(s);
+  const dip = geserTegak(s, 1);
+  // Posisi kaki: baris 13 (kaki) & 14 (sepatu) di dasar;
+  // setelah DIP pindah ke 14–15.
+  const kakiKiri  = geserMendatar(dasar, -1, 13, 14); // langkah kiri (tengah)
+  const kakiKanan = geserMendatar(dasar, 1, 13, 14);  // langkah kanan (tengah)
+  const tumpuKiri = geserMendatar(dip, -1, 14, 15);   // langkah kiri + bob turun
+  const tumpuKanan = geserMendatar(dip, 1, 14, 15);   // langkah kanan + bob turun
+  // Walk 12 frame: kiri (2) → tumpuan kiri (2) → berdiri (2) → kanan (2) →
+// tumpuan kanan (2) → berdiri (2). Setiap pose di-hold 2 frame agar halus.
+  // Idle 12 frame: napas halus (bobot naik-turun 0..2) berulang 3×.
+  const idleBob = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1];
+  return {
+    idle: idleBob.map((dy) => geserTegak(s, dy)),
+    walk: [
+      kakiKiri, kakiKiri, tumpuKiri, tumpuKiri,
+      dasar, dasar,
+      kakiKanan, kakiKanan, tumpuKanan, tumpuKanan,
+      dasar, dasar
+    ]
+  };
+}
+
+function frameBlob(s) {
+  const dasar = copySprite(s);
+  const dip = geserTegak(s, 1);
+  return { idle: [dasar, dip], walk: [dasar, dip] };
+}
+
+function simpanFrames(subfolder, nama, frames, pal, skala = 2) {
+  const perbesar = skala === 4 ? perbesar4 : perbesar2;
+  for (const state of Object.keys(frames)) {
+    frames[state].forEach((spr, i) => {
+      simpan(subfolder, nama + "-" + state + "-" + i + ".png", perbesar(spr), pal);
+    });
+  }
+}
+
 // ---------- Buat semua file ----------
 // NOTE: panah.png & pedang.png TIDAK dibuat di sini — kedua senjata
 // dikelola manual oleh pemilik proyek. Jangan dihasilkan/timpa oleh script ini!
-// Karakter disimpan 32x32 (16x16 diperbesar 2x), tampil ~32px (config skala 1).
-simpan("characters", "kenji.png", perbesar2(KENJI_SPRITE), KENJI_PAL);
-simpan("characters", "rin.png", perbesar2(RIN_SPRITE), RIN_PAL);
-simpan("enemies", "musuh.png", perbesar2(MUSUH_SPRITE), MUSUH_PAL);
-simpan("enemies", "cepet.png", perbesar2(CEPET_SPRITE), CEPET_PAL);
-simpan("enemies", "tank.png", perbesar2(TANK_SPRITE), TANK_PAL);
+// Karakter disimpan 64x64 (16x16 diperbesar 4x), tapi di layar ditampilkan
+// 32px penampilan seperti semula (config skala 0.5).
+simpan("characters", "kenzro.png", perbesar4(KENZRO_SPRITE), KENZRO_PAL);
+  simpan("characters", "rin.png", perbesar4(RIN_SPRITE), RIN_PAL);
+  // Musuh juga 64px native (16x16 -> 4x), canvas 1280x960 pixel-perfect.
+  simpan("enemies", "musuh.png", perbesar4(MUSUH_SPRITE), MUSUH_PAL);
+  simpan("enemies", "cepet.png", perbesar4(CEPET_SPRITE), CEPET_PAL);
+  simpan("enemies", "tank.png", perbesar4(TANK_SPRITE), TANK_PAL);
+
+// ---- Frame animasi (idle + jalan) ke assets/animasi/<nama>/ ----
+// Karakter = skala 4 (64x64 PNG, idle 2 frame); musuh = skala 2 (32x?…).
+simpanFrames("animasi/kenzro", "kenzro", frameKarakter(KENZRO_SPRITE), KENZRO_PAL, 4);
+  simpanFrames("animasi/rin", "rin", frameKarakter(RIN_SPRITE), RIN_PAL, 4);
+  simpanFrames("animasi/musuh", "musuh", frameBlob(MUSUH_SPRITE), MUSUH_PAL, 4);
+  simpanFrames("animasi/cepet", "cepet", frameBlob(CEPET_SPRITE), CEPET_PAL, 4);
+  simpanFrames("animasi/tank", "tank", frameBlob(TANK_SPRITE), TANK_PAL, 4);

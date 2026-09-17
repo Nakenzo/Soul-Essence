@@ -5,24 +5,25 @@
 
 // Tipe musuh. Semua memakai sprite musuh.png; bedanya lewat ukuran,
 // kecepatan, pengali HP, dan warna aura/HP bar.
+// r digandakan mengikuti world 1280x960; skala musuh: 1 (art native 64px).
 const TIPE_MUSUH = {
-  biasa: { kunci: "musuh", r: 12, skala: 1, hpKali: 1, kecepatanKali: 1, warna: "#ff4d4d" },
-  cepet: { kunci: "cepet", r: 9, skala: 0.75, hpKali: 0.6, kecepatanKali: 1.45, warna: "#4dc3ff" },
-  tank: { kunci: "tank", r: 16, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" }
+  biasa: { kunci: "musuh", r: 24, skala: 1, hpKali: 1, kecepatanKali: 1, warna: "#ff4d4d" },
+  cepet: { kunci: "cepet", r: 18, skala: 0.75, hpKali: 0.6, kecepatanKali: 1.45, warna: "#4dc3ff" },
+  tank: { kunci: "tank", r: 32, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" }
 };
 
 // campur: bobot tiap tipe musuh di level itu (tinggi bobot = makin sering).
 const LEVELS = [
-  { jumlah: 6, hp: 25, kecepatan: [40, 80], campur: { biasa: 1 }, jedaSpawn: 1.4 },
-  { jumlah: 8, hp: 30, kecepatan: [45, 85], campur: { biasa: 0.8, cepet: 0.2 }, jedaSpawn: 1.3 },
-  { jumlah: 10, hp: 36, kecepatan: [50, 90], campur: { biasa: 0.7, cepet: 0.25, tank: 0.05 }, jedaSpawn: 1.2 },
-  { jumlah: 12, hp: 45, kecepatan: [55, 95], campur: { biasa: 0.65, cepet: 0.25, tank: 0.1 }, jedaSpawn: 1.1 },
-  { jumlah: 14, hp: 55, kecepatan: [60, 100], campur: { biasa: 0.6, cepet: 0.25, tank: 0.15 }, jedaSpawn: 1.0 },
-  { jumlah: 16, hp: 65, kecepatan: [65, 105], campur: { biasa: 0.55, cepet: 0.28, tank: 0.17 }, jedaSpawn: 0.9 },
-  { jumlah: 18, hp: 75, kecepatan: [70, 115], campur: { biasa: 0.5, cepet: 0.3, tank: 0.2 }, jedaSpawn: 0.85 },
-  { jumlah: 20, hp: 85, kecepatan: [75, 120], campur: { biasa: 0.45, cepet: 0.3, tank: 0.25 }, jedaSpawn: 0.8 },
-  { jumlah: 22, hp: 95, kecepatan: [80, 130], campur: { biasa: 0.4, cepet: 0.32, tank: 0.28 }, jedaSpawn: 0.75 },
-  { jumlah: 26, hp: 110, kecepatan: [90, 140], campur: { biasa: 0.35, cepet: 0.35, tank: 0.3 }, jedaSpawn: 0.7 }
+  { jumlah: 6, hp: 25, kecepatan: [80, 160], campur: { biasa: 1 }, jedaSpawn: 1.4 },
+  { jumlah: 8, hp: 30, kecepatan: [90, 170], campur: { biasa: 0.8, cepet: 0.2 }, jedaSpawn: 1.3 },
+  { jumlah: 10, hp: 36, kecepatan: [100, 180], campur: { biasa: 0.7, cepet: 0.25, tank: 0.05 }, jedaSpawn: 1.2 },
+  { jumlah: 12, hp: 45, kecepatan: [110, 190], campur: { biasa: 0.65, cepet: 0.25, tank: 0.1 }, jedaSpawn: 1.1 },
+  { jumlah: 14, hp: 55, kecepatan: [120, 200], campur: { biasa: 0.6, cepet: 0.25, tank: 0.15 }, jedaSpawn: 1.0 },
+  { jumlah: 16, hp: 65, kecepatan: [130, 210], campur: { biasa: 0.55, cepet: 0.28, tank: 0.17 }, jedaSpawn: 0.9 },
+  { jumlah: 18, hp: 75, kecepatan: [140, 230], campur: { biasa: 0.5, cepet: 0.3, tank: 0.2 }, jedaSpawn: 0.85 },
+  { jumlah: 20, hp: 85, kecepatan: [150, 240], campur: { biasa: 0.45, cepet: 0.3, tank: 0.25 }, jedaSpawn: 0.8 },
+  { jumlah: 22, hp: 95, kecepatan: [160, 260], campur: { biasa: 0.4, cepet: 0.32, tank: 0.28 }, jedaSpawn: 0.75 },
+  { jumlah: 26, hp: 110, kecepatan: [180, 280], campur: { biasa: 0.35, cepet: 0.35, tank: 0.3 }, jedaSpawn: 0.7 }
 ];
 
 // Pilih tipe musuh dengan pemberatan campur level.

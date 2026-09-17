@@ -7,18 +7,19 @@
 // ============================================================
 const KARAKTER = [
   {
-    kunci: "kenji",
+    kunci: "kenzro",
     nama: "Kenzro",
     deskripsi: "Pemanah - jarak jauh",
-    gambar: "assets/characters/kenji.png",
+    gambar: "assets/characters/kenzro.png",
     senjata: "panah",
     senjataGambar: "assets/weapons/panah.png",
+    // PNG 64x64 native 1:1 (canvas 1280x960 pixel-perfect).
     skala: 1,
     // panah.png milik pemilik proyek, canvas 64x64 (isi 40x64).
-    // Skala 0.5 agar di layar tetap 20x32 seperti sebelumnya.
-    senjataSkala: 0.5,
+    // Skala 1 agar senjata tampil native mengikuti karakter 64x64.
+    senjataSkala: 1,
     hp: 100,
-    kecepatan: 180,
+    kecepatan: 360,
     attackRate: 0.18,
     damage: 25,
     reach: 0,
@@ -29,7 +30,7 @@ const KARAKTER = [
     specialCd: 9,
     buffDurasi: 5,
     bekuDurasi: 1,
-    specialRadius: 170,
+    specialRadius: 340,
     specialDmg: 100,
     tipe: "jarak"
   },
@@ -40,14 +41,16 @@ const KARAKTER = [
     gambar: "assets/characters/rin.png",
     senjata: "pedang",
     senjataGambar: "assets/weapons/pedang.png",
+    // PNG 64x64 native 1:1 (canvas 1280x960 pixel-perfect).
     skala: 1,
-    // sabit 80x24 milik pemilik proyek; skala 0.5 -> di layar 40x12.
-    senjataSkala: 0.5,
+    // sabit 80x24 milik pemilik proyek; skala 1 -> native 80x24.
+    senjataSkala: 1,
     hp: 120,
-    kecepatan: 200,
+    kecepatan: 400,
     attackRate: 0.35,
     damage: 50,
-    reach: 45,
+    // World 2x: jangkauan tebasan ikut membesar (semula 45).
+    reach: 90,
     halfArc: 1.05,
     // Dibesarkan agar animasi tebasan pas dengan durasi suara sabit (~0.28s).
     swingDuration: 0.28,
@@ -56,7 +59,7 @@ const KARAKTER = [
     rot: Math.PI / 2 - Math.PI / 18,
     // Jurus Vender: tebasan besar; cooldown sama panjang dengan Kenzro.
     specialCd: 9,
-    specialRadius: 200,
+    specialRadius: 400,
     specialDmg: 60,
     tipe: "dekat"
   }

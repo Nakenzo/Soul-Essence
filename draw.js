@@ -21,7 +21,9 @@ function gambarSenjata() {
     Math.round(player.x + Math.cos(angle) * jarak),
     Math.round(player.y + Math.sin(angle) * jarak)
   );
-  ctx.imageSmoothingEnabled = false;
+  // Perkecil (PNG besar diperkecil di genggaman) → smoothing agar tidak pecah.
+  ctx.imageSmoothingEnabled = w < img.width || h < img.height;
+  if (ctx.imageSmoothingEnabled) ctx.imageSmoothingQuality = "medium";
   let rotTotal = angle + (karakter.rot || 0);
   // Saat menyerang, sabit ikut menyapu dari ujung start ke ujung end.
   if ((player.swing || 0) > 0 && karakter.halfArc > 0) {
@@ -351,8 +353,17 @@ function draw() {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-// Sprite sesuai tipe: musuh.png / cepet.png / tank.png.
-    const imgMusuh = tekstur[e.kunci] || tekstur.musuh;
+// Sprite + animasi sesuai tipe: musuh/cepet/tank.
+    // Beku → diam (idle frame 0); bergerak → goyang memantul (2 frame).
+    const tAnim = performance.now() / 1000;
+    let imgMusuh;
+    if (e.freeze > 0) {
+      imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci] || tekstur.musuh;
+    } else {
+      const phase = Math.abs(e.x * 3.1 + e.y * 1.7);
+      const idxF = Math.floor((tAnim + phase) * 6) % 2;
+      imgMusuh = tekstur[e.kunci + "-walk-" + idxF] || tekstur[e.kunci] || tekstur.musuh;
+    }
     if (imgMusuh) {
       gambarPixel(imgMusuh, e.x, e.y, e.skala || 1);
     }
@@ -599,6 +610,7 @@ function draw() {
       // bodi pendek-padat — tanpa ekor panjang (jejaknya koridor beku).
       ctx.imageSmoothingEnabled = false;
       ctx.save();
+      ctx.scale(2, 2);
       ctx.globalCompositeOperation = "lighter";
 
       // Aura pendar membungkus anak panah.
@@ -698,11 +710,11 @@ function draw() {
       const wBadan = b.beku ? "#9fd9ff" : "#d9d9d9";
       const wEkor = b.beku ? "#5cb0e8" : "#a9a9a9";
       ctx.fillStyle = wTip;
-      ctx.fillRect(-1, -6, 2, 3);
+      ctx.fillRect(-2, -12, 4, 6);
       ctx.fillStyle = wBadan;
-      ctx.fillRect(-1, -3, 2, 6);
+      ctx.fillRect(-2, -6, 4, 12);
       ctx.fillStyle = wEkor;
-      ctx.fillRect(-2, 3, 4, 3);
+      ctx.fillRect(-4, 6, 8, 6);
     }
     ctx.restore();
   }
@@ -715,7 +727,7 @@ function draw() {
       ctx.strokeStyle = "rgba(125, 211, 252, 0.7)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(player.x, player.y, 24, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, 48, 0, Math.PI * 2);
       ctx.stroke();
     }
     // Aura dingin ultimate: wajah lebih terang & berdenyut.
@@ -724,11 +736,11 @@ function draw() {
       ctx.strokeStyle = "rgba(125, 211, 252, " + (0.85 * pu) + ")";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, 60, 0, Math.PI * 2);
       ctx.stroke();
       ctx.strokeStyle = "rgba(191, 233, 255, " + (0.45 * pu) + ")";
       ctx.beginPath();
-      ctx.arc(player.x, player.y, 42, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, 84, 0, Math.PI * 2);
       ctx.stroke();
     }
     // Preview panah raksasa: bar kecil di BAWAH karakter, terisi saat cooldown.
@@ -745,7 +757,15 @@ function draw() {
       ctx.strokeRect(bx, by, bw, bh);
     }
     if (tekstur[karakter.kunci]) {
-      gambarPixel(tekstur[karakter.kunci], player.x, player.y, karakter.skala);
+      // Animasi karakter: diam = IDLE (2 frame, napas pelan),
+      // bergerak = JALAN (4 frame langkah). Frame dipilih dari waktu global.
+      const tAnim = performance.now() / 1000;
+      const modeP = player.gerak ? "walk" : "idle";
+      const jmlF = 12;
+      const fpsF = player.gerak ? 12 : 4;
+      const idxF = Math.floor(tAnim * fpsF) % jmlF;
+      const imgA = tekstur[karakter.kunci + "-" + modeP + "-" + idxF] || tekstur[karakter.kunci];
+      gambarPixel(imgA, player.x, player.y, karakter.skala);
     }
   }
 
@@ -761,18 +781,18 @@ function draw() {
     const pulse = 0.6 + 0.4 * Math.sin(s.t * 6);
     ctx.globalAlpha = 0.35 * pulse;
     ctx.fillStyle = "#7cff5e";
-    ctx.fillRect(s.x - 4, s.y - 4, 8, 8);
+    ctx.fillRect(s.x - 8, s.y - 8, 16, 16);
     ctx.globalAlpha = pulse;
-    ctx.fillRect(s.x - 2, s.y - 2, 4, 4);
+    ctx.fillRect(s.x - 4, s.y - 4, 8, 8);
   }
   ctx.globalAlpha = 1;
 
   // Angka damage melayang: kuning = ke musuh, merah = ke karakter.
   for (const dm of damages) {
     ctx.globalAlpha = 1 - dm.t / dm.life;
-    ctx.font = "bold 14px Zen Dots";
+    ctx.font = "bold 28px Zen Dots";
     ctx.textAlign = "center";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 6;
     ctx.strokeStyle = "#000";
     ctx.strokeText(dm.teks, dm.x, dm.y);
     ctx.fillStyle = dm.warna;
@@ -1318,77 +1338,77 @@ function gambarApiEs(px, py, pw, ph, t, freezeProgress = 1.0) {
 
 function drawHUD() {
   ctx.fillStyle = "#000";
-  ctx.fillRect(10, 10, 132, 14);
+  ctx.fillRect(20, 20, 264, 28);
   ctx.fillStyle = "#4ade80";
-  ctx.fillRect(12, 12, 128 * (player.hp / player.maxHp), 10);
+  ctx.fillRect(24, 24, 256 * (player.hp / player.maxHp), 20);
   ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(10.5, 10.5, 131, 13);
+  ctx.lineWidth = 2;
+  ctx.strokeRect(21, 21, 262, 26);
 
   // Angka HP di dalam bar: "HP sekarang / HP maks".
   // Warna teks menyesuaikan latar: di atas hijau → hitam, di luar hijau → putih.
   ctx.save();
-  ctx.font = "bold 10px Zen Dots";
+  ctx.font = "bold 20px Zen Dots";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const hpEdge = 12 + 128 * (player.hp / player.maxHp);
-  ctx.fillStyle = hpEdge >= 76 ? "#000" : "#fff";
-  ctx.fillText(`${Math.round(player.hp)}/${player.maxHp}`, 76, 17.5);
+  const hpEdge = 24 + 256 * (player.hp / player.maxHp);
+  ctx.fillStyle = hpEdge >= 152 ? "#000" : "#fff";
+  ctx.fillText(`${Math.round(player.hp)}/${player.maxHp}`, 152, 35);
   ctx.restore();
 
-  ctx.font = "14px Zen Dots";
+  ctx.font = "28px Zen Dots";
   ctx.fillStyle = "#fff";
-  ctx.fillText("HP", 146, 23);
+  ctx.fillText("HP", 296, 45);
 
   // Kotak info kanan atas: nama karakter, level, sisa musuh.
   ctx.fillStyle = "#000";
-  ctx.fillRect(440, 10, 190, 62);
+  ctx.fillRect(880, 20, 380, 200);
   ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(440.5, 10.5, 189, 61);
-  ctx.font = "bold 14px Zen Dots";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(881, 21, 378, 198);
+  ctx.font = "bold 28px Zen Dots";
   if (karakter) {
     ctx.fillStyle = "#fff";
-    ctx.fillText(karakter.nama.toUpperCase(), 450, 28);
+    ctx.fillText(karakter.nama.toUpperCase(), 900, 56);
   }
   ctx.fillStyle = "#ffd23f";
-  ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, 450, 48);
+  ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, 900, 96);
   const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#fff";
-  ctx.fillText("MUSUH " + sisa, 450, 66);
+  ctx.fillText("MUSUH " + sisa, 900, 132);
 
   if (player.specialBuff > 0) {
     ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), 450, 86);
+    ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), 900, 172);
   }
   if (player.ultBuff) {
     ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("PANAH RAKSASA " + player.ultArrows, 450, 104);
+    ctx.fillText("PANAH RAKSASA " + player.ultArrows, 900, 208);
   }
 
   // Bar cooldown jurus — teksnya berada DI DALAM bar.
   const namaSkill = karakter && karakter.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
   const warnaSkill = karakter && karakter.tipe === "jarak" ? "#7dd3fc" : "#ffd23f";
   ctx.fillStyle = "#000";
-  ctx.fillRect(10, 32, 132, 14);
+  ctx.fillRect(20, 64, 264, 28);
   const ratio = 1 - player.specialCd / player.specialMax;
   ctx.fillStyle = warnaSkill;
-  ctx.fillRect(12, 34, 128 * ratio, 10);
-  ctx.font = "bold 11px Zen Dots";
+  ctx.fillRect(24, 68, 256 * ratio, 20);
+  ctx.font = "bold 22px Zen Dots";
   if (player.specialCd > 0) {
     // Sedang cooldown: angka sisa detik di sisi kanan dalam bar.
     ctx.textAlign = "right";
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
-    ctx.strokeText(player.specialCd.toFixed(1), 138, 43);
+    ctx.strokeText(player.specialCd.toFixed(1), 280, 86);
     ctx.fillStyle = "#fff";
-    ctx.fillText(player.specialCd.toFixed(1), 138, 43);
+    ctx.fillText(player.specialCd.toFixed(1), 280, 86);
     ctx.textAlign = "left";
   } else {
     // Siap dipakai: nama skill di tengah bar.
     ctx.textAlign = "center";
     ctx.fillStyle = "#0d1219";
-    ctx.fillText(namaSkill, 76, 43);
+    ctx.fillText(namaSkill, 152, 86);
     ctx.textAlign = "left";
   }
 
@@ -1461,12 +1481,12 @@ function drawHUD() {
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
 
     // Teks SOUL METER dengan bayangan pijar api
-    ctx.font = "bold 11px Zen Dots";
+    ctx.font = "bold 22px Zen Dots";
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255, 235, 140, 0.85)";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 5);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 10);
     ctx.fillStyle = "#260601";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 4);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
     ctx.textAlign = "left";
   } else if (esMenyala) {
     // Border kristal es perak-cyan (Kenzro)
@@ -1475,27 +1495,27 @@ function drawHUD() {
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
 
     // Teks SOUL METER dengan bayangan es arktik
-    ctx.font = "bold 11px Zen Dots";
+    ctx.font = "bold 22px Zen Dots";
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(186, 230, 253, 0.9)";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 5);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 10);
     ctx.fillStyle = "#032030";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 4);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
     ctx.textAlign = "left";
   } else {
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1;
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
 
-    ctx.font = "bold 11px Zen Dots";
+    ctx.font = "bold 22px Zen Dots";
     ctx.textAlign = "center";
     ctx.fillStyle = "#14532d";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 4);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
     ctx.textAlign = "left";
   }
 
   if (soul >= SOUL_MAX) {
-    ctx.font = "bold 11px Zen Dots";
+    ctx.font = "bold 22px Zen Dots";
     ctx.textAlign = "center";
     const pulse = 0.65 + 0.35 * Math.sin(tNow * 6);
     if (apiMenyala) {
@@ -1505,37 +1525,41 @@ function drawHUD() {
     } else {
       ctx.fillStyle = "#ffd23f";
     }
-    ctx.fillText("ULTIMATE SIAP [R]", bxS + bwS / 2, byS + bhS + 12);
+    ctx.fillText("ULTIMATE SIAP [R]", bxS + bwS / 2, byS + bhS + 24);
     ctx.textAlign = "left";
   }
   // UI dash: lingkaran hitam transparan pojok kanan bawah + logo sepatu.
-  const cx = W - 44, cy = H - 44, R = 30;
+  const cx = W - 80, cy = H - 80, R = 56;
   ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Gambar satu sepatu mini (bisa dipakai ulang).
+  // Gambar satu sepatu mini (bisa dipakai ulang). Ukuran 2x canvas baru.
   const gambarSepatu = (sx, sy, bad, sol, tali) => {
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(2, 2);
     ctx.fillStyle = bad;
     ctx.beginPath();
-    ctx.moveTo(sx - 10, sy + 5);
-    ctx.lineTo(sx - 10, sy - 2);
-    ctx.lineTo(sx - 8, sy - 6);
-    ctx.lineTo(sx - 1, sy - 5);
-    ctx.lineTo(sx + 2, sy + 5);
+    ctx.moveTo(-10, 5);
+    ctx.lineTo(-10, -2);
+    ctx.lineTo(-8, -6);
+    ctx.lineTo(-1, -5);
+    ctx.lineTo(2, 5);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = sol;
-    ctx.fillRect(sx - 10, sy + 5, 21, 5);
+    ctx.fillRect(-10, 5, 21, 5);
     ctx.fillStyle = tali;
-    ctx.fillRect(sx - 6, sy - 4, 9, 3);
-    ctx.fillRect(sx - 5, sy - 1, 9, 3);
+    ctx.fillRect(-6, -4, 9, 3);
+    ctx.fillRect(-5, -1, 9, 3);
+    ctx.restore();
   };
 
   if (player.dashMax > 1) {
@@ -1548,27 +1572,27 @@ function drawHUD() {
     ctx.globalAlpha = 1;
     // Titik charge di sisi kanan.
     for (let i = 0; i < player.dashMax; i++) {
-      const px = cx + R - 6, py = cy - 10 + i * 16;
+      const px = cx + R - 12, py = cy - 20 + i * 32;
       ctx.fillStyle = i < player.dashStacks ? "#7dd3fc" : "rgba(255,255,255,0.2)";
       ctx.beginPath();
-      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
       ctx.fill();
     }
     // Angka gabungan di DALAM sepatu, putih pekat.
     if (player.dashCd > 0) {
-      ctx.font = "bold 14px Zen Dots";
+      ctx.font = "bold 28px Zen Dots";
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 7);
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 14);
       ctx.textAlign = "left";
     }
   } else {
     // Vender (1 dash): angka bersih di tengah saat cooldown.
     if (player.dashCd > 0) {
-      ctx.font = "bold 18px Zen Dots";
+      ctx.font = "bold 36px Zen Dots";
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 7);
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 14);
       ctx.textAlign = "left";
     } else {
       // Siap: sepatu putih-merah.

@@ -11,7 +11,7 @@ function jurusKenzro() {
   sfxJurus();
   addFlash("rgba(125, 211, 252, 0.28)", 0.5, 0.35);
   spawnParticles(player.x, player.y, "#7dd3fc", 18);
-  rings.push({ x: player.x, y: player.y, r: 10, maxR: 90, life: 0.4, t: 0 });
+  rings.push({ x: player.x, y: player.y, r: 20, maxR: 180, life: 0.4, t: 0 });
 }
 
 // Vender: tebasan besar sekali — 75 damage, musuh yang bertahan ikut terbakar.
@@ -19,13 +19,13 @@ function jurusVender() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   sfxTebasan();
   addFlash("rgba(255, 110, 20, 0.25)", 0.5, 0.3);
-  const ox = player.x + Math.cos(angle) * 35;
-  const oy = player.y + Math.sin(angle) * 35;
+  const ox = player.x + Math.cos(angle) * 70;
+  const oy = player.y + Math.sin(angle) * 70;
   slashes.push({
     x: ox,
     y: oy,
     angle: angle,
-    reach: 220,
+    reach: 440,
     halfArc: 1.5,
     t: 0,
     life: 0.35,
@@ -67,7 +67,7 @@ function jurusUltimateKenzro() {
   player.ultCd = 0;
   sfxUltimateKenzro();
   addFlash("rgba(191, 233, 255, 0.55)", 1, 0.45);
-  rings.push({ x: player.x, y: player.y, r: 10, maxR: 130, life: 0.45, t: 0 });
+  rings.push({ x: player.x, y: player.y, r: 20, maxR: 260, life: 0.45, t: 0 });
   spawnParticles(player.x, player.y, "#7dd3fc", 26);
   shake = 0.4;
 }
@@ -81,7 +81,7 @@ function jurusUltimateVender() {
     x: player.x,
     y: player.y,
     angle: angle,
-    reach: 400,
+    reach: 800,
     halfArc: Math.PI,
     t: 0,
     life: 0.6,
@@ -99,13 +99,13 @@ function jurusUltimateVender() {
   const JUMLAH_API = 10;
   for (let i = 0; i < JUMLAH_API; i++) {
     const a = Math.random() * Math.PI * 2;
-    const r = 70 + Math.random() * 300;
+    const r = 140 + Math.random() * 600;
     fires.push({
       x: player.x + Math.cos(a) * r,
       y: player.y + Math.sin(a) * r,
       t: 0,
       life: API_ULTI_LIFE,
-      radius: 16 + Math.random() * 7,
+      radius: 32 + Math.random() * 14,
       phase: Math.random() * Math.PI * 2,
       spark: Math.random() * 0.1,
       warna: Math.random() < 0.6 ? "#ff8c3f" : "#ffd23f"
