@@ -92,4 +92,23 @@ function jurusUltimateVender() {
   });
   shake = 0.7;
   spawnParticles(player.x, player.y, "#ff8c3f", 30);
+
+  // KOBARAN API PASIF: sisa durasi suara api (8 detik) dimanfaatkan —
+  // area tebasan 360° berserak beberapa kobaran kecil yang MENETAP 8 dtk.
+  // Musuh yang menyentuh kobaran ikut terbakar (burn sama seperti skill Vender).
+  const JUMLAH_API = 10;
+  for (let i = 0; i < JUMLAH_API; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 70 + Math.random() * 300;
+    fires.push({
+      x: player.x + Math.cos(a) * r,
+      y: player.y + Math.sin(a) * r,
+      t: 0,
+      life: API_ULTI_LIFE,
+      radius: 16 + Math.random() * 7,
+      phase: Math.random() * Math.PI * 2,
+      spark: Math.random() * 0.1,
+      warna: Math.random() < 0.6 ? "#ff8c3f" : "#ffd23f"
+    });
+  }
 }

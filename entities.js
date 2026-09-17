@@ -47,8 +47,34 @@ function dashLari() {
 
 // Lepas satu panah raksasa (langsung, tanpa menunggu charge).
 function tembakPanahRaksasa(ang) {
-  const speed = 700;
+  const speed = 1250;
   sfxPanahRaksasa();
+  // Koridor beku pasif: es muncul PERLAHAN mengikuti posisi anak panah —
+  // area ter-render seiring panah melintas, lalu menetap selama beberapa detik.
+  const nx = Math.cos(ang);
+  const ny = Math.sin(ang);
+  const px = -ny;
+  const py = nx;
+  let tExit = 1e9;
+  if (nx > 0) tExit = Math.min(tExit, (W + 10 - player.x) / nx);
+  if (nx < 0) tExit = Math.min(tExit, (-10 - player.x) / nx);
+  if (ny > 0) tExit = Math.min(tExit, (H + 10 - player.y) / ny);
+  if (ny < 0) tExit = Math.min(tExit, (-10 - player.y) / ny);
+  const koridor = {
+    x0: player.x,
+    y0: player.y,
+    nx: nx,
+    ny: ny,
+    px: px,
+    py: py,
+    half: 30, // selebar lintasan hit panah (segDist + jangkauan di update).
+    length: tExit + 30,
+    reveal: 40, // panjang koridor yang sudah tampak (ikut maju dengan panah)
+    t: 0,
+    life: BEKU_ZONE_LIFE,
+    seed: Math.random() * 1000
+  };
+  freezes.push(koridor);
   bullets.push({
     x: player.x,
     y: player.y,
@@ -56,7 +82,8 @@ function tembakPanahRaksasa(ang) {
     vy: Math.sin(ang) * speed,
     life: 3.0,
     beku: false,
-    raksasa: true
+    raksasa: true,
+    fz: koridor
   });
   player.ultArrows = Math.max(0, player.ultArrows - 1);
   if (player.ultArrows <= 0) player.ultBuff = false;
@@ -252,8 +279,13 @@ function update(dt) {
       bullets.splice(i, 1);
       continue;
     }
-    // Panah pembeku / raksasa: sisakan pecahan es kecil (kosmetik).
-    if ((b.beku || b.raksasa) && Math.random() < 0.6) {
+    // Panah raksasa: perluas koridor beku yang ter-render mengikuti jalurnya.
+    if (b.raksasa && b.fz) {
+      const prog = (b.x - b.fz.x0) * b.fz.nx + (b.y - b.fz.y0) * b.fz.ny + 60;
+      if (prog > b.fz.reveal) b.fz.reveal = prog;
+    }
+    // Panah beku biasa: sisakan pecahan es kecil (jejak singkat).
+    if (b.beku && !b.raksasa && Math.random() < 0.6) {
       particles.push({
         x: b.x,
         y: b.y,
@@ -263,6 +295,20 @@ function update(dt) {
         t: 0,
         size: 1 + Math.random() * 2,
         color: "#bfe9ff"
+      });
+    }
+    // Ekor roket panah raksasa: tinggalkan partikel biru muda kecil yang
+    // mengambang di area (jalur koridor) yang dilewatinya.
+    if (b.raksasa && Math.random() < 0.9) {
+      particles.push({
+        x: b.x + (Math.random() - 0.5) * 12,
+        y: b.y + (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.5) * 16,
+        life: 0.6 + Math.random() * 0.6,
+        t: 0,
+        size: 1.5 + Math.random() * 2,
+        color: Math.random() < 0.5 ? "#bfe9ff" : "#d7f2ff"
       });
     }
     for (let j = enemies.length - 1; j >= 0; j--) {
@@ -368,7 +414,7 @@ function update(dt) {
         spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
         // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
         if (sl.skill && e.hp > 0) {
-          e.burn = { durasi: 3, tick: 0.5, timer: 0, dmg: sl.burst ? 2 : 1 };
+          e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
           spawnDamage(e.x, e.y - e.r - 28, "TERBAKAR", "#ff8c3f");
         }
         e.x += Math.cos(sl.angle) * 30;
@@ -378,6 +424,62 @@ function update(dt) {
       }
     }
     if (sl.t >= sl.life) slashes.splice(s, 1);
+  }
+
+  // Kobaran api pasif (ultimate Vender): memercik api agar terlihat hidup,
+  // membakar musuh yang menyentuhnya, lalu padam setelah 8 dtk.
+  for (let i = fires.length - 1; i >= 0; i--) {
+    const fl = fires[i];
+    fl.t += dt;
+    fl.spark -= dt;
+    if (fl.spark <= 0) {
+      fl.spark = 0.06 + Math.random() * 0.1;
+      particles.push({
+        x: fl.x + (Math.random() - 0.5) * fl.radius * 1.4,
+        y: fl.y + (Math.random() - 0.5) * fl.radius,
+        vx: (Math.random() - 0.5) * 30,
+        vy: -40 - Math.random() * 60,
+        life: 0.35 + Math.random() * 0.3,
+        t: 0,
+        size: 3 + Math.random() * 4,
+        color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
+      });
+    }
+    // Sentuh → terbakar (burn SAMA seperti skill Vender: 3 dtk, tiap 0.25 dtk).
+    for (const e of enemies) {
+      if (!e.burn && dist(fl.x, fl.y, e.x, e.y) < fl.radius * 0.8 + e.r) {
+        e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: 1 };
+        spawnDamage(e.x, e.y - e.r - 28, "TERBAKAR", "#ff8c3f");
+        spawnParticles(e.x, e.y, "#ff8c3f", 6);
+      }
+    }
+    if (fl.t >= fl.life) fires.splice(i, 1);
+  }
+
+  // Koridor BEKU PASIF (ultimate Kenzro): area yang ter-render perlahan
+  // mengikuti anak panah. Musuh yang masuk bagian koridor yang sudah tampak
+  // membeku selama koridor masih ada.
+  for (let i = freezes.length - 1; i >= 0; i--) {
+    const fz = freezes[i];
+    fz.t += dt;
+    const effLen = Math.min(fz.length, fz.reveal);
+    for (const e of enemies) {
+      const dx = e.x - fz.x0;
+      const dy = e.y - fz.y0;
+      const seg = dx * fz.nx + dy * fz.ny;
+      if (seg > -10 && seg < effLen + 10) {
+        const off = dx * fz.px + dy * fz.py;
+        if (Math.abs(off) < fz.half + e.r) {
+          const sisa = fz.life - fz.t;
+          if (sisa > (e.freeze || 0)) {
+            e.freeze = sisa;
+            spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
+            spawnParticles(e.x, e.y, "#bfe9ff", 6);
+          }
+        }
+      }
+    }
+    if (fz.t >= fz.life) freezes.splice(i, 1);
   }
 
   // Musuh: spawn mengikuti definisi level sampai kuota terpenuhi.

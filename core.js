@@ -13,6 +13,7 @@ let karakter = null;
 let statusGame = "title";
 let pernahMain = false;
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
+let fires, freezes;
 let flashes, hurtVig;
 let score, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
@@ -24,6 +25,14 @@ const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5 };
 
 // Durasi charge tiap panah raksasa ultimate Kenzro (detik).
 const ULT_CHARGE = 0.8;
+
+// Kobaran api pasif ultimate Vender: bertahan selama sisa suara api (8 detik)
+// dan membakar musuh yang menyentuhnya (burn sama seperti skill Vender).
+const API_ULTI_LIFE = 8;
+
+// Zona bekupasif ultimate Kenzro: area lurus yang membekukan musuh
+// selama zona masih ada (6 detik).
+const BEKU_ZONE_LIFE = 6;
 
 // Sistem dash/menghindar (klik kanan).
 const DASH_CD = 2; // cooldown per charge (detik)
@@ -62,6 +71,8 @@ function resetArena({ skorBaru }) {
   particles = [];
   rings = [];
   slashes = [];
+  fires = [];
+  freezes = [];
   damages = [];
   souls = [];
   flashes = [];

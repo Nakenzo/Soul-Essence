@@ -78,6 +78,270 @@ function draw() {
     ctx.stroke();
   }
 
+  // Lidah api kecil (ujung api soul meter versi sederhana): 3 lapis gradient
+  // dari pangkal merah marun ke puncak putih, berayun ke samping.
+  function gambarLidahApi(bx, by, w, h, sway) {
+    const g1 = ctx.createLinearGradient(0, by, 0, by - h);
+    g1.addColorStop(0, "#b31008");
+    g1.addColorStop(1, "#ff3d00");
+    ctx.fillStyle = g1;
+    ctx.beginPath();
+    ctx.moveTo(bx - w / 2, by);
+    ctx.quadraticCurveTo(bx - w * 0.35 + sway, by - h * 0.55, bx + sway, by - h);
+    ctx.quadraticCurveTo(bx + w * 0.35 + sway, by - h * 0.55, bx + w / 2, by);
+    ctx.closePath();
+    ctx.fill();
+
+    const g2 = ctx.createLinearGradient(0, by, 0, by - h * 0.7);
+    g2.addColorStop(0, "#ff5500");
+    g2.addColorStop(1, "#ffd23f");
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.moveTo(bx - w * 0.3, by);
+    ctx.quadraticCurveTo(bx - w * 0.18 + sway, by - h * 0.5, bx + sway * 0.6, by - h * 0.72);
+    ctx.quadraticCurveTo(bx + w * 0.18 + sway, by - h * 0.5, bx + w * 0.3, by);
+    ctx.closePath();
+    ctx.fill();
+
+    const g3 = ctx.createLinearGradient(0, by, 0, by - h * 0.5);
+    g3.addColorStop(0, "#ffe042");
+    g3.addColorStop(1, "#ffffff");
+    ctx.fillStyle = g3;
+    ctx.beginPath();
+    ctx.moveTo(bx - w * 0.14, by);
+    ctx.quadraticCurveTo(bx - w * 0.06 + sway * 0.4, by - h * 0.38, bx + sway * 0.4, by - h * 0.52);
+    ctx.quadraticCurveTo(bx + w * 0.06 + sway * 0.4, by - h * 0.38, bx + w * 0.14, by);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Kobaran api pasif (ultimate Vender): rumpun lidah api kecil menjulang,
+  // berkedip hidup dengan 3 lidah (tengah tertinggi), memudar 20% terakhir.
+  for (const f of fires) {
+    const hidup = 1 - f.t / f.life;
+    const fade = hidup < 0.2 ? hidup / 0.2 : 1;
+    const skala = f.radius * (0.9 + 0.25 * Math.sin(f.t * 8 + f.phase));
+    const lidah = [
+      { dx: -skala * 0.5, w: skala * 0.9, h: skala * 2.2, ph: 0.0, sway: 1.6 + Math.sin(f.t * 5) * 2 },
+      { dx: skala * 0.45, w: skala * 0.8, h: skala * 1.9, ph: 1.9, sway: -1.2 + Math.cos(f.t * 6) * 1.5 },
+      { dx: 0,            w: skala * 1.05, h: skala * 2.7, ph: 3.1, sway: 0.4 + Math.sin(f.t * 7 + 1) * 2 }
+    ];
+    ctx.globalAlpha = fade;
+    for (const L of lidah) {
+      const flk = 0.65 + 0.35 * Math.sin(f.t * 10 + L.ph);
+      gambarLidahApi(f.x + L.dx, f.y, L.w, L.h * (0.8 + 0.3 * flk), L.sway);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Koridor BEKU PASIF (ultimate Kenzro): jalur lurus yang dilalui anak panah.
+  // Sisi-sisinya duri es runcing (tinggi & arah acak, tetap sejajar koridor),
+  // dan di area tengahnya turun salju (gaya soul meter Kenzro saat penuh).
+  ctx.save();
+  const tNow = performance.now() / 1000;
+  for (const fz of freezes) {
+    const hidup = 1 - fz.t / fz.life;
+    const fade = hidup < 0.2 ? hidup / 0.2 : 1;
+    // Hanya bagian yang sudah dilewati panah (reveal) yang ditampilkan —
+    // koridor "ter-render" perlahan mengikuti gerakan anak panah.
+    const effLen = Math.max(30, Math.min(fz.length, fz.reveal));
+    const ex = fz.x0 + fz.nx * effLen;
+    const ey = fz.y0 + fz.ny * effLen;
+    // Keempat sudut koridor.
+    const k1x = fz.x0 + fz.px * fz.half,  k1y = fz.y0 + fz.py * fz.half;
+    const k2x = ex + fz.px * fz.half,     k2y = ey + fz.py * fz.half;
+    const g1x = fz.x0 - fz.px * fz.half,  g1y = fz.y0 - fz.py * fz.half;
+    const g2x = ex - fz.px * fz.half,     g2y = ey - fz.py * fz.half;
+
+    // Lapisan beku tipis di jalurnya (transparan, cukup pekat).
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = "rgba(125, 211, 252, " + 0.24 * fade + ")";
+    ctx.beginPath();
+    ctx.moveTo(k1x, k1y);
+    ctx.lineTo(k2x, k2y);
+    ctx.lineTo(g2x, g2y);
+    ctx.lineTo(g1x, g1y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+
+    // Garis pendar dingin tipis di kedua sisi.
+    ctx.globalAlpha = fade;
+    const sisi = [
+      { a1x: k1x, a1y: k1y, a2x: k2x, a2y: k2y, sgn: 1 },
+      { a1x: g1x, a1y: g1y, a2x: g2x, a2y: g2y, sgn: -1 }
+    ];
+    for (const s of sisi) {
+      ctx.strokeStyle = "rgba(191, 233, 255, " + 0.3 * fade + ")";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(s.a1x, s.a1y);
+      ctx.lineTo(s.a2x, s.a2y);
+      ctx.stroke();
+    }
+
+    // DURI ES rapat & saling menempel di tiap sisi — tinggi, lebar, bentuk,
+    // dan condong benar-benar acak, menjulur keluar sejajar koridor.
+    const nSp = Math.max(4, Math.floor(effLen / 11));
+    for (let k = 0; k < nSp; k++) {
+      const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 1.7));
+      const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.3 + 1));
+      const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed + 4.7));
+      const r4 = Math.abs(Math.sin(k * 91.7 + fz.seed * 3.3));
+      const r5 = Math.abs(Math.sin(k * 33.7 + fz.seed * 4.9));
+      const rr = (k + 0.5 + (r3 - 0.5) * 0.45) / nSp; // posisi rapat + jitter
+      const h = 7 + r1 * 26;                         // tinggi acak 7–33
+      const w = 6 + r2 * 10;                         // pangkal lebar 6–16 (menempel)
+      // Condong: sebagian lurus, sebagian miring sedang, sebagian tajam.
+      const leanAmt = r1 > 0.74 ? 30 : (r1 > 0.3 ? 15 : 5);
+      const leanDir = Math.sin(k * 41.3 + fz.seed * 5.1);
+      const lean = leanDir * leanAmt;
+      for (const s of sisi) {
+        const bx = s.a1x + (s.a2x - s.a1x) * rr;
+        const by = s.a1y + (s.a2y - s.a1y) * rr;
+        const tx = bx + fz.px * s.sgn * h + fz.nx * lean;
+        const ty = by + fz.py * s.sgn * h + fz.ny * lean;
+        const axs = tx - bx, ays = ty - by;
+        const L = Math.sqrt(axs * axs + ays * ays) || 1;
+        const ux = -ays / L, uy = axs / L;
+        const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
+        const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
+        ctx.fillStyle = "#d8f2ff";
+        ctx.beginPath();
+        ctx.moveTo(e1x, e1y);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(bx, by);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(e2x, e2y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // Bentuk acak: sebagian duri bercabang dua-tip dari pangkal yang sama.
+        if (r4 > 0.64 && h > 14) {
+          const h2 = h * (0.7 + r2 * 0.35);
+          const tx2 = bx + fz.px * s.sgn * h2 + fz.nx * (lean + r5 * 26 - 13);
+          const ty2 = by + fz.py * s.sgn * h2 + fz.ny * (lean + r5 * 26 - 13);
+          const axs2 = tx2 - bx, ays2 = ty2 - by;
+          const L2 = Math.sqrt(axs2 * axs2 + ays2 * ays2) || 1;
+          const ux2 = -ays2 / L2, uy2 = axs2 / L2;
+          const w2 = w * 0.55;
+          const f1x = bx - ux2 * w2 / 2, f1y = by - uy2 * w2 / 2;
+          const f2x = bx + ux2 * w2 / 2, f2y = by + uy2 * w2 / 2;
+          ctx.fillStyle = "#e6f6ff";
+          ctx.beginPath();
+          ctx.moveTo(f1x, f1y);
+          ctx.lineTo(tx2, ty2);
+          ctx.lineTo(bx, by);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#60c7f5";
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(tx2, ty2);
+          ctx.lineTo(f2x, f2y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(tx2, ty2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Es DALAM: dasarnya yang rata menempel langsung DI SISI hitbox (garis
+    // tepi itu sendiri) dan ujungnya MENUSUK KE DALAM koridor — kebalikan
+    // duri luar, ukuran lebih kecil.
+    const nSpIn = Math.max(4, Math.floor(effLen / 9));
+    for (let k = 0; k < nSpIn; k++) {
+      const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 2.2));
+      const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.9 + 3));
+      const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed * 1.4 + 8));
+      const rr = (k + 0.5) / nSpIn;
+      const h = 4 + r1 * 13;                        // kecil 4–17
+      const w = 4 + r2 * 7;                         // pangkal 4–11
+      const lean = Math.sin(k * 41.3 + fz.seed * 6.1) * 10;
+      for (const s of sisi) {
+        const bx = s.a1x + (s.a2x - s.a1x) * rr;
+        const by = s.a1y + (s.a2y - s.a1y) * rr;
+        const tx = bx - fz.px * s.sgn * h + fz.nx * lean;
+        const ty = by - fz.py * s.sgn * h + fz.ny * lean;
+        const axs = tx - bx, ays = ty - by;
+        const L = Math.sqrt(axs * axs + ays * ays) || 1;
+        const ux = -ays / L, uy = axs / L;
+        const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
+        const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
+        ctx.fillStyle = "#dff4ff";
+        ctx.beginPath();
+        ctx.moveTo(e1x, e1y);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(bx, by);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#4db8e8";
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(e2x, e2y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      }
+    }
+
+    // SALJU MENGGAMBANG di dalam koridor (klip ke bentuk koridor) — 5x lebih
+    // rapat, melayang berputar pelan di tempat, tidak jatuh ke bawah.
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(k1x, k1y);
+    ctx.lineTo(k2x, k2y);
+    ctx.lineTo(g2x, g2y);
+    ctx.lineTo(g1x, g1y);
+    ctx.closePath();
+    ctx.clip();
+    const JUMLAH_SALJU = Math.max(90, Math.floor(effLen * 0.7));
+    for (let i = 0; i < JUMLAH_SALJU; i++) {
+      const xr = ((i * 53 + 7) % 100) / 100;
+      const perp = ((i * 29 + 11) % 101) / 100 - 0.5;
+      const bxS = fz.x0 + fz.nx * xr * effLen + fz.px * perp * fz.half * 1.5;
+      const byS = fz.y0 + fz.ny * xr * effLen + fz.py * perp * fz.half * 1.5;
+      const kecepatan = 0.5 + (i % 5) * 0.22;
+      const ph = i * 1.3;
+      const amp = 4 + (i % 4) * 2;
+      const sx = bxS + Math.sin(tNow * kecepatan + ph) * amp;
+      const sy = byS + Math.cos(tNow * kecepatan * 0.8 + ph * 1.7) * amp * 0.6;
+      const r = 1.6 + (i % 5 === 0 ? 1.6 : (i % 2 === 0 ? 0.9 : 0.4));
+      const alpha = (0.5 + 0.45 * Math.abs(Math.sin(tNow * 0.9 + ph))) * fade;
+      if (i % 8 === 0) {
+        gambarKepingSalju(sx, sy, r, tNow * 0.3 + ph * 0.2, alpha);
+      } else {
+        ctx.fillStyle = "rgba(224, 242, 254, " + alpha + ")";
+        ctx.fillRect(sx - r * 0.4, sy - r * 0.4, r * 0.8, r * 0.8);
+      }
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
   for (const e of enemies) {
     if (e.hitFlash > 0) {
       ctx.fillStyle = "#ffffff";
@@ -331,135 +595,103 @@ function draw() {
     ctx.translate(b.x, b.y);
     ctx.rotate(ang + Math.PI / 2);
     if (b.raksasa) {
-      // PANAH RAKSASA ultimate — ramping, diselimuti aura es berdenyut
-      // (gaya seperti bilah api ultimate Vender).
+      // PANAH LASER ES BESAR (ultimate Kenzro): ujung runcing menyala,
+      // bodi pendek-padat — tanpa ekor panjang (jejaknya koridor beku).
       ctx.imageSmoothingEnabled = false;
-      const g = 0.55 + 0.45 * Math.sin(performance.now() / 90);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
 
-      // Aura es: pancaran menyebar ke segala arah TAPI tetap lurus sejajar
-      // dengan arah panah — seperti aliran es mengelilingi seluruh panah.
-      // Garis-garis es lurus paralel menyebar di sekeliling panah.
-      for (let i = 0; i < 26; i++) {
-        const ox = ((i * 53 + 17) % 130) - 65; // sebaran kiri-kanan
-        const oy = ((i * 31 + 7) % 170) - 100; // sebaran depan-belakang
-        const len = 40 + 45 * g + (i % 5) * 8;
-        const w = 1.5 + (i % 3);
-        const a = 0.18 + 0.3 * g + ((i * 7) % 3) * 0.08;
-        ctx.fillStyle = "rgba(191, 233, 255, " + a + ")";
-        ctx.fillRect(ox - w / 2, oy, w, len);
-      }
-      // Lapisan pendek lebih terang di antara garis.
-      for (let i = 0; i < 16; i++) {
-        const ox = ((i * 47 + 23) % 110) - 55;
-        const len = 18 + 24 * g;
-        ctx.fillStyle = "rgba(255, 255, 255, " + (0.25 + 0.25 * g) + ")";
-        ctx.fillRect(ox - 1, ((i * 29) % 120) - 60, 2, len);
-      }
-
-      // --- Anak panah raksasa versi "keren" ---
-      // Barb rendah (sayap) di pangkal mata panah.
-      ctx.fillStyle = "#8fd8ff";
+      // Aura pendar membungkus anak panah.
+      const gAura = ctx.createLinearGradient(0, -175, 0, 60);
+      gAura.addColorStop(0, "rgba(191, 233, 255, 0.55)");
+      gAura.addColorStop(0.5, "rgba(125, 211, 252, 0.22)");
+      gAura.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = gAura;
       ctx.beginPath();
-      ctx.moveTo(-18, -58);
-      ctx.lineTo(-32, -36);
-      ctx.lineTo(-16, -26);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(18, -58);
-      ctx.lineTo(32, -36);
-      ctx.lineTo(16, -26);
+      ctx.moveTo(0, -180);
+      ctx.quadraticCurveTo(38, -70, 15, 55);
+      ctx.quadraticCurveTo(0, 68, -15, 55);
+      ctx.quadraticCurveTo(-38, -70, 0, -180);
       ctx.closePath();
       ctx.fill();
 
-      // Mata panah putih menyala dengan rongga lebih terang.
+      // Bodi plasma: melebar di depan lalu meruncing ke pangkal (tanpa ekor).
+      const gBadan = ctx.createLinearGradient(0, -168, 0, 52);
+      gBadan.addColorStop(0, "#ffffff");
+      gBadan.addColorStop(0.4, "#bfe9ff");
+      gBadan.addColorStop(0.85, "#7dd3fc");
+      gBadan.addColorStop(1, "rgba(125, 211, 252, 0.2)");
+      ctx.fillStyle = gBadan;
+      ctx.beginPath();
+      ctx.moveTo(0, -170);
+      ctx.lineTo(24, -95);
+      ctx.lineTo(17, -55);
+      ctx.lineTo(10, 40);
+      ctx.lineTo(0, 50);
+      ctx.lineTo(-10, 40);
+      ctx.lineTo(-17, -55);
+      ctx.lineTo(-24, -95);
+      ctx.closePath();
+      ctx.fill();
+
+      // Ujung lance berkilau + rongga lebih terang.
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.moveTo(0, -112);
-      ctx.lineTo(-24, -50);
-      ctx.lineTo(0, -34);
-      ctx.lineTo(24, -50);
+      ctx.moveTo(0, -185);
+      ctx.lineTo(-17, -92);
+      ctx.lineTo(0, -66);
+      ctx.lineTo(17, -92);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "rgba(180, 230, 255, 0.9)";
+      ctx.fillStyle = "rgba(224, 242, 254, 0.95)";
       ctx.beginPath();
-      ctx.moveTo(0, -112);
-      ctx.lineTo(-10, -50);
-      ctx.lineTo(0, -34);
-      ctx.lineTo(10, -50);
-      ctx.closePath();
-      ctx.fill();
-      // Permata inti di pangkal mata panah.
-      ctx.fillStyle = "#eaffff";
-      ctx.beginPath();
-      ctx.moveTo(0, -48);
-      ctx.lineTo(-5, -38);
-      ctx.lineTo(0, -28);
-      ctx.lineTo(5, -38);
+      ctx.moveTo(0, -185);
+      ctx.lineTo(-7, -92);
+      ctx.lineTo(0, -66);
+      ctx.lineTo(7, -92);
       ctx.closePath();
       ctx.fill();
 
-      // Badan: panel sisi gelap + permukaan es + alur miring.
-      ctx.fillStyle = "#3f8fc9";
-      ctx.fillRect(-12, -54, 24, 118);
-      ctx.fillStyle = "#7cc9f0";
-      ctx.fillRect(-10, -52, 20, 112);
-      ctx.fillStyle = "#dff4ff";
-      ctx.fillRect(-3, -50, 6, 106);
-      ctx.strokeStyle = "rgba(63, 143, 201, 0.6)";
-      ctx.lineWidth = 2;
-      for (let oy = -44; oy <= 54; oy += 16) {
-        ctx.beginPath();
-        ctx.moveTo(-10, oy);
-        ctx.lineTo(10, oy + 8);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(10, oy - 8);
-        ctx.lineTo(-10, oy);
-        ctx.stroke();
+      // Garis inti putih membara.
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.fillRect(-2, -165, 4, 205);
+
+      // EKOR ROKET: semburan pendorong biru muda stabil (bukan lidah api
+      // yang naik-turun) — melebar di pangkal lalu meruncing ke belakang.
+      const gEkor = ctx.createLinearGradient(0, 48, 0, 142);
+      gEkor.addColorStop(0, "rgba(224, 242, 254, 0.95)");
+      gEkor.addColorStop(0.35, "rgba(125, 211, 252, 0.6)");
+      gEkor.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = gEkor;
+      ctx.beginPath();
+      ctx.moveTo(-8, 48);
+      ctx.quadraticCurveTo(-34, 84, -14, 128);
+      ctx.quadraticCurveTo(0, 148, 14, 128);
+      ctx.quadraticCurveTo(34, 84, 8, 48);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inti jet terang di tengah semburan.
+      const gJet = ctx.createLinearGradient(0, 50, 0, 98);
+      gJet.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+      gJet.addColorStop(1, "rgba(125, 211, 252, 0)");
+      ctx.fillStyle = gJet;
+      ctx.beginPath();
+      ctx.moveTo(-3.5, 50);
+      ctx.quadraticCurveTo(-8, 72, -4, 94);
+      ctx.quadraticCurveTo(0, 102, 4, 94);
+      ctx.quadraticCurveTo(8, 72, 3.5, 50);
+      ctx.closePath();
+      ctx.fill();
+
+      // Garis dorongan yang mundur ke belakang (kesan semburan stabil).
+      ctx.fillStyle = "rgba(224, 242, 254, 0.45)";
+      const fl = (performance.now() / 11) % 84;
+      for (let i = 0; i < 3; i++) {
+        const oy = 50 + ((i * 28 + fl) % 84);
+        ctx.fillRect(-2.5, oy, 5, 16);
       }
-      // Plasma inti: garis putih menyala + sel Energi kecil.
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(-1.5, -50, 3, 106);
-      ctx.fillStyle = "rgba(111, 211, 255, " + (0.5 + 0.5 * g) + ")";
-      for (let oy = -46; oy <= 52; oy += 14) {
-        ctx.fillRect(-2.5, oy, 5, 5);
-      }
-
-      // Bulu ekor bentuk sirip menyapu (lebih kencang/keren).
-      ctx.fillStyle = "#3f8fc9";
-      ctx.beginPath();
-      ctx.moveTo(-8, 60);
-      ctx.lineTo(-30, 66);
-      ctx.lineTo(-26, 96);
-      ctx.lineTo(-8, 88);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(8, 60);
-      ctx.lineTo(30, 66);
-      ctx.lineTo(26, 96);
-      ctx.lineTo(8, 88);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = "#9fd9ff";
-      ctx.fillRect(-22, 70, 8, 18);
-      ctx.fillRect(14, 70, 8, 18);
-
-      // Outline tegas mengikuti kontur panah (berdenyut) — tegas & jelas.
-      ctx.strokeStyle = "rgba(125, 211, 252, " + (0.3 + 0.3 * g) + ")";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -114);
-      ctx.lineTo(-30, -52);
-      ctx.lineTo(-13, 52);
-      ctx.lineTo(-28, 96);
-      ctx.lineTo(0, 112);
-      ctx.lineTo(28, 96);
-      ctx.lineTo(13, 52);
-      ctx.lineTo(30, -52);
-      ctx.closePath();
-      ctx.stroke();
+      ctx.restore();
     } else {
       // Panah pembeku (saat buff aktif) berwarna biru muda.
       const wTip = b.beku ? "#ffffff" : "#ffffff";
