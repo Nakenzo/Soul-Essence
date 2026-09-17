@@ -49,7 +49,8 @@ const KARAKTER = [
     damage: 50,
     reach: 45,
     halfArc: 1.05,
-    swingDuration: 0.2,
+    // Dibesarkan agar animasi tebasan pas dengan durasi suara sabit (~0.28s).
+    swingDuration: 0.28,
     // Ujung sabit di PNG menghadap ke atas -> rot +90 deg agar
     // saat diputar menunjuk ke arah pointer. (-10 deg koreksi arah)
     rot: Math.PI / 2 - Math.PI / 18,

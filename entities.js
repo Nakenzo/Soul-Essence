@@ -26,6 +26,7 @@ function dashLari() {
   if (statusGame !== "main" || !karakter) return;
   if (player.dashStacks <= 0) return;
   player.dashStacks--;
+  sfxDash();
   // Setiap penggunaan dash membuat cooldown MANDIRI 2 dtk (tumpuk tetap).
   player.dashTimers.push(DASH_CD);
   player.dashT = DASH_WAKTU;
@@ -47,6 +48,7 @@ function dashLari() {
 // Lepas satu panah raksasa (langsung, tanpa menunggu charge).
 function tembakPanahRaksasa(ang) {
   const speed = 700;
+  sfxPanahRaksasa();
   bullets.push({
     x: player.x,
     y: player.y,
@@ -65,6 +67,7 @@ function tembakPanahRaksasa(ang) {
 function shoot() {
   if (player.attackCd > 0) return;
   player.attackCd = karakter.attackRate;
+  sfxTembak();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   const speed = 420;
   bullets.push({
@@ -82,6 +85,7 @@ function shoot() {
 function slashSwing() {
   if (player.attackCd > 0) return;
   player.attackCd = karakter.attackRate;
+  sfxSabet();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.swing = karakter.swingDuration || 0.2;
   // Efek tebasan muncul dari lokasi bilah sabit (titik orbit senjata),
@@ -138,6 +142,7 @@ function killEnemy(e) {
   const i = enemies.indexOf(e);
   if (i === -1) return;
   score += 10;
+  sfxMatMusuh();
   // Jatuhkan jiwa: biasa 3, cepet 2, tank 5.
   const n = DROP_SOUL[e.tipe] || 3;
   for (let k = 0; k < n; k++) {
@@ -284,6 +289,7 @@ function update(dt) {
             e2.hp -= dmg;
             e2.hitFlash = 0.1;
             e2.freeze = 7;
+            sfxBeku();
             spawnParticles(e2.x, e2.y, "#7dd3fc", 10);
             spawnDamage(e2.x, e2.y - e2.r - 28, "BEKU 7D", "#7dd3fc");
             spawnDamage(e2.x, e2.y - e2.r - 8, dmg, "#ffd23f");
@@ -296,8 +302,10 @@ function update(dt) {
         const dmg = karakter.damage;
         e.hp -= dmg;
         e.hitFlash = 0.1;
+        sfxKena();
         if (b.beku) {
           e.freeze = karakter.bekuDurasi;
+          sfxBeku();
           spawnParticles(e.x, e.y, "#7dd3fc", 8);
           spawnDamage(e.x, e.y - e.r - 28, "BEKU", "#7dd3fc");
         }
@@ -413,6 +421,8 @@ function update(dt) {
     if (dist(e.x, e.y, player.x, player.y) < e.r + 16 && player.invuln <= 0) {
       player.hp -= 20;
       spawnDamage(player.x, player.y - 26, 20, "#ff4d4d");
+      sfxPemainKena();
+      hurtVig = 0.9;
       shake = 0.3;
       enemies.splice(i, 1);
       spawnParticles(player.x, player.y, "#3aa0ff", 10);
@@ -421,6 +431,8 @@ function update(dt) {
         gameOver = true;
         spawnParticles(player.x, player.y, "#3aa0ff", 30);
         shake = 0.6;
+        sfxGameOver();
+        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
         tampilkanGameOver();
       }
     }
@@ -438,6 +450,13 @@ function update(dt) {
     p.y += p.vy * dt;
     if (p.t >= p.life) particles.splice(i, 1);
   }
+
+  // Flash layar & vignette luka (memudar bersama waktu).
+  for (let i = flashes.length - 1; i >= 0; i--) {
+    flashes[i].t += dt;
+    if (flashes[i].t >= flashes[i].life) flashes.splice(i, 1);
+  }
+  hurtVig = Math.max(0, hurtVig - dt * 1.4);
 
   for (let i = damages.length - 1; i >= 0; i--) {
     const dm = damages[i];
@@ -471,6 +490,7 @@ function update(dt) {
     if (d < 13) {
       if (soul < SOUL_MAX) {
         soul += 1;
+        sfxSoul();
         spawnParticles(s.x, s.y, "#7cff5e", 4);
       }
       souls.splice(i, 1);

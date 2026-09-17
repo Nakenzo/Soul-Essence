@@ -48,14 +48,34 @@ function mulai() {
       })
   );
 
-  Promise.all(muat).then(() => {
-    pasangTombol();
-    buatBgPartikel();
-    resetArena({ skorBaru: true });
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
-    tampilkanJudul();
-  });
+  // Muat semua efek suara dari FILE lokal (baris ini TIDAK pernah error:
+  // kalau file tidak ada, game pakai fallback sintesis prosedural).
+  // Struktur folder: vender/ (suara Vender), kenzro/ (suara Kenzro),
+  // common/ (dipakai dua karakter), map/ (monster, soul, damage).
+  const sfxList = [
+    { kunci: "sabet", src: "assets/sfx/vender/sword-slash-4.mp3", vol: 0.85 },
+    { kunci: "jurus-vender", src: "assets/sfx/vender/jurus-vender.mp3", vol: 0.55 },
+    { kunci: "jurus-vender-api", src: "assets/sfx/vender/jurus-vender-api.mp3", vol: 1.0 },
+    { kunci: "jurus-kenzro", src: "assets/sfx/kenzro/jurus-kenzro.mp3" },
+    { kunci: "panah-beku", src: "assets/sfx/kenzro/panah-beku.mp3" },
+    { kunci: "ultimate-vender", src: "assets/sfx/vender/ultimate-vender.mp3", vol: 0.55 },
+    { kunci: "ultimate-vender-api", src: "assets/sfx/vender/ultimate-vender-api.mp3", vol: 1.0 },
+    { kunci: "ultimate-vender-api-b", src: "assets/sfx/vender/ultimate-vender-api.mp3", vol: 1.0 },
+    { kunci: "ultimate-kenzro", src: "assets/sfx/kenzro/ultimate-kenzro.mp3" },
+    { kunci: "dash", src: "assets/sfx/common/dash.wav" },
+    { kunci: "panah-raksasa", src: "assets/sfx/kenzro/panah-raksasa.mp3" }
+  ];
+
+  Promise.all(muat)
+    .then(() => Promise.all(sfxList.map((s) => muatSfxLokal(s.kunci, s.src, s.vol))))
+    .then(() => {
+      pasangTombol();
+      buatBgPartikel();
+      resetArena({ skorBaru: true });
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+      tampilkanJudul();
+    });
 }
 
 mulai();

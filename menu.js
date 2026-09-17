@@ -89,6 +89,7 @@ function lanjutDariPause() {
 
 // ---------- Mulai bermain (dari layar pilih) ----------
 function mulaiGameBaru() {
+  sfxResume();
   resetArena({ skorBaru: true });
   statusGame = "main";
   pernahMain = true;
@@ -115,6 +116,12 @@ function pasangTombol() {
   document.getElementById("tombolMenuPause").addEventListener("click", tampilkanPilih);
   document.getElementById("tombolUlangMenang").addEventListener("click", tampilkanPilih);
   document.getElementById("tombolMenuMenang").addEventListener("click", tampilkanJudul);
+
+  // Bunyi klik di semua tombol UI (event bubbling juga menjangkau kartu karakter).
+  document.querySelectorAll(".tombol-play, .tombol-hijau, .tombol-abu, .tombol-pause")
+    .forEach((el) => el.addEventListener("click", sfxKlik));
+  // Kartu karakter dibuat dinamis, bunyi klik lewat container via bubbling.
+  daftarKarakter.addEventListener("click", sfxKlik);
 }
 
 // ---------- Kartu karakter (minimalis: kotak kecil) ----------

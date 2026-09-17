@@ -56,7 +56,9 @@ canvas.addEventListener("mousemove", (e) => {
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
 canvas.addEventListener("mousedown", (e) => {
-  mouse.down = true;
+  // Klik kiri = serang. Klik kanan = dash saja (BUKAN serang),
+  // agar suara basic attack tidak ikut keluar saat dash.
+  if (e.button === 0) mouse.down = true;
   if (e.button === 2) dashLari();
 });
 

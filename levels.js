@@ -60,10 +60,12 @@ function levelSelesai() {
 
   if (level + 1 >= LEVELS.length) {
     score += 100;
+    sfxMenang();
     tampilkanMenang();
     return;
   }
 
+  sfxLevel();
   level += 1;
   levelSpawn = 0;
   spawnTimer = 0.6;

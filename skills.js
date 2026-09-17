@@ -8,6 +8,8 @@
 // Kenzro: panah yang ditembakkan selama buff akan membekukan musuh.
 function jurusKenzro() {
   player.specialBuff = karakter.buffDurasi;
+  sfxJurus();
+  addFlash("rgba(125, 211, 252, 0.28)", 0.5, 0.35);
   spawnParticles(player.x, player.y, "#7dd3fc", 18);
   rings.push({ x: player.x, y: player.y, r: 10, maxR: 90, life: 0.4, t: 0 });
 }
@@ -15,6 +17,8 @@ function jurusKenzro() {
 // Vender: tebasan besar sekali — 75 damage, musuh yang bertahan ikut terbakar.
 function jurusVender() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+  sfxTebasan();
+  addFlash("rgba(255, 110, 20, 0.25)", 0.5, 0.3);
   const ox = player.x + Math.cos(angle) * 35;
   const oy = player.y + Math.sin(angle) * 35;
   slashes.push({
@@ -61,6 +65,8 @@ function jurusUltimateKenzro() {
   player.ultBuff = true;
   player.ultArrows = 3;
   player.ultCd = 0;
+  sfxUltimateKenzro();
+  addFlash("rgba(191, 233, 255, 0.55)", 1, 0.45);
   rings.push({ x: player.x, y: player.y, r: 10, maxR: 130, life: 0.45, t: 0 });
   spawnParticles(player.x, player.y, "#7dd3fc", 26);
   shake = 0.4;
@@ -69,6 +75,8 @@ function jurusUltimateKenzro() {
 // Vender: sabit raksasa menebas SELURUH arena dalam satu putaran 360°.
 function jurusUltimateVender() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+  sfxUltimateVender();
+  addFlash("rgba(255, 60, 10, 0.6)", 1, 0.5);
   slashes.push({
     x: player.x,
     y: player.y,

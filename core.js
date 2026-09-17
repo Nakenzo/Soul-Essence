@@ -13,6 +13,7 @@ let karakter = null;
 let statusGame = "title";
 let pernahMain = false;
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
+let flashes, hurtVig;
 let score, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
 
@@ -63,6 +64,8 @@ function resetArena({ skorBaru }) {
   slashes = [];
   damages = [];
   souls = [];
+  flashes = [];
+  hurtVig = 0;
   soul = 0;
   // Level baru selalu mulai dari LEVEL 1.
   level = 0;
@@ -146,4 +149,9 @@ function spawnDamage(x, y, teks, warna) {
     t: 0,
     life: 0.8
   });
+}
+
+// Flash layar penuh (efek ledakan ultimate, game over, dll).
+function addFlash(warna, alpha, dur) {
+  flashes.push({ warna: warna, alpha: alpha, t: 0, life: dur });
 }
