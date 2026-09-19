@@ -6,8 +6,6 @@
 // ============================================================
 let _actx = null;
 let _master = null;
-let _mute = false;
-
 function bukaAudio() {
   if (_actx) {
     if (_actx.state === "suspended") _actx.resume();
@@ -96,7 +94,7 @@ function sfxFileCrop(kunci, mulai, durasi, lapis) {
 
 // Suara dasar: nada tunggal (tone) dengan ADSR singkat.
 function sfxTone({ freq, endFreq, dur, type, vol, delay }) {
-  if (!_actx || _mute) return;
+  if (!_actx) return;
   const t0 = _actx.currentTime + (delay || 0);
   const osc = _actx.createOscillator();
   const g = _actx.createGain();
@@ -116,7 +114,7 @@ function sfxTone({ freq, endFreq, dur, type, vol, delay }) {
 // q = resonansi filter (bandpass) biar sapuan frekuensi terdengar tegas.
 // trem = kedalaman modulasi amplitudo (flutter khas sapuan udara/blade).
 function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq }) {
-  if (!_actx || _mute) return;
+  if (!_actx) return;
   const t0 = _actx.currentTime + (delay || 0);
   const n = Math.max(1, Math.floor((dur || 0.2) * _actx.sampleRate));
   const buf = _actx.createBuffer(1, n, _actx.sampleRate);

@@ -5,14 +5,23 @@
 // ---------- Biner error ----------
 window.addEventListener("error", (e) => {
   errorBanner = e.message || "Terjadi error";
-  try {
-    const el = document.getElementById("layarJudul");
-    if (el && errorBanner) {
-      const sub = el.querySelector(".sub-judul");
-      if (sub) sub.textContent = "ERROR: " + errorBanner;
-    }
-  } catch (_) {}
 });
+
+// ---------- CSS Variables berdasarkan ukuran canvas aktual ----------
+function updateCanvasVars() {
+  const cvs = document.getElementById("game");
+  if (!cvs) return;
+  const rect = cvs.getBoundingClientRect();
+  const cw = rect.width;
+  const ch = rect.height;
+  const r = document.documentElement;
+  r.style.setProperty("--cw", cw + "px");
+  r.style.setProperty("--ch", ch + "px");
+  r.style.setProperty("--cs", (cw / 1280).toFixed(4));
+  r.style.setProperty("--cf", (cw / 1280 * 16).toFixed(2) + "px");
+}
+updateCanvasVars();
+window.addEventListener("resize", updateCanvasVars);
 
 // ---------- Loop ----------
 function loop(now) {
@@ -44,6 +53,13 @@ function mulai() {
         return daftar;
       })
     )
+    .concat(
+      KARAKTER.flatMap((k) => {
+        return [
+          { kunci: k.kunci + "-hit-0", src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-hit-0.png" }
+        ];
+      })
+    )
     .concat([
       { kunci: "musuh", src: "assets/enemies/musuh.png" },
       { kunci: "cepet", src: "assets/enemies/cepet.png" },
@@ -59,6 +75,7 @@ function mulai() {
         for (let i = 0; i < 2; i++) {
           daftar.push({ kunci: nama + "-walk-" + i, src: "assets/animasi/" + nama + "/" + nama + "-walk-" + i + ".png" });
         }
+        daftar.push({ kunci: nama + "-hit-0", src: "assets/animasi/" + nama + "/" + nama + "-hit-0.png" });
         return daftar;
       })
     );
@@ -90,7 +107,7 @@ function mulai() {
     { kunci: "ultimate-vender-api-b", src: "assets/sfx/vender/ultimate-vender-api.mp3", vol: 1.0 },
     { kunci: "ultimate-kenzro", src: "assets/sfx/kenzro/ultimate-kenzro.mp3" },
     { kunci: "dash", src: "assets/sfx/common/dash.wav" },
-    { kunci: "panah-raksasa", src: "assets/sfx/kenzro/panah-raksasa.mp3" }
+    { kunci: "panah-raksasa", src: "assets/sfx/kenzro/panah-raksasa.mp3" } // fallback sintesis jika file tidak ada
   ];
 
   Promise.all(muat)

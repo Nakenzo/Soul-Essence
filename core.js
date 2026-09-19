@@ -2,19 +2,20 @@
 // CORE - variabel global, canvas, utilitas dasar.
 // Dimuat paling pertama.
 // ============================================================
+
+const W = 1280;
+const H = 960;
 const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const W = canvas.width;
-const H = canvas.height;
+let ctx = canvas.getContext("2d");
 
 // ---------- State ----------
 // statusGame: "title" (judul) | "select" (pilih karakter) | "main" (bermain) | "over" (game over)
 let karakter = null;
 let statusGame = "title";
-let pernahMain = false;
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
 let flashes, hurtVig;
+let deathPixels = [];
 let score, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
 
@@ -65,6 +66,7 @@ function resetArena({ skorBaru }) {
     dashT: 0,
     dashAngle: 0,
     invuln: 0,
+    hitFlash: 0,
     dir: -1
   };
   bullets = [];
@@ -78,11 +80,11 @@ function resetArena({ skorBaru }) {
   souls = [];
   flashes = [];
   hurtVig = 0;
+  deathPixels = [];
   soul = 0;
   // Level baru selalu mulai dari LEVEL 1.
   level = 0;
   levelSpawn = 0;
-  spawnTimer = 0.8;
   tampilkanBannerLevel(0);
   if (skorBaru) {
     score = 0;
@@ -166,4 +168,70 @@ function spawnDamage(x, y, teks, warna) {
 // Flash layar penuh (efek ledakan ultimate, game over, dll).
 function addFlash(warna, alpha, dur) {
   flashes.push({ warna: warna, alpha: alpha, t: 0, life: dur });
+}
+
+// ---------- Efek Pixel Disintegration ----------
+const _pixelCache = new Map();
+function sampePixelDariSprite(img, skala) {
+  try {
+    if (!img || !img.complete || img.naturalWidth === 0) return [];
+    const cacheKey = img.src + "|" + skala.toFixed(1);
+    if (_pixelCache.has(cacheKey)) return _pixelCache.get(cacheKey);
+    const nw = img.naturalWidth || img.width;
+    const nh = img.naturalHeight || img.height;
+    if (nw === 0 || nh === 0) return [];
+    const tc = document.createElement("canvas");
+    tc.width = nw;
+    tc.height = nh;
+    const tx = tc.getContext("2d");
+    if (!tx) return [];
+    tx.drawImage(img, 0, 0, nw, nh);
+    const data = tx.getImageData(0, 0, nw, nh).data;
+    const pixels = [];
+    const step = Math.max(1, Math.floor(4 / skala));
+    for (let y = 0; y < nh; y += step) {
+      for (let x = 0; x < nw; x += step) {
+        const i = (y * nw + x) * 4;
+        if (data[i + 3] > 80) {
+          pixels.push({
+            ox: (x - nw / 2) * skala,
+            oy: (y - nh / 2) * skala,
+            r: data[i], g: data[i + 1], b: data[i + 2]
+          });
+        }
+      }
+    }
+    if (_pixelCache.size > 200) _pixelCache.clear();
+    _pixelCache.set(cacheKey, pixels);
+    return pixels;
+  } catch (_) {
+    return [];
+  }
+}
+
+function buatDeathPixels(x, y, img, skala) {
+  try {
+    if (deathPixels.length > 500) return;
+    const pixels = sampePixelDariSprite(img, skala);
+    const maxPx = Math.min(80, 500 - deathPixels.length);
+    if (maxPx <= 0) return;
+    const picked = pixels.length > maxPx
+      ? pixels.filter((_, i) => i % Math.ceil(pixels.length / maxPx) === 0)
+      : pixels;
+    for (const px of picked) {
+      const ang = Math.atan2(px.oy, px.ox) + (Math.random() - 0.5) * 1.2;
+      const sp = 60 + Math.random() * 220;
+      deathPixels.push({
+        x: x + px.ox,
+        y: y + px.oy,
+        vx: Math.cos(ang) * sp + (Math.random() - 0.5) * 80,
+        vy: Math.sin(ang) * sp - 40 - Math.random() * 100,
+        r: px.r, g: px.g, b: px.b,
+        size: Math.max(1.5, 2.5 * skala),
+        t: 0,
+        life: 0.5 + Math.random() * 0.6,
+        grav: 120 + Math.random() * 80
+      });
+    }
+  } catch (_) {}
 }

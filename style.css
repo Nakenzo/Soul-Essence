@@ -1,4 +1,4 @@
-/* Font pixel self-host: Zen Dots (teknologi futuristik, runcing) — file lokal
+﻿/* Font pixel self-host: Zen Dots (teknologi futuristik, runcing) — file lokal
    agar pasti tampil tanpa bergantung CDN (termasuk saat sudah di GitHub Pages). */
 @font-face {
     font-family: "Zen Dots";
@@ -34,8 +34,8 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
+    gap: 5px;
+    padding: 5px;
 }
 
 .posisi-game {
@@ -45,14 +45,14 @@ body {
 }
 
 canvas {
-    border: 6px solid #222;
-    border-radius: 4px;
+    border: 1.5px solid #222;
+    border-radius: 1px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     background: #1a1a2e;
     cursor: crosshair;
     display: block;
-    width: min(96vw, calc((100vh - 110px) * 4 / 3));
+    width: min(96vw, calc((100vh - 27.5px) * 4 / 3));
     height: auto;
     aspect-ratio: 4 / 3;
 }
@@ -71,8 +71,8 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 22px;
-    border-radius: 4px;
+    gap: calc(var(--cs, 0.56) * 14px);
+    border-radius: 1px;
     z-index: 5;
 }
 
@@ -83,7 +83,7 @@ canvas {
 /* Overlay pause: tembus pandang agar adegan beku tetap terlihat */
 .overlay-beku {
     background: rgba(10, 12, 25, 0.45);
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(0.5px);
 }
 
 /* ======================== */
@@ -91,15 +91,15 @@ canvas {
 /* ======================== */
 .tombol-pause {
     position: absolute;
-    top: 10px;
-    right: 9px;
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    top: 1.2%;
+    right: 1%;
+    width: calc(var(--cs, 0.56) * 48px);
+    aspect-ratio: 1;
+    border-radius: 4px;
     background: rgba(0, 0, 0, 0.65);
-    border: 2px solid #555;
+    border: 1.5px solid #555;
     color: #fff;
-    font-size: 18px;
+    font-size: calc(var(--cs, 0.56) * 22px);
     cursor: pointer;
     z-index: 4;
     transition: all 0.15s;
@@ -120,32 +120,32 @@ canvas {
 /* ======================== */
 .judul-besar {
     color: #4ade80;
-    font-size: 38px;
+    font-size: calc(var(--cs, 0.56) * 52px);
     line-height: 1.2;
-    letter-spacing: 5px;
+    letter-spacing: 3px;
     text-align: center;
-    margin-bottom: 12px;
-    text-shadow: 4px 4px 0 #052e16;
+    margin-bottom: 1.5%;
+    text-shadow: 2px 2px 0 #052e16;
 }
 
 .sub-judul {
     color: #b8c6d8;
-    font-size: 13px;
+    font-size: calc(var(--cs, 0.56) * 16px);
     margin-bottom: 0;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
 }
 
-/* Beri sedikit ruang ekstra sebelum tombol PLAY di layar judul */
+/* Tombol PLAY di layar judul */
 .tombol-play {
-    margin-top: 18px;
+    margin-top: 2%;
     background: #3aaa35;
     color: #fff;
-    font-size: 22px;
-    padding: 16px 70px;
-    border: 3px solid #2d8a28;
-    border-radius: 6px;
+    font-size: calc(var(--cs, 0.56) * 28px);
+    padding: calc(var(--cs, 0.56) * 12px) calc(var(--cs, 0.56) * 50px);
+    border: 2px solid #2d8a28;
+    border-radius: 4px;
     cursor: pointer;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     font-weight: bold;
     font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
@@ -165,38 +165,39 @@ canvas {
 /* ======================== */
 #layarPilih h2 {
     color: #7dd3fc;
-    font-size: 26px;
-    letter-spacing: 4px;
+    font-size: calc(var(--cs, 0.56) * 40px);
+    letter-spacing: 3px;
     margin-bottom: 0;
     white-space: nowrap;
 }
 
 #layarPause h2 {
     color: #7dd3fc;
-    font-size: 26px;
-    letter-spacing: 4px;
+    font-size: calc(var(--cs, 0.56) * 40px);
+    letter-spacing: 3px;
 }
 
 /* Teks status di layar pilih karakter: tidak wrap */
 #layarPilih #menuStatus {
     white-space: nowrap;
+    font-size: calc(var(--cs, 0.56) * 16px);
 }
 
 .tombol-karakter {
     display: flex;
-    gap: 12px;
+    gap: calc(var(--cs, 0.56) * 12px);
     flex-wrap: wrap;
     justify-content: center;
-    padding: 0 10px;
+    padding: 0 1%;
 }
 
 .kartu-karakter {
     background: #222;
-    border: 3px solid #555;
+    border: 2px solid #555;
     color: #e6edf5;
-    padding: 8px;
-    width: 84px;
-    border-radius: 8px;
+    padding: calc(var(--cs, 0.56) * 6px);
+    width: calc(var(--cs, 0.56) * 90px);
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s;
     display: flex;
@@ -209,8 +210,8 @@ canvas {
     border: none;
     background: #181a2e;
     image-rendering: pixelated;
-    width: 48px;
-    height: 48px;
+    width: calc(var(--cs, 0.56) * 50px);
+    height: calc(var(--cs, 0.56) * 50px);
 }
 
 .kartu-karakter:hover {
@@ -224,27 +225,9 @@ canvas {
 }
 
 .nama-karakter {
-    font-size: 13px;
+    font-size: calc(var(--cs, 0.56) * 14px);
     font-weight: bold;
     margin-top: 4px;
-}
-
-.tombol-kecil {
-    margin-top: 24px;
-    background: #333;
-    color: #aaa;
-    padding: 10px 30px;
-    font-size: 13px;
-    border: 2px solid #555;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: "Zen Dots", "Courier New", monospace;
-    transition: all 0.15s;
-}
-
-.tombol-kecil:hover {
-    background: #444;
-    color: #fff;
 }
 
 /* ======================== */
@@ -252,40 +235,40 @@ canvas {
 /* ======================== */
 .judul-gameover {
     color: #ff4d4d;
-    font-size: 38px;
-    letter-spacing: 6px;
-    margin-bottom: 12px;
-    text-shadow: 3px 3px 0 #5a1010;
+    font-size: calc(var(--cs, 0.56) * 42px);
+    letter-spacing: 3px;
+    margin-bottom: 1.5%;
+    text-shadow: 1.5px 1.5px 0 #5a1010;
 }
 
 .teks-skor {
     color: #ffd23f;
-    font-size: 22px;
-    margin-bottom: 6px;
-    letter-spacing: 2px;
+    font-size: calc(var(--cs, 0.56) * 22px);
+    margin-bottom: 0.5%;
+    letter-spacing: 1px;
 }
 
 .grup-tombol {
     display: flex;
-    gap: 16px;
+    gap: calc(var(--cs, 0.56) * 10px);
 }
 
 .tombol-hijau,
 .tombol-abu {
-    padding: 14px 36px;
-    font-size: 17px;
+    padding: calc(var(--cs, 0.56) * 10px) calc(var(--cs, 0.56) * 30px);
+    font-size: calc(var(--cs, 0.56) * 18px);
     font-weight: bold;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .tombol-hijau {
     background: #3aaa35;
     color: #fff;
-    border: 3px solid #2d8a28;
+    border: 2px solid #2d8a28;
 }
 
 .tombol-hijau:hover {
@@ -296,7 +279,7 @@ canvas {
 .tombol-abu {
     background: #555;
     color: #fff;
-    border: 3px solid #444;
+    border: 2px solid #444;
 }
 
 .tombol-abu:hover {
@@ -310,15 +293,20 @@ canvas {
 }
 
 /* ======================== */
-/*  BANTUAN (di bawah)      */
+/*  BANTUAN (overlay kiri bawah canvas) */
 /* ======================== */
-.bantuan {
-    margin-top: 12px;
-    color: #8a93a8;
-    font-size: 14px;
-    line-height: 1.7;
+.bantuan-canvas {
+    position: absolute;
+    bottom: 2%;
+    left: 1.5%;
+    color: rgba(200, 210, 230, 0.55);
+    font-size: calc(var(--cs, 0.56) * 11px);
+    line-height: 1.6;
+    z-index: 3;
+    pointer-events: none;
+    text-shadow: 1px 1px 2px #000;
 }
 
-.bantuan b {
-    color: #7dd3fc;
+.bantuan-canvas b {
+    color: rgba(125, 211, 252, 0.7);
 }

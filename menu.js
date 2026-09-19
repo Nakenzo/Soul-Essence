@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // MENU - alur layar: Judul -> Pilih Karakter -> Game -> Game Over.
 // Karakter terpilih dipakai sampai permainan berakhir (game over).
 // ============================================================
@@ -36,7 +36,6 @@ function tampilkanJudul() {
   sembunyiSemua();
   statusGame = "title";
   karakter = null;
-  pernahMain = false;
   score = 0;
   resetArena({ skorBaru: true });
   layarJudul.classList.remove("hidden");
@@ -92,7 +91,6 @@ function mulaiGameBaru() {
   sfxResume();
   resetArena({ skorBaru: true });
   statusGame = "main";
-  pernahMain = true;
   sembunyiSemua();
   aturTombolPause();
 }
@@ -134,19 +132,19 @@ function buatPilihanKarakter() {
     card.className = "kartu-karakter";
 
     const cv = document.createElement("canvas");
-    cv.width = 48;
-    cv.height = 48;
+    cv.width = 56;
+    cv.height = 56;
     const c = cv.getContext("2d");
     if (img && img.width) {
-      const s = 48 / Math.max(img.width, img.height);
+      const s = 56 / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
-      // Perkecil → smoothing agar kartu tidak tampak pecah.
+      // Perkecil â†’ smoothing agar kartu tidak tampak pecah.
       c.imageSmoothingEnabled = s < 1;
-      c.drawImage(img, (48 - w) / 2, (48 - h) / 2, w, h);
+      c.drawImage(img, (56 - w) / 2, (56 - h) / 2, w, h);
     } else {
       c.fillStyle = "#ff8844";
-      c.fillRect(6, 6, 36, 36);
+      c.fillRect(7, 7, 42, 42);
     }
     card.appendChild(cv);
 

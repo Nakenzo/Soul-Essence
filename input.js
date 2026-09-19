@@ -2,7 +2,6 @@
 // INPUT - keyboard & mouse.
 // 1/2 : pilih karakter (hanya di layar pilih)
 // R   : ulang dengan karakter yang sama
-// M   : kembali ke layar judul (skor hilang)
 // ============================================================
 const keys = {};
 let mouse = { x: W / 2, y: H / 2, down: false };

@@ -170,6 +170,9 @@ function killEnemy(e) {
   if (i === -1) return;
   score += 10;
   sfxMatMusuh();
+  // Efek pixel disintegration: spawn potongan sprite beterbangan
+  const imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
+  buatDeathPixels(e.x, e.y, imgMusuh, e.skala || 1);
   // Jatuhkan jiwa: biasa 3, cepet 2, tank 5.
   const n = DROP_SOUL[e.tipe] || 3;
   for (let k = 0; k < n; k++) {
@@ -525,6 +528,7 @@ function update(dt) {
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0) {
       player.hp -= 20;
+      player.hitFlash = 0.15;
       spawnDamage(player.x, player.y - 52, 20, "#ff4d4d");
       sfxPemainKena();
       hurtVig = 0.9;
@@ -555,6 +559,20 @@ function update(dt) {
     p.y += p.vy * dt;
     if (p.t >= p.life) particles.splice(i, 1);
   }
+
+  // Update pixel disintegration effect
+  for (let i = deathPixels.length - 1; i >= 0; i--) {
+    const dp = deathPixels[i];
+    dp.t += dt;
+    dp.x += dp.vx * dt;
+    dp.y += dp.vy * dt;
+    dp.vy += dp.grav * dt;
+    dp.vx *= 0.98;
+    if (dp.t >= dp.life) deathPixels.splice(i, 1);
+  }
+
+  // Update player hitFlash
+  if (player) player.hitFlash = Math.max(0, (player.hitFlash || 0) - dt);
 
   // Flash layar & vignette luka (memudar bersama waktu).
   for (let i = flashes.length - 1; i >= 0; i--) {

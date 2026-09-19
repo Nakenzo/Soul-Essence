@@ -37,25 +37,127 @@ function gambarSenjata() {
   ctx.restore();
 }
 
-function gambarLatar() {
-  ctx.fillStyle = "#1a1a2e";
-  ctx.fillRect(-20, -20, W + 40, H + 40);
-  ctx.fillStyle = "#182538";
-  for (let gx = 0; gx < W; gx += 32) {
-    for (let gy = 0; gy < H; gy += 32) {
-      if ((gx / 32 + gy / 32) % 2 === 0) {
-        ctx.fillRect(gx, gy, 32, 32);
+// ---------- Latar di-cache sekali (agar tidak menggambar 600 kotak/frame) ----------
+const _BG_M = 16;
+let latarCache = null;
+
+function buatLatarCache() {
+  if (latarCache) return;
+  const c = document.createElement("canvas");
+  c.width = W + _BG_M * 2;
+  c.height = H + _BG_M * 2;
+  const g = c.getContext("2d");
+  g.fillStyle = "#1a1a2e";
+  g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#182538";
+  for (let i = Math.floor(-_BG_M / 32) - 1; i * 32 <= W + _BG_M; i++) {
+    for (let j = Math.floor(-_BG_M / 32) - 1; j * 32 <= H + _BG_M; j++) {
+      if ((i + j) % 2 === 0) {
+        g.fillRect(i * 32 + _BG_M, j * 32 + _BG_M, 32, 32);
       }
     }
   }
+  latarCache = c;
+}
+
+function gambarLatar() {
+  if (!latarCache) buatLatarCache();
+  // Margin _BG_M menutupi pergeseran shake (maks ±4px) agar tidak bolong.
+  ctx.drawImage(latarCache, -_BG_M, -_BG_M);
+}
+
+// ---------- Lidah api kecil (3 lapis gradient) — dipakai Kobaran API Vender.
+// Dipanggil di dalam bakeApi (ctx sementara = canvas sprite). ----------
+function gambarLidahApi(bx, by, w, h, sway) {
+  const g1 = ctx.createLinearGradient(0, by, 0, by - h);
+  g1.addColorStop(0, "#b31008");
+  g1.addColorStop(1, "#ff3d00");
+  ctx.fillStyle = g1;
+  ctx.beginPath();
+  ctx.moveTo(bx - w / 2, by);
+  ctx.quadraticCurveTo(bx - w * 0.35 + sway, by - h * 0.55, bx + sway, by - h);
+  ctx.quadraticCurveTo(bx + w * 0.35 + sway, by - h * 0.55, bx + w / 2, by);
+  ctx.closePath();
+  ctx.fill();
+
+  const g2 = ctx.createLinearGradient(0, by, 0, by - h * 0.7);
+  g2.addColorStop(0, "#ff5500");
+  g2.addColorStop(1, "#ffd23f");
+  ctx.fillStyle = g2;
+  ctx.beginPath();
+  ctx.moveTo(bx - w * 0.3, by);
+  ctx.quadraticCurveTo(bx - w * 0.18 + sway, by - h * 0.5, bx + sway * 0.6, by - h * 0.72);
+  ctx.quadraticCurveTo(bx + w * 0.18 + sway, by - h * 0.5, bx + w * 0.3, by);
+  ctx.closePath();
+  ctx.fill();
+
+  const g3 = ctx.createLinearGradient(0, by, 0, by - h * 0.5);
+  g3.addColorStop(0, "#ffe042");
+  g3.addColorStop(1, "#ffffff");
+  ctx.fillStyle = g3;
+  ctx.beginPath();
+  ctx.moveTo(bx - w * 0.14, by);
+  ctx.quadraticCurveTo(bx - w * 0.06 + sway * 0.4, by - h * 0.38, bx + sway * 0.4, by - h * 0.52);
+  ctx.quadraticCurveTo(bx + w * 0.06 + sway * 0.4, by - h * 0.38, bx + w * 0.14, by);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Gambar satu kobaran api ke ctx saat ini (dipakai saat bake; origin = (0,0)
+// di titik dasar api, api menjulang ke atas).
+function gambarApiPasifP(f, tAnim) {
+  const fade = 1; // fade dikerjakan saat blit (globalAlpha luar)
+  const skala = f.radius * (0.9 + 0.25 * Math.sin(tAnim * 8 + f.phase));
+  const lidah = [
+    { dx: -skala * 0.5, w: skala * 0.9, h: skala * 2.2, ph: 0.0, sway: 1.6 + Math.sin(tAnim * 5) * 2 },
+    { dx: skala * 0.45, w: skala * 0.8, h: skala * 1.9, ph: 1.9, sway: -1.2 + Math.cos(tAnim * 6) * 1.5 },
+    { dx: 0,            w: skala * 1.05, h: skala * 2.7, ph: 3.1, sway: 0.4 + Math.sin(tAnim * 7 + 1) * 2 }
+  ];
+  ctx.globalAlpha = fade;
+  for (const L of lidah) {
+    const flk = 0.65 + 0.35 * Math.sin(tAnim * 10 + L.ph);
+    gambarLidahApi(f.x + L.dx, f.y, L.w, L.h * (0.8 + 0.3 * flk), L.sway);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Bake kobaran api jadi 20 frame sprite (0.05 dtk/frame = 20fps, loop 1 dtk) —
+// sekali per kobaran, lalu tiap frame cukup drawImage dengan crossfade.
+function bakeApi(f) {
+  const K = 20, dtF = 0.05;
+  const skalaMax = f.radius * 1.15;
+  const Wd = Math.ceil(skalaMax * 1.35) * 2 + 14;
+  const Hd = Math.ceil(skalaMax * 2.7) + 10;
+  const frames = [];
+  for (let j = 0; j < K; j++) {
+    const cs = document.createElement("canvas");
+    cs.width = Wd;
+    cs.height = Hd;
+    const csctx = cs.getContext("2d");
+    const ctxAsli = ctx;
+    ctx = csctx;
+    try {
+      csctx.translate(Wd / 2, Hd); // origin = tengah horizontal, dasar api
+      const fv = { ...f, x: 0, y: 0 };
+      gambarApiPasifP(fv, j * dtF);
+    } finally {
+      ctx = ctxAsli;
+    }
+    frames.push(cs);
+  }
+  f.frames = frames;
 }
 
 function draw() {
+  _shakeX = 0;
+  _shakeY = 0;
   ctx.save();
 
   if (shake > 0) {
     shake -= 1 / 60;
-    ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+    _shakeX = (Math.random() - 0.5) * 8;
+    _shakeY = (Math.random() - 0.5) * 8;
+    ctx.translate(_shakeX, _shakeY);
   }
 
   gambarLatar();
@@ -80,74 +182,53 @@ function draw() {
     ctx.stroke();
   }
 
-  // Lidah api kecil (ujung api soul meter versi sederhana): 3 lapis gradient
-  // dari pangkal merah marun ke puncak putih, berayun ke samping.
-  function gambarLidahApi(bx, by, w, h, sway) {
-    const g1 = ctx.createLinearGradient(0, by, 0, by - h);
-    g1.addColorStop(0, "#b31008");
-    g1.addColorStop(1, "#ff3d00");
-    ctx.fillStyle = g1;
-    ctx.beginPath();
-    ctx.moveTo(bx - w / 2, by);
-    ctx.quadraticCurveTo(bx - w * 0.35 + sway, by - h * 0.55, bx + sway, by - h);
-    ctx.quadraticCurveTo(bx + w * 0.35 + sway, by - h * 0.55, bx + w / 2, by);
-    ctx.closePath();
-    ctx.fill();
-
-    const g2 = ctx.createLinearGradient(0, by, 0, by - h * 0.7);
-    g2.addColorStop(0, "#ff5500");
-    g2.addColorStop(1, "#ffd23f");
-    ctx.fillStyle = g2;
-    ctx.beginPath();
-    ctx.moveTo(bx - w * 0.3, by);
-    ctx.quadraticCurveTo(bx - w * 0.18 + sway, by - h * 0.5, bx + sway * 0.6, by - h * 0.72);
-    ctx.quadraticCurveTo(bx + w * 0.18 + sway, by - h * 0.5, bx + w * 0.3, by);
-    ctx.closePath();
-    ctx.fill();
-
-    const g3 = ctx.createLinearGradient(0, by, 0, by - h * 0.5);
-    g3.addColorStop(0, "#ffe042");
-    g3.addColorStop(1, "#ffffff");
-    ctx.fillStyle = g3;
-    ctx.beginPath();
-    ctx.moveTo(bx - w * 0.14, by);
-    ctx.quadraticCurveTo(bx - w * 0.06 + sway * 0.4, by - h * 0.38, bx + sway * 0.4, by - h * 0.52);
-    ctx.quadraticCurveTo(bx + w * 0.06 + sway * 0.4, by - h * 0.38, bx + w * 0.14, by);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // Kobaran api pasif (ultimate Vender): rumpun lidah api kecil menjulang,
-  // berkedip hidup dengan 3 lidah (tengah tertinggi), memudar 20% terakhir.
+  // Kobaran api pasif (ultimate Vender): animasi di-bake jadi 16 frame sprite
+  // saat diciptakan — per frame cukup drawImage, tanpa gradient/path per-frame.
   for (const f of fires) {
+    if (!f.frames) bakeApi(f);
+    if (!f.frames) continue;
     const hidup = 1 - f.t / f.life;
     const fade = hidup < 0.2 ? hidup / 0.2 : 1;
-    const skala = f.radius * (0.9 + 0.25 * Math.sin(f.t * 8 + f.phase));
-    const lidah = [
-      { dx: -skala * 0.5, w: skala * 0.9, h: skala * 2.2, ph: 0.0, sway: 1.6 + Math.sin(f.t * 5) * 2 },
-      { dx: skala * 0.45, w: skala * 0.8, h: skala * 1.9, ph: 1.9, sway: -1.2 + Math.cos(f.t * 6) * 1.5 },
-      { dx: 0,            w: skala * 1.05, h: skala * 2.7, ph: 3.1, sway: 0.4 + Math.sin(f.t * 7 + 1) * 2 }
-    ];
-    ctx.globalAlpha = fade;
-    for (const L of lidah) {
-      const flk = 0.65 + 0.35 * Math.sin(f.t * 10 + L.ph);
-      gambarLidahApi(f.x + L.dx, f.y, L.w, L.h * (0.8 + 0.3 * flk), L.sway);
-    }
+    const fr = f.frames[0];
+    blitX(f.frames, performance.now() / 1000, 20, Math.round(f.x - fr.width / 2), Math.round(f.y - fr.height), fade);
   }
-  ctx.globalAlpha = 1;
 
-  // Koridor BEKU PASIF (ultimate Kenzro): jalur lurus yang dilalui anak panah.
-  // Sisi-sisinya duri es runcing (tinggi & arah acak, tetap sejajar koridor),
-  // dan di area tengahnya turun salju (gaya soul meter Kenzro saat penuh).
+  // Koridor BEKU PASIF (ultimate Kenzro): bentuk penuh (duri es, lapisan,
+  // salju) di-bake SEKALI jadi sprite offscreen saat pertama digambar.
+  // Setelah itu tiap frame cukup drawImage + source-rect sesuai reveal panah.
   ctx.save();
-  const tNow = performance.now() / 1000;
+  let tNow = performance.now() / 1000;
   for (const fz of freezes) {
-    const hidup = 1 - fz.t / fz.life;
-    const fade = hidup < 0.2 ? hidup / 0.2 : 1;
-    // Hanya bagian yang sudah dilewati panah (reveal) yang ditampilkan —
-    // koridor "ter-render" perlahan mengikuti gerakan anak panah.
-    const effLen = Math.max(30, Math.min(fz.length, fz.reveal));
-    const ex = fz.x0 + fz.nx * effLen;
+    // BAKU: gambar seluruh koridor (reveal penuh) ke canvas sprite.
+    if (!fz.sprite) {
+      const uOff = 44, vOff = fz.half + 45;
+      const cs = document.createElement("canvas");
+      cs.width = Math.ceil(fz.length + uOff + 48);
+      cs.height = Math.ceil(vOff * 2 + 2);
+      fz.uOff = uOff;
+      fz.vOff = vOff;
+      const csctx = cs.getContext("2d");
+      const ctxAsli = ctx;
+      const revealAsli = fz.reveal;
+      fz.reveal = fz.length;        // isi penuh saat bake
+      tNow = fz.seed;               // salju statis khas tiap koridor
+      ctx = csctx;
+      try {
+        // world → sprite: sumbu-x sprite = arah n (maju panah), sumbu-y = arah p.
+        // CATATAN: argumen setTransform adalah (a, b, c, d, e, f) dengan
+        // x' = a·x + c·y + e ; y' = b·x + d·y + f.
+        csctx.setTransform(
+          fz.nx, fz.px, fz.ny, fz.py,
+          uOff - fz.nx * fz.x0 - fz.ny * fz.y0,
+          vOff - fz.px * fz.x0 - fz.py * fz.y0
+        );
+        // Seluruh gambar koridor di bawah berjalan dengan ctx = canvas sprite.
+        const hidup = 1 - fz.t / fz.life;
+        const fade = hidup < 0.2 ? hidup / 0.2 : 1;
+        // Hanya bagian yang sudah dilewati panah (reveal) yang ditampilkan —
+        // koridor "ter-render" perlahan mengikuti gerakan anak panah.
+        const effLen = Math.max(30, Math.min(fz.length, fz.reveal));
+        const ex = fz.x0 + fz.nx * effLen;
     const ey = fz.y0 + fz.ny * effLen;
     // Keempat sudut koridor.
     const k1x = fz.x0 + fz.px * fz.half,  k1y = fz.y0 + fz.py * fz.half;
@@ -340,24 +421,42 @@ function draw() {
       }
     }
     ctx.restore();
+      } finally {
+        fz.reveal = revealAsli;
+        tNow = performance.now() / 1000;
+        ctx = ctxAsli;
+      }
+      fz.sprite = cs;
+    }
+    // Blit sprite koridor: satu drawImage berpotongan sesuai reveal panah.
+    const hidup = 1 - fz.t / fz.life;
+    const fade = hidup < 0.2 ? hidup / 0.2 : 1;
+    const effLen2 = Math.max(30, Math.min(fz.length, fz.reveal));
+    const srcW = Math.max(10, effLen2 + fz.uOff);
+    const spKor = fz.sprite;
+    ctx.globalAlpha = fade;
+    ctx.save();
+    // sprite → world: piksel (0,0) sprite diletakkan di P0, sumbu-x = arah n.
+    ctx.setTransform(
+      fz.nx, fz.ny, fz.px, fz.py,
+      fz.x0 - fz.uOff * fz.nx - fz.vOff * fz.px,
+      fz.y0 - fz.uOff * fz.ny - fz.vOff * fz.py
+    );
+    ctx.drawImage(spKor, 0, 0, srcW, spKor.height, 0, 0, srcW, spKor.height);
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
   ctx.globalAlpha = 1;
 
   for (const e of enemies) {
-    if (e.hitFlash > 0) {
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2);
-      ctx.globalAlpha = 0.5;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-// Sprite + animasi sesuai tipe: musuh/cepet/tank.
-    // Beku → diam (idle frame 0); bergerak → goyang memantul (2 frame).
+    // Sprite + animasi sesuai tipe: musuh/cepet/tank.
+    // Saat kena damage: gunakan hit frame PNG. Beku → idle. Bergerak → walk.
     const tAnim = performance.now() / 1000;
     let imgMusuh;
-    if (e.freeze > 0) {
+    if (e.hitFlash > 0) {
+      imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
+    } else if (e.freeze > 0) {
       imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci] || tekstur.musuh;
     } else {
       const phase = Math.abs(e.x * 3.1 + e.y * 1.7);
@@ -365,7 +464,20 @@ function draw() {
       imgMusuh = tekstur[e.kunci + "-walk-" + idxF] || tekstur[e.kunci] || tekstur.musuh;
     }
     if (imgMusuh) {
-      gambarPixel(imgMusuh, e.x, e.y, e.skala || 1);
+      // Normalisasi ukuran render berdasarkan idle frame (64x tinggi proporsional)
+      const refH = (e.kunci === "tank" ? 48 : 36);
+      const szW = 64 * (e.skala || 1);
+      const szH = refH * (e.skala || 1);
+      ctx.drawImage(imgMusuh, e.x - szW / 2, e.y - szH / 2, szW, szH);
+      // Flash overlay saat kena damage
+      if (e.hitFlash > 0) {
+        ctx.globalCompositeOperation = "screen";
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = "#ff4040";
+        ctx.fillRect(e.x - szW / 2, e.y - szH / 2, szW, szH);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
     }
     ctx.fillStyle = "#000";
     ctx.fillRect(e.x - 16, e.y - 22, 32, 3);
@@ -419,94 +531,153 @@ function draw() {
     const span = a2 - a1;
     const N = 20;
 
-    // ULTIMATE Vender: cakram api tebal seluruh area + sabit besar mengorbit.
-    // Muncul (fase 1): sabit menyebar dari kiri ke kanan penuhi arena.
-    // Menghilang (fase 2): busur terhapus dari kiri sampai habis.
+    // ULTIMATE Vender: TEBASAN API RAKSASA 360° — gelombang kebakaran masif
     if (sl.burst) {
       const wSabit = tekstur[karakter.senjata];
       const rot = sl.t / sl.life;
-      const tipA = sl.t < half ? a2 : a1; // ujung aktif (muncul/hapus)
-      ctx.globalAlpha = Math.max(0.4, 1 - rot * 0.55);
+      const tipA = sl.t < half ? a2 : a1;
+      ctx.globalAlpha = Math.max(0.3, 1 - rot * 0.6);
 
-      // Piringan api tembus pandang mengikuti busur aktif saat ini.
-      ctx.fillStyle = "rgba(255, 60, 0, 0.18)";
-      ctx.beginPath();
-      ctx.moveTo(sl.x, sl.y);
-      for (let i = 0; i <= 28; i++) {
-        const t = i / 28;
-        const a = a1 + span * t;
-        ctx.lineTo(sl.x + Math.cos(a) * sl.reach, sl.y + Math.sin(a) * sl.reach);
+      // 1. GELOMBANG KEBAKARAN — 3 lapis api radial bergradasi
+      const fireLayers = [
+        { r: 1.0, c1: "rgba(180, 20, 0, 0.25)", c2: "rgba(255, 60, 0, 0.12)" },
+        { r: 0.75, c1: "rgba(255, 80, 0, 0.35)", c2: "rgba(255, 140, 0, 0.18)" },
+        { r: 0.5, c1: "rgba(255, 160, 20, 0.45)", c2: "rgba(255, 210, 60, 0.22)" }
+      ];
+      for (const fl of fireLayers) {
+        const fr = sl.reach * fl.r * (0.3 + 0.7 * rot);
+        const g = ctx.createRadialGradient(sl.x, sl.y, 0, sl.x, sl.y, fr);
+        g.addColorStop(0, fl.c1);
+        g.addColorStop(0.6, fl.c2);
+        g.addColorStop(1, "rgba(255, 100, 0, 0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(sl.x, sl.y);
+        for (let i = 0; i <= 26; i++) {
+          const t = i / 26;
+          const a = a1 + span * t;
+          const w = Math.sin(t * 18 + rot * 12) * 0.03;
+          ctx.lineTo(sl.x + Math.cos(a + w) * fr, sl.y + Math.sin(a + w) * fr);
+        }
+        ctx.closePath();
+        ctx.fill();
       }
-      ctx.closePath();
-      ctx.fill();
 
-      // Bilah bara luar (18) tebal, tersebar di sepanjang busur aktif.
+      // 2. BILAH API TEBAL — 18 gelombang menyapu dengan wobble
       const B = 18;
       for (let b = 0; b < B; b++) {
         const a = a1 + span * (b / (B - 1));
-        const panj = sl.reach * (0.45 + 0.55 * rot);
+        const panj = sl.reach * (0.5 + 0.5 * rot);
+        const wb = Math.sin(b * 2.3 + rot * 15) * 8;
         ctx.save();
         ctx.translate(sl.x, sl.y);
         ctx.rotate(a);
-        ctx.fillStyle = "rgba(255, 70, 10, 0.65)";
+        ctx.fillStyle = "rgba(200, 40, 0, 0.6)";
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(panj * 0.9, -30);
+        ctx.lineTo(panj * 0.92, -28 - wb);
         ctx.lineTo(panj, 0);
-        ctx.lineTo(panj * 0.9, 30);
+        ctx.lineTo(panj * 0.92, 28 + wb);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "rgba(255, 100, 10, 0.7)";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(panj * 0.85, -18 - wb * 0.6);
+        ctx.lineTo(panj * 0.95, 0);
+        ctx.lineTo(panj * 0.85, 18 + wb * 0.6);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
       }
-      // Inti kuning terang (14) tebal di lapisan atas.
+
+      // 3. INTI KUNING TERANG — pusat ledakan
       const B2 = 14;
       for (let b = 0; b < B2; b++) {
         const a = a1 + span * (b / (B2 - 1));
-        const panj = sl.reach * (0.28 + 0.45 * rot);
+        const panj = sl.reach * (0.3 + 0.45 * rot);
         ctx.save();
         ctx.translate(sl.x, sl.y);
         ctx.rotate(a);
         ctx.fillStyle = "#ffd75f";
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(panj * 0.9, -18);
+        ctx.lineTo(panj * 0.88, -14);
         ctx.lineTo(panj, 0);
-        ctx.lineTo(panj * 0.9, 18);
+        ctx.lineTo(panj * 0.88, 14);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
       }
-      // Sabit ASLI dibesarkan 10x, mengorbit di ujung aktif tebasan.
+
+      // 4. PUSAT PUTIH MENYALA
+      const coreR = sl.reach * 0.12 * rot;
+      const gCore = ctx.createRadialGradient(sl.x, sl.y, 0, sl.x, sl.y, coreR);
+      gCore.addColorStop(0, "rgba(255, 255, 220, 0.9)");
+      gCore.addColorStop(0.4, "rgba(255, 200, 50, 0.5)");
+      gCore.addColorStop(1, "rgba(255, 100, 0, 0)");
+      ctx.fillStyle = gCore;
+      ctx.beginPath();
+      ctx.arc(sl.x, sl.y, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. SABIT ASLI dibesarkan 12x, mengorbit
       if (wSabit) {
-        const orbR = sl.reach * (0.6 + 0.4 * rot);
+        const orbR = sl.reach * (0.55 + 0.45 * rot);
         const bx = sl.x + Math.cos(tipA) * orbR;
         const by = sl.y + Math.sin(tipA) * orbR;
-        const skalaB = karakter.senjataSkala * 10;
+        const skalaB = karakter.senjataSkala * 12;
         ctx.save();
         ctx.translate(bx, by);
-        ctx.rotate(tipA + Math.PI / 2); // sejajar arah orbit
+        ctx.rotate(tipA + Math.PI / 2);
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(
-          wSabit,
-          -wSabit.width * skalaB / 2,
-          -wSabit.height * skalaB / 2,
-          wSabit.width * skalaB,
-          wSabit.height * skalaB
-        );
+        ctx.globalAlpha = Math.max(0.5, 1 - rot * 0.4);
+        ctx.drawImage(wSabit, -wSabit.width * skalaB / 2, -wSabit.height * skalaB / 2, wSabit.width * skalaB, wSabit.height * skalaB);
         ctx.restore();
       }
-      // Gelombang kejut tebal meluas keluar.
-      const shockR = sl.reach * (0.3 + 0.7 * rot);
-      ctx.strokeStyle = "#ffd75f";
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(sl.x, sl.y, shockR, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,90,0,0.9)";
-      ctx.lineWidth = 14;
-      ctx.beginPath();
-      ctx.arc(sl.x, sl.y, shockR * 0.92, 0, Math.PI * 2);
-      ctx.stroke();
+
+      // 6. GELOMBANG KEJUT BERTINGKAT — 3 cincin
+      const shockPhases = [
+        { rMul: 0.3, rMax: 1.0, w: 10, col: "rgba(255, 220, 80, 0.9)" },
+        { rMul: 0.2, rMax: 0.85, w: 6, col: "rgba(255, 140, 20, 0.7)" },
+        { rMul: 0.1, rMax: 0.7, w: 3, col: "rgba(255, 80, 0, 0.5)" }
+      ];
+      for (const sp of shockPhases) {
+        const sR = sl.reach * (sp.rMul + (sp.rMax - sp.rMul) * rot);
+        ctx.strokeStyle = sp.col;
+        ctx.lineWidth = sp.w * (1 - rot * 0.5);
+        ctx.beginPath();
+        ctx.arc(sl.x, sl.y, sR, a1, a1 + span);
+        ctx.stroke();
+      }
+
+      // 7. PERCIKAN API — 22 bara beterbangan
+      for (let i = 0; i < 22; i++) {
+        const seed = i * 7.3 + 1.1;
+        const sA = a1 + span * (Math.sin(seed) * 0.5 + 0.5);
+        const sR = sl.reach * (0.4 + 0.6 * rot) + Math.sin(seed * 3.1) * 40;
+        const ex = sl.x + Math.cos(sA) * sR;
+        const ey = sl.y + Math.sin(sA) * sR;
+        const sAlpha = Math.max(0, 1 - rot * 1.2) * (0.5 + 0.5 * Math.sin(seed * 4.3));
+        ctx.fillStyle = i % 3 === 0 ? "#fff8d6" : (i % 3 === 1 ? "#ffb833" : "#ff4d17");
+        ctx.globalAlpha = sAlpha;
+        ctx.beginPath();
+        ctx.arc(ex, ey, 2 + Math.sin(seed * 5.7) * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 8. BARA jatuh dari busur
+      for (let i = 0; i < 12; i++) {
+        const eA = a1 + span * (i / 15);
+        const eR = sl.reach * (0.6 + 0.4 * rot);
+        const fallT = (rot * 3 + i * 0.5) % 1;
+        const ex = sl.x + Math.cos(eA) * eR + Math.sin(i * 4.7) * 15 * fallT;
+        const ey = sl.y + Math.sin(eA) * eR + fallT * 60;
+        ctx.fillStyle = i % 2 === 0 ? "#ff6a00" : "#ffd23f";
+        ctx.globalAlpha = Math.max(0, 1 - fallT) * (1 - rot * 0.5);
+        ctx.fillRect(ex - 1.5, ey - 1.5, 3, 3);
+      }
+
       ctx.globalAlpha = 1;
       continue;
     }
@@ -706,7 +877,7 @@ function draw() {
       ctx.restore();
     } else {
       // Panah pembeku (saat buff aktif) berwarna biru muda.
-      const wTip = b.beku ? "#ffffff" : "#ffffff";
+      const wTip = "#ffffff";
       const wBadan = b.beku ? "#9fd9ff" : "#d9d9d9";
       const wEkor = b.beku ? "#5cb0e8" : "#a9a9a9";
       ctx.fillStyle = wTip;
@@ -757,21 +928,47 @@ function draw() {
       ctx.strokeRect(bx, by, bw, bh);
     }
     if (tekstur[karakter.kunci]) {
-      // Animasi karakter: diam = IDLE (2 frame, napas pelan),
-      // bergerak = JALAN (4 frame langkah). Frame dipilih dari waktu global.
+      // Animasi karakter: IDLE/WALK, atau HIT frame merah saat kena damage.
       const tAnim = performance.now() / 1000;
-      const modeP = player.gerak ? "walk" : "idle";
-      const jmlF = 12;
-      const fpsF = player.gerak ? 12 : 4;
+      let modeP, jmlF, fpsF;
+      if (player.hitFlash > 0) {
+        modeP = "idle";
+        jmlF = 1;
+        fpsF = 1;
+      } else {
+        modeP = player.gerak ? "walk" : "idle";
+        jmlF = 12;
+        fpsF = player.gerak ? 12 : 4;
+      }
       const idxF = Math.floor(tAnim * fpsF) % jmlF;
       const imgA = tekstur[karakter.kunci + "-" + modeP + "-" + idxF] || tekstur[karakter.kunci];
-      gambarPixel(imgA, player.x, player.y, karakter.skala);
+      // Normalisasi ukuran render ke 64x64
+      const sz = 64 * karakter.skala;
+      ctx.drawImage(imgA, player.x - sz / 2, player.y - sz / 2, sz, sz);
+      // Flash overlay saat kena damage
+      if (player.hitFlash > 0) {
+        ctx.globalCompositeOperation = "screen";
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = "#ff4040";
+        ctx.fillRect(player.x - sz / 2, player.y - sz / 2, sz, sz);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
     }
   }
 
+  // Partikel efek
   for (const p of particles) {
     ctx.globalAlpha = 1 - p.t / p.life;
     ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Efek pixel disintegration: potongan sprite beterbangan saat musuh mati
+  for (const p of deathPixels) {
+    ctx.globalAlpha = 1 - p.t / p.life;
+    ctx.fillStyle = "rgb(" + p.r + "," + p.g + "," + p.b + ")";
     ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
   }
   ctx.globalAlpha = 1;
@@ -788,11 +985,12 @@ function draw() {
   ctx.globalAlpha = 1;
 
   // Angka damage melayang: kuning = ke musuh, merah = ke karakter.
+  const dmgFontSize = Math.round(W * 0.03);
   for (const dm of damages) {
     ctx.globalAlpha = 1 - dm.t / dm.life;
-    ctx.font = "bold 28px Zen Dots";
+    ctx.font = "bold " + dmgFontSize + "px Zen Dots";
     ctx.textAlign = "center";
-    ctx.lineWidth = 6;
+    ctx.lineWidth = Math.max(3, dmgFontSize * 0.22);
     ctx.strokeStyle = "#000";
     ctx.strokeText(dm.teks, dm.x, dm.y);
     ctx.fillStyle = dm.warna;
@@ -826,19 +1024,20 @@ function draw() {
   if (levelBanner) {
     const p = levelBanner.t / levelBanner.life;
     const alpha = p < 0.15 ? p / 0.15 : p > 0.75 ? Math.max(0, 1 - (p - 0.75) / 0.25) : 1;
+    const bw = W * 0.32, bh = H * 0.1;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(W / 2 - 160, H / 2 - 45, 320, 76);
+    ctx.fillRect(W / 2 - bw / 2, H / 2 - bh / 2, bw, bh);
     ctx.strokeStyle = "#ffd23f";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(W / 2 - 160, H / 2 - 45, 320, 76);
+    ctx.lineWidth = Math.max(1, W * 0.002);
+    ctx.strokeRect(W / 2 - bw / 2, H / 2 - bh / 2, bw, bh);
     ctx.fillStyle = "#ffd23f";
-    ctx.font = "bold 34px Zen Dots";
+    ctx.font = "bold " + Math.round(W * 0.035) + "px Zen Dots";
     ctx.textAlign = "center";
-    ctx.fillText(levelBanner.teks, W / 2, H / 2 + 4);
+    ctx.fillText(levelBanner.teks, W / 2, H / 2 + H * 0.005);
     ctx.fillStyle = "#fff";
-    ctx.font = "14px Zen Dots";
-    ctx.fillText("Habiskan semua musuh!", W / 2, H / 2 + 26);
+    ctx.font = Math.round(W * 0.014) + "px Zen Dots";
+    ctx.fillText("Habiskan semua musuh!", W / 2, H / 2 + H * 0.035);
     ctx.textAlign = "left";
     ctx.globalAlpha = 1;
   }
@@ -847,11 +1046,12 @@ function draw() {
 
   // Biner error agar mudah terlihat bila ada runtime error.
   if (errorBanner) {
+    const errH = H * 0.04;
     ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(0, H - 30, W, 30);
+    ctx.fillRect(0, H - errH, W, errH);
     ctx.fillStyle = "#ff6b6b";
-    ctx.font = "bold 14px Zen Dots";
-    ctx.fillText("ERROR: " + errorBanner, 8, H - 9);
+    ctx.font = "bold " + Math.round(W * 0.014) + "px Zen Dots";
+    ctx.fillText("ERROR: " + errorBanner, W * 0.008, H - errH * 0.3);
   }
 }
 
@@ -860,25 +1060,28 @@ function draw() {
 // Mendukung transisi pembakaran bertahap (burnProgress: 0.0 -> 1.0) dari hijau ke api membara.
 let soulIgniteStart = null;
 
-function gambarApiPixel(px, py, pw, ph, t, burnProgress = 1.0) {
+function gambarApiPixel(px, py, pw, ph, t, burnProgress = 1.0, tanpGlow = false) {
   ctx.save();
 
   // 1. PENDAR PANAS (Thermal Aura & Ambient Bloom)
-  ctx.globalCompositeOperation = "lighter";
-  const glowRadius = pw * (0.48 + 0.22 * burnProgress);
-  const denyutAura = (0.65 + 0.35 * Math.sin(t * 3.5)) * burnProgress;
-  const gGlow = ctx.createRadialGradient(
-    px + pw / 2, py + ph / 2, 4,
-    px + pw / 2, py + ph / 2, glowRadius
-  );
-  gGlow.addColorStop(0, "rgba(255, 140, 30, " + (0.45 * denyutAura) + ")");
-  gGlow.addColorStop(0.4, "rgba(255, 60, 10, " + (0.25 * denyutAura) + ")");
-  gGlow.addColorStop(0.75, "rgba(180, 20, 0, " + (0.09 * denyutAura) + ")");
-  gGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = gGlow;
-  ctx.beginPath();
-  ctx.arc(px + pw / 2, py + ph / 2, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
+  // Saat bake, glow digambar live terpisah (1 gradient/frame) biar sprite kecil.
+  if (!tanpGlow) {
+    ctx.globalCompositeOperation = "lighter";
+    const glowRadius = pw * (0.48 + 0.22 * burnProgress);
+    const denyutAura = (0.65 + 0.35 * Math.sin(t * 3.5)) * burnProgress;
+    const gGlow = ctx.createRadialGradient(
+      px + pw / 2, py + ph / 2, 4,
+      px + pw / 2, py + ph / 2, glowRadius
+    );
+    gGlow.addColorStop(0, "rgba(255, 140, 30, " + (0.45 * denyutAura) + ")");
+    gGlow.addColorStop(0.4, "rgba(255, 60, 10, " + (0.25 * denyutAura) + ")");
+    gGlow.addColorStop(0.75, "rgba(180, 20, 0, " + (0.09 * denyutAura) + ")");
+    gGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gGlow;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph / 2, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // 2. BADAN BAR (Transisi Warna Magma: Hijau Panas -> Kuning Pijar -> Merah Magma)
   const gBadan = ctx.createLinearGradient(0, py, 0, py + ph);
@@ -1159,22 +1362,24 @@ function gambarIcicle(bx, by, w, h, grow) {
 // Desain murni es padat/beku: balok es faset, pilar kristal prisma kaku di atas,
 // tetesan icicles di bawah, hawa kabut dingin, kepingan salju (snowflakes) jatuh perlahan,
 // dan kilauan berlian (glints) sesekali.
-function gambarApiEs(px, py, pw, ph, t, freezeProgress = 1.0) {
+function gambarApiEs(px, py, pw, ph, t, freezeProgress = 1.0, tanpGlow = false) {
   ctx.save();
 
   // 1. KABUT DINGIN / FROST MIST (Hawa dingin membeku yang tenang)
-  ctx.globalCompositeOperation = "lighter";
-  const mistW = pw * 0.68;
-  const denyut = (0.55 + 0.35 * Math.sin(t * 2.2)) * freezeProgress;
-  const gMist = ctx.createRadialGradient(px + pw / 2, py + ph * 0.6, 2, px + pw / 2, py + ph * 0.6, mistW);
-  gMist.addColorStop(0, "rgba(125, 211, 252, " + (0.26 * denyut) + ")");
-  gMist.addColorStop(0.5, "rgba(56, 189, 248, " + (0.11 * denyut) + ")");
-  gMist.addColorStop(0.85, "rgba(2, 132, 199, " + (0.03 * denyut) + ")");
-  gMist.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = gMist;
-  ctx.beginPath();
-  ctx.arc(px + pw / 2, py + ph * 0.6, mistW, 0, Math.PI * 2);
-  ctx.fill();
+  if (!tanpGlow) {
+    ctx.globalCompositeOperation = "lighter";
+    const mistW = pw * 0.68;
+    const denyut = (0.55 + 0.35 * Math.sin(t * 2.2)) * freezeProgress;
+    const gMist = ctx.createRadialGradient(px + pw / 2, py + ph * 0.6, 2, px + pw / 2, py + ph * 0.6, mistW);
+    gMist.addColorStop(0, "rgba(125, 211, 252, " + (0.26 * denyut) + ")");
+    gMist.addColorStop(0.5, "rgba(56, 189, 248, " + (0.11 * denyut) + ")");
+    gMist.addColorStop(0.85, "rgba(2, 132, 199, " + (0.03 * denyut) + ")");
+    gMist.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gMist;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph * 0.6, mistW, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // 2. BADAN BAR KRISTAL ES PADAT (Solid Glacial Block)
   const gBadan = ctx.createLinearGradient(0, py, 0, py + ph);
@@ -1336,86 +1541,442 @@ function gambarApiEs(px, py, pw, ph, t, freezeProgress = 1.0) {
   ctx.restore();
 }
 
-function drawHUD() {
-  ctx.fillStyle = "#000";
-  ctx.fillRect(20, 20, 264, 28);
-  ctx.fillStyle = "#4ade80";
-  ctx.fillRect(24, 24, 256 * (player.hp / player.maxHp), 20);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(21, 21, 262, 26);
+// ==================== SOUL METER DI-BAKE JADI ANIMASI SPRITE ====================
+// Saat soul penuh, efek api/es rayaan dirender SEKALI jadi ~13 frame sprite;
+// tiap frame HUD hanya drawImage + 1 glow kecil (gradient) — bukan puluhan
+// gradient/lidah/bara setiap frame.
+const SOUL_ANIM_K = 20;
+const SOUL_ANIM_RATE = 20;
+let soulAnim = null; // { jenis: "api"|"es", frames, left, top }
 
-  // Angka HP di dalam bar: "HP sekarang / HP maks".
-  // Warna teks menyesuaikan latar: di atas hijau → hitam, di luar hijau → putih.
+function bakeSoulAnim(jenis, bw, bh) {
+  let over, under, side;
+  if (jenis === "api") {
+    over = Math.ceil(bh * 5.6) + 6;   // lidah + bara yang naik tinggi
+    under = Math.ceil(bh * 0.35) + 10;
+    side = 12;
+  } else {
+    over = Math.ceil(bh * 1.4) + 14;  // pilar kristal (40px) + kilauan + margin
+    under = Math.ceil(bh) + 64;       // icicles + salju turun di bawah bar
+    side = 12;
+  }
+  const frames = [];
+  for (let j = 0; j < SOUL_ANIM_K; j++) {
+    const t = j / SOUL_ANIM_RATE;
+    const cs = document.createElement("canvas");
+    cs.width = bw + side * 2;
+    cs.height = over + bh + under;
+    const csctx = cs.getContext("2d");
+    const ctxAsli = ctx;
+    ctx = csctx;
+    try {
+      csctx.translate(side, over); // (0,0) = pojok kiri-atas bar
+      if (jenis === "api") gambarApiPixel(0, 0, bw, bh, t, 1.0, true);
+      else gambarApiEs(0, 0, bw, bh, t, 1.0, true);
+    } finally {
+      ctx = ctxAsli;
+    }
+    frames.push(cs);
+  }
+  return { jenis: jenis, frames: frames, left: side, top: over };
+}
+
+// Pendar/kabut di sekitar bar digambar live (1 gradient + 1 arc per frame —
+// murah) agar sprite-nya tetap kecil tanpa tepian terpotong.
+function gambarGlowBar(px, py, pw, ph, t, jenis, progress) {
   ctx.save();
-  ctx.font = "bold 20px Zen Dots";
+  ctx.globalCompositeOperation = "lighter";
+  if (jenis === "api") {
+    const glowRadius = pw * (0.48 + 0.22 * progress);
+    const denyutAura = (0.65 + 0.35 * Math.sin(t * 3.5)) * progress;
+    const gl = ctx.createRadialGradient(px + pw / 2, py + ph / 2, 4, px + pw / 2, py + ph / 2, glowRadius);
+    gl.addColorStop(0, "rgba(255, 140, 30, " + (0.45 * denyutAura) + ")");
+    gl.addColorStop(0.4, "rgba(255, 60, 10, " + (0.25 * denyutAura) + ")");
+    gl.addColorStop(0.75, "rgba(180, 20, 0, " + (0.09 * denyutAura) + ")");
+    gl.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gl;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph / 2, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const mistW = pw * 0.68;
+    const denyut = (0.55 + 0.35 * Math.sin(t * 2.2)) * progress;
+    const gl = ctx.createRadialGradient(px + pw / 2, py + ph * 0.6, 2, px + pw / 2, py + ph * 0.6, mistW);
+    gl.addColorStop(0, "rgba(125, 211, 252, " + (0.26 * denyut) + ")");
+    gl.addColorStop(0.5, "rgba(56, 189, 248, " + (0.11 * denyut) + ")");
+    gl.addColorStop(0.85, "rgba(2, 132, 199, " + (0.03 * denyut) + ")");
+    gl.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gl;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph * 0.6, mistW, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Blit animasi sprite dengan crossfade antar-frame bake — tanpa lompatan step
+// dan loop terlihat halus (morph) meski baking hanya 20fps.
+function blitX(frames, t, rate, x, y, alpha) {
+  const K = frames.length;
+  const tf = t * rate;
+  let i0 = Math.floor(tf) % K;
+  if (i0 < 0) i0 += K;
+  const i1 = (i0 + 1) % K;
+  const fa = tf - Math.floor(tf);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(frames[i0], x, y);
+  if (fa > 0.001) {
+    ctx.globalAlpha = alpha * fa;
+    ctx.drawImage(frames[i1], x, y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Blit animasi soul dengan crossfade antar frame bake — tanpa lompatan step
+// dan loop jadi terlihat halus (morph), bukan patah-patah.
+function blitSoulFrame(frames, t, x, y, alpha) {
+  blitX(frames, t, SOUL_ANIM_RATE, x, y, alpha);
+}
+
+// ---------- Transisi "ULTIMATE SIAP": ledakan ring + semburan sinar saat
+// soul pertama kali penuh (dipakai di bawah/mendekati bar, GLOBAL COMPOSITE
+// "lighter" biar menyala di atas latar gelap). ----------
+function gambarBurstSoul(jenis, cx, cy, h, tNow, start) {
+  if (start === null) return;
+  const age = tNow - start;
+  if (age <= 0 || age > 0.95) return;
+  const q = 1 - age / 0.95; // fade 1 -> 0
+  const w1 = jenis === "api" ? "255, 190, 80" : "226, 242, 254";
+  const w2 = jenis === "api" ? "255, 80, 20" : "56, 189, 248";
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  // Cincin kejut 1 — meluas ke luar dari tengah bar.
+  const R1 = h * (2.2 + age * 16);
+  ctx.strokeStyle = "rgba(" + w1 + ", " + (0.5 * q).toFixed(3) + ")";
+  ctx.lineWidth = Math.max(1, h * 0.55 * q);
+  ctx.beginPath();
+  ctx.arc(cx, cy, R1, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Cincin kejut 2 — lebih kecil, lebih cepat, mengejarnya.
+  const R2 = h * (0.8 + age * 21);
+  if (R2 > h * 1.5) {
+    ctx.strokeStyle = "rgba(" + w2 + ", " + (0.4 * q).toFixed(3) + ")";
+    ctx.lineWidth = Math.max(1, h * 0.35 * q);
+    ctx.beginPath();
+    ctx.arc(cx, cy, R2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Semburan 8 sinar (starburst) berputar perlahan, menyebar ke luar.
+  const L = h * (2.6 + age * 13);
+  const rot = tNow * 2.4;
+  ctx.fillStyle = "rgba(" + w2 + ", " + (0.45 * q).toFixed(3) + ")";
+  ctx.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4 + rot;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    ctx.moveTo(cx - sa * h * 0.6, cy + ca * h * 0.6);
+    ctx.lineTo(cx + ca * L, cy + sa * L);
+    ctx.lineTo(cx + sa * h * 0.6, cy - ca * h * 0.6);
+  }
+  ctx.fill();
+
+  // Inti putih menyala sesaat di tengah.
+  ctx.fillStyle = "rgba(255, 255, 255, " + (0.55 * q).toFixed(3) + ")";
+  ctx.beginPath();
+  ctx.arc(cx, cy, h * 0.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// Satu panah es (style panah raksasa Kenzro, diarahkan menghadap KANAN),
+// origin = ujung runcing; sgr = skala (buat hantu/afterimage yang mengecil).
+function gambarPanahEsSatuan(tipX, cy, h, alfa, sgr) {
+  const m = sgr;
+  const w2 = h * 0.6 * m, L = h * 3.4 * m, tj = h * 0.95 * m, hn = h * 0.45 * m;
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  ctx.globalCompositeOperation = "lighter";
+
+  // 1. Aura pendar membungkus bagian depan.
+  const gA = ctx.createLinearGradient(tipX - L, 0, tipX, 0);
+  gA.addColorStop(0, "rgba(56, 189, 248, 0)");
+  gA.addColorStop(0.7, "rgba(56, 189, 248, 0.3)");
+  gA.addColorStop(1, "rgba(224, 242, 254, 0.55)");
+  ctx.fillStyle = gA;
+  ctx.beginPath();
+  ctx.ellipse(tipX - L * 0.42, cy, L * 0.72, w2 * 1.7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 2. Lance putih runcing di ujung.
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(tipX, cy);
+  ctx.lineTo(tipX - tj, cy - w2);
+  ctx.lineTo(tipX - tj * 0.7, cy);
+  ctx.lineTo(tipX - tj, cy + w2);
+  ctx.fill();
+
+  // 3. Lance inti lebih terang.
+  ctx.fillStyle = "rgba(224, 242, 254, 0.95)";
+  ctx.beginPath();
+  ctx.moveTo(tipX, cy);
+  ctx.lineTo(tipX - tj, cy - w2 * 0.5);
+  ctx.lineTo(tipX - tj * 0.74, cy);
+  ctx.lineTo(tipX - tj, cy + w2 * 0.5);
+  ctx.fill();
+
+  // 4. Bodi plasma: melebar di belakang lance, meruncing ke pangkal (tanpa ekor panjang).
+  const bx0 = tipX - tj;
+  const gB = ctx.createLinearGradient(bx0, 0, bx0 - L * 0.7, 0);
+  gB.addColorStop(0, "#bfe9ff");
+  gB.addColorStop(1, "rgba(125, 211, 252, 0.25)");
+  ctx.fillStyle = gB;
+  ctx.beginPath();
+  ctx.moveTo(bx0, cy);
+  ctx.lineTo(bx0, cy - w2);
+  ctx.lineTo(tipX - L * 0.82, cy - hn * 0.9);
+  ctx.lineTo(tipX - L * 0.9, cy);
+  ctx.lineTo(tipX - L * 0.82, cy + hn * 0.9);
+  ctx.lineTo(bx0, cy + w2);
+  ctx.fill();
+
+  // 5. Garis inti putih membara.
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.fillRect(tipX - L * 0.8, cy - hn * 0.22, L * 0.5, hn * 0.44);
+
+  // 6. Ekor roket biru (di belakang = kiri) menyala lalu memudar.
+  const glX = tipX - L * 0.9;
+  const gE = ctx.createLinearGradient(glX, 0, glX - hn * 3.2, 0);
+  gE.addColorStop(0, "rgba(224, 242, 254, 0.95)");
+  gE.addColorStop(0.35, "rgba(125, 211, 252, 0.6)");
+  gE.addColorStop(1, "rgba(56, 189, 248, 0)");
+  ctx.fillStyle = gE;
+  ctx.beginPath();
+  ctx.moveTo(glX, cy - hn * 0.6);
+  ctx.quadraticCurveTo(glX - hn * 1.1, cy - hn * 1.5, glX - hn * 2.4, cy);
+  ctx.quadraticCurveTo(glX - hn * 1.1, cy + hn * 1.5, glX, cy + hn * 0.6);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// Transisi soul meter Kenzro: anak panah es menembus bar dari kiri ke kanan,
+// bar "dibekukan" mengikuti ujungnya, lalu bloem kecil saat tiba di kanan.
+function gambarPanahEsSoul(x0, wBar, cy, h, tNow, sweep, start) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const umur = start !== null ? tNow - start : 9999;
+  if (sweep < 1) {
+    const tipX = x0 + wBar * sweep;
+    // Hantu di belakang panah utama (afterimage mengecil & memudar).
+    gambarPanahEsSatuan(tipX - h * 4.1, cy, h, 0.28, 0.85);
+    gambarPanahEsSatuan(tipX - h * 7.2, cy, h, 0.1, 0.7);
+    // Panah utama di ujung sapuan.
+    gambarPanahEsSatuan(tipX, cy, h, 1, 1);
+    // Kilau tajam kecil tepat di mata panah.
+    const sh1 = 0.6 + 0.4 * Math.sin(tNow * 25);
+    ctx.fillStyle = "rgba(240, 253, 255, " + (0.75 * sh1).toFixed(3) + ")";
+    ctx.beginPath();
+    ctx.arc(tipX + h * 0.15, cy, h * (0.3 + 0.12 * sh1), 0, Math.PI * 2);
+    ctx.fill();
+    // Serpihan es beterbangan di belakang panah.
+    for (let i = 0; i < 6; i++) {
+      const fr = (i * 0.17 + tNow * 1.3) % 1;
+      const fx = tipX - h * (0.5 + fr * 5);
+      const fy = cy + Math.sin(fr * Math.PI * 2 + i) * h * 1.6 - h * 0.5;
+      ctx.fillStyle = i % 2 === 0 ? "rgba(224, 242, 254, " + ((1 - fr) * 0.8).toFixed(3) + ")"
+                                   : "rgba(125, 211, 252, " + ((1 - fr) * 0.6).toFixed(3) + ")";
+      ctx.fillRect(fx, fy, h * 0.14, h * 0.14);
+    }
+  }
+  // Bloem es saat ujung panah tiba di ujung kanan bar (0.4 dtk).
+  if (umur >= 1.5 && umur < 1.9) {
+    const tb = (umur - 1.5) / 0.4;
+    const q = 1 - tb;
+    const ex = x0 + wBar + h * 0.6;
+    ctx.strokeStyle = "rgba(186, 230, 253, " + (0.55 * q).toFixed(3) + ")";
+    ctx.lineWidth = Math.max(1, h * 0.4 * q);
+    ctx.beginPath();
+    ctx.arc(ex, cy, h * (1 + tb * 7), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255, 255, 255, " + (0.5 * q).toFixed(3) + ")";
+    ctx.beginPath();
+    ctx.arc(ex, cy, h * (0.6 + tb * 1.2), 0, Math.PI * 2);
+    ctx.fill();
+    for (let i = 0; i < 10; i++) {
+      const angI = (i / 10) * Math.PI * 2;
+      const rI = h * (1.5 + tb * 6);
+      ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255," + (0.6 * q) + ")" : "rgba(125,211,252," + (0.45 * q) + ")";
+      ctx.fillRect(ex + Math.cos(angI) * rI, cy + Math.sin(angI) * rI, h * 0.12, h * 0.12);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- Efek berkelanjutan saat soul PENUH (digambar di atas sprite):
+// border energi berjalan, kilau menyapu, bara/salju melayang, glint sudut. ---
+function gambarNyalaSoul(jenis, x, y, w, h, tNow) {
+  const kunci = jenis === "api" ? "255, 200, 80" : "186, 230, 253";
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  // 1. Border energi berjalan mengelilingi bar (marching lights).
+  ctx.setLineDash([w * 0.22, w * 0.16]);
+  ctx.lineDashOffset = -tNow * w * 0.8;
+  ctx.strokeStyle = "rgba(" + kunci + ", 0.75)";
+  ctx.lineWidth = Math.max(1, h * 0.05);
+  ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.setLineDash([]);
+
+  // 2. Bara naik di atas bar (api) / salju turun ke bar (es) — 12 titik.
+  for (let i = 0; i < 12; i++) {
+    const ph = (tNow * 0.9 + i * 0.61) % 1;
+    const xi = x + w * 0.12 + w * 0.76 * ((i * 97) % 100) / 100 + Math.sin(tNow * 2 + i * 1.7) * 3;
+    const a = Math.sin(ph * Math.PI);
+    const yi = jenis === "api"
+      ? y + h - 5 - ph * (h + 48)
+      : y - 36 + ph * (h + 36);
+    const colr = jenis === "api"
+      ? (i % 3 === 0 ? "255, 248, 214" : (i % 3 === 1 ? "255, 184, 51" : "255, 77, 23"))
+      : (i % 3 === 0 ? "255, 255, 255" : (i % 3 === 1 ? "224, 242, 254" : "125, 211, 252"));
+    ctx.fillStyle = "rgba(" + colr + ", " + (0.85 * a).toFixed(3) + ")";
+    ctx.fillRect(xi - 1.2, yi - 1.2, 2.4, 2.4);
+  }
+
+  // 3. Kilau terang menyapu dari kiri ke kanan di tepi atas bar.
+  const sw = (tNow * 0.55) % 1.4;
+  if (sw < 0.6) {
+    const t2 = sw / 0.6;
+    const sx0 = x - w * 0.5 + t2 * (w * 1.5);
+    ctx.fillStyle = "rgba(255, 255, 255, " + (0.16 * Math.sin(t2 * Math.PI)).toFixed(3) + ")";
+    ctx.fillRect(sx0, y + 1.5, w * 0.5, Math.max(2, h * 0.12));
+  }
+
+  // 4. Glint berlian kecil di keempat sudut.
+  const pulse = 0.35 + 0.3 * Math.sin(tNow * 5);
+  ctx.fillStyle = "rgba(" + kunci + ", " + pulse.toFixed(3) + ")";
+  const gl = Math.max(2.5, h * 0.14);
+  ctx.beginPath();
+  for (const pair of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) {
+    ctx.moveTo(pair[0] - gl, pair[1]);
+    ctx.lineTo(pair[0], pair[1] - gl);
+    ctx.lineTo(pair[0] + gl, pair[1]);
+    ctx.lineTo(pair[0], pair[1] + gl);
+  }
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawHUD() {
+  // ---------- Skala proporsional terhadap canvas ----------
+  const sx = W / 1280;
+  const sy = H / 960;
+  const s  = Math.min(sx, sy) * 1.35;  // 1.35x agar lebih besar di layar
+  const m  = Math.round(20 * s);   // margin umum
+  const fs = (px) => Math.round(px * s); // font size helper
+
+  // ---------- HP BAR (kiri atas) ----------
+  const hpX = m, hpY = m;
+  const hpBarW = Math.round(264 * s), hpBarH = Math.round(28 * s);
+  const hpFillW = hpBarW - Math.round(8 * s);
+  const hpFillH = hpBarH - Math.round(8 * s);
+  const hpFillX = hpX + Math.round(4 * s);
+  const hpFillY = hpY + Math.round(4 * s);
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(hpX, hpY, hpBarW, hpBarH);
+  ctx.fillStyle = "#ef4444";
+  ctx.fillRect(hpFillX, hpFillY, hpFillW * (player.hp / player.maxHp), hpFillH);
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = Math.max(1, Math.round(2 * s));
+  ctx.strokeRect(hpX + Math.round(1 * s), hpY + Math.round(1 * s), hpBarW - Math.round(2 * s), hpBarH - Math.round(2 * s));
+
+  // Angka HP di dalam bar (sistem yang sama: latar belakang gelap → putih,
+  // terang → gelap). Karena fill merah & dasar hitam sama-sama gelap,
+  // angkanya putih di kedua sisi agar terbaca.
+  ctx.save();
+  ctx.font = "bold " + fs(20) + "px Zen Dots";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const hpEdge = 24 + 256 * (player.hp / player.maxHp);
-  ctx.fillStyle = hpEdge >= 152 ? "#000" : "#fff";
-  ctx.fillText(`${Math.round(player.hp)}/${player.maxHp}`, 152, 35);
+  const hpEdge = hpFillX + hpFillW * (player.hp / player.maxHp);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(Math.round(player.hp) + "/" + player.maxHp, hpX + hpBarW / 2, hpY + hpBarH / 2);
   ctx.restore();
 
-  ctx.font = "28px Zen Dots";
+  // Label "HP"
+  ctx.font = fs(28) + "px Zen Dots";
   ctx.fillStyle = "#fff";
-  ctx.fillText("HP", 296, 45);
+  ctx.fillText("HP", hpX + hpBarW + Math.round(12 * s), hpY + hpBarH * 0.85);
 
-  // Kotak info kanan atas: nama karakter, level, sisa musuh.
-  ctx.fillStyle = "#000";
-  ctx.fillRect(880, 20, 380, 200);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(881, 21, 378, 198);
-  ctx.font = "bold 28px Zen Dots";
+  // ---------- INFO BOX (kanan atas) ----------
+  const infoW = Math.round(380 * s);
+  const infoPad = Math.round(16 * s);
+  const infoLineH = Math.round(32 * s);
+  const infoBaris = 3 + (player.specialBuff > 0 ? 1 : 0) + (player.ultBuff ? 1 : 0);
+  const infoH = Math.round(infoPad * 2 + infoLineH * infoBaris + fs(8));
+  const infoX = W - infoW - m, infoY = m;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx.fillRect(infoX, infoY, infoW, infoH);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+  ctx.lineWidth = Math.max(1, Math.round(2 * s));
+  ctx.strokeRect(infoX + Math.round(1 * s), infoY + Math.round(1 * s), infoW - Math.round(2 * s), infoH - Math.round(2 * s));
+  ctx.font = "bold " + fs(24) + "px Zen Dots";
   if (karakter) {
     ctx.fillStyle = "#fff";
-    ctx.fillText(karakter.nama.toUpperCase(), 900, 56);
+    ctx.fillText(karakter.nama.toUpperCase(), infoX + infoPad, infoY + infoPad + fs(4));
   }
   ctx.fillStyle = "#ffd23f";
-  ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, 900, 96);
+  ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, infoX + infoPad, infoY + infoPad + infoLineH);
   const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#fff";
-  ctx.fillText("MUSUH " + sisa, 900, 132);
-
+  ctx.fillText("MUSUH " + sisa, infoX + infoPad, infoY + infoPad + infoLineH * 2);
   if (player.specialBuff > 0) {
     ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), 900, 172);
+    ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), infoX + infoPad, infoY + infoPad + infoLineH * 3);
   }
   if (player.ultBuff) {
     ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("PANAH RAKSASA " + player.ultArrows, 900, 208);
+    ctx.fillText("PANAH RAKSASA " + player.ultArrows, infoX + infoPad, infoY + infoPad + infoLineH * 4);
   }
 
-  // Bar cooldown jurus — teksnya berada DI DALAM bar.
+  // ---------- SKILL BAR (bawah HP bar) ----------
   const namaSkill = karakter && karakter.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
   const warnaSkill = karakter && karakter.tipe === "jarak" ? "#7dd3fc" : "#ffd23f";
-  ctx.fillStyle = "#000";
-  ctx.fillRect(20, 64, 264, 28);
+  const skY = hpY + hpBarH + Math.round(8 * s);
+  const skBarW = hpBarW, skBarH = hpBarH;
+  const skFillW = skBarW - Math.round(8 * s);
+  const skFillH = skBarH - Math.round(8 * s);
+  const skFillX = hpX + Math.round(4 * s);
+  const skFillY = skY + Math.round(4 * s);
   const ratio = 1 - player.specialCd / player.specialMax;
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(hpX, skY, skBarW, skBarH);
   ctx.fillStyle = warnaSkill;
-  ctx.fillRect(24, 68, 256 * ratio, 20);
-  ctx.font = "bold 22px Zen Dots";
+  ctx.fillRect(skFillX, skFillY, skFillW * ratio, skFillH);
+  ctx.font = "bold " + fs(22) + "px Zen Dots";
   if (player.specialCd > 0) {
-    // Sedang cooldown: angka sisa detik di sisi kanan dalam bar.
     ctx.textAlign = "right";
     ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
-    ctx.strokeText(player.specialCd.toFixed(1), 280, 86);
+    ctx.lineWidth = Math.max(1, Math.round(2 * s));
+    ctx.strokeText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
     ctx.fillStyle = "#fff";
-    ctx.fillText(player.specialCd.toFixed(1), 280, 86);
+    ctx.fillText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
     ctx.textAlign = "left";
   } else {
-    // Siap dipakai: nama skill di tengah bar.
     ctx.textAlign = "center";
     ctx.fillStyle = "#0d1219";
-    ctx.fillText(namaSkill, 152, 86);
+    ctx.fillText(namaSkill, hpX + skBarW / 2, skY + skBarH * 0.7);
     ctx.textAlign = "left";
   }
 
-  // Soul meter: terisi dari jiwa hijau yang diserap (50 = penuh).
-  // DIPINDAHKAN ke BAWAH-TENGAH layar + DIPERBESAR; ukuran mengikuti
-  // W/H biar tetap proporsional (bukan ukuran tetap di pojok kiri atas).
-  // Berlaku untuk SEMUA karakter (Vender & Kenzro sama-sama pakai bar ini).
+  // ---------- SOUL METER (bawah tengah) ----------
   const bwS = Math.round(W * 0.34);
   const bhS = Math.round(H * 0.045);
   const bxS = Math.round((W - bwS) / 2);
@@ -1428,7 +1989,6 @@ function drawHUD() {
   if (apiMenyala) {
     if (soulIgniteStart === null) {
       soulIgniteStart = tNow;
-      // Percikan semburan api saat pertama kali membakar penuh
       if (typeof spawnParticles === "function") {
         spawnParticles(bxS + bwS * 0.2, byS + bhS / 2, "#ffd23f", 15);
         spawnParticles(bxS + bwS * 0.8, byS + bhS / 2, "#ffd23f", 15);
@@ -1447,7 +2007,6 @@ function drawHUD() {
   if (esMenyala) {
     if (soulFreezeStart === null) {
       soulFreezeStart = tNow;
-      // Percikan partikel es & kristal saat membeku
       if (typeof spawnParticles === "function") {
         spawnParticles(bxS + bwS * 0.2, byS + bhS / 2, "#a5f3fc", 15);
         spawnParticles(bxS + bwS * 0.8, byS + bhS / 2, "#38bdf8", 15);
@@ -1462,62 +2021,85 @@ function drawHUD() {
     soulFreezeStart = null;
   }
 
+  // Sapuan panah es untuk transisi: lambat (1.5 dtk, ease out), terpisah dari
+  // freezeProgress (yang mengendalikan efek soul meter lama 0.75 dtk).
+  const esSweep = soulFreezeStart !== null
+    ? 1 - Math.pow(1 - Math.min(1, (tNow - soulFreezeStart) / 1.5), 3)
+    : 1;
+
   ctx.fillStyle = "#000";
   ctx.fillRect(bxS, byS, bwS, bhS);
   if (apiMenyala) {
-    gambarApiPixel(bxS, byS, bwS, bhS, tNow, burnProgress);
+    if (!soulAnim || soulAnim.jenis !== "api") {
+      soulAnim = bakeSoulAnim("api", bwS, bhS);
+    }
+    gambarGlowBar(bxS, byS, bwS, bhS, tNow, "api", burnProgress);
+    gambarBurstSoul("api", bxS + bwS / 2, byS + bhS / 2, bhS, tNow, soulIgniteStart);
+    blitSoulFrame(soulAnim.frames, tNow, bxS - soulAnim.left, byS - soulAnim.top, Math.min(1, burnProgress * 1.4));
+    gambarNyalaSoul("api", bxS, byS, bwS, bhS, tNow);
   } else if (esMenyala) {
-    gambarApiEs(bxS, byS, bwS, bhS, tNow, freezeProgress);
+    if (!soulAnim || soulAnim.jenis !== "es") {
+      soulAnim = bakeSoulAnim("es", bwS, bhS);
+    }
+    // Efek soul meter LAMA tetap utuh & langsung kelihatan (fade-in 0.75 dtk
+    // seperti sebelumnya) — seluruh bar terisi es membara.
+    gambarGlowBar(bxS, byS, bwS, bhS, tNow, "es", freezeProgress);
+    blitSoulFrame(soulAnim.frames, tNow, bxS - soulAnim.left, byS - soulAnim.top, Math.min(1, freezeProgress * 1.4));
+    gambarNyalaSoul("es", bxS, byS, bwS, bhS, tNow);
+    // Anak panah es HANYA animasi transisi di ATAS bar (tidak mengganti/
+    // menghilangkan efek lama) — menyapu kiri → kanan pelan, + bloem di ujung.
+    gambarPanahEsSoul(bxS, bwS, byS + bhS / 2, bhS, tNow, esSweep, soulFreezeStart);
   } else {
-    // Belum penuh: isian hijau proporsional jiwa yang diserap (50 = penuh).
+    soulAnim = null;
     ctx.fillStyle = "#7cff5e";
     ctx.fillRect(bxS + 2, byS + 2, (bwS - 4) * Math.min(1, soul / SOUL_MAX), bhS - 4);
   }
 
+  const soulFont = "bold " + fs(22) + "px Zen Dots";
   if (apiMenyala) {
-    // Border emas tempaan bercahaya (Vender)
     ctx.strokeStyle = "#ffe27a";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = Math.max(1, Math.round(1.5 * s));
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
-
-    // Teks SOUL METER dengan bayangan pijar api
-    ctx.font = "bold 22px Zen Dots";
+    ctx.font = soulFont;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255, 235, 140, 0.85)";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 10);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(10));
     ctx.fillStyle = "#260601";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(8));
     ctx.textAlign = "left";
   } else if (esMenyala) {
-    // Border kristal es perak-cyan (Kenzro)
     ctx.strokeStyle = "#bae6fd";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = Math.max(1, Math.round(1.5 * s));
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
-
-    // Teks SOUL METER dengan bayangan es arktik
-    ctx.font = "bold 22px Zen Dots";
+    ctx.font = soulFont;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(186, 230, 253, 0.9)";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 10);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(10));
     ctx.fillStyle = "#032030";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(8));
     ctx.textAlign = "left";
   } else {
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(1, s);
     ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
-
-    ctx.font = "bold 22px Zen Dots";
+    ctx.font = soulFont;
     ctx.textAlign = "center";
     ctx.fillStyle = "#14532d";
-    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + 8);
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(8));
     ctx.textAlign = "left";
   }
 
   if (soul >= SOUL_MAX) {
-    ctx.font = "bold 22px Zen Dots";
+    ctx.font = soulFont;
     ctx.textAlign = "center";
+    const ignT = apiMenyala ? soulIgniteStart : (esMenyala ? soulFreezeStart : null);
+    const umurText = ignT !== null ? tNow - ignT : 9999;
+    const pop = umurText < 0.8 ? 1 + 0.32 * Math.pow(1 - umurText / 0.8, 2) : 1;
+    ctx.save();
+    ctx.translate(bxS + bwS / 2, byS + bhS + fs(24));
+    ctx.scale(pop, pop);
     const pulse = 0.65 + 0.35 * Math.sin(tNow * 6);
+    const gl = apiMenyala ? "255, 140, 63" : (esMenyala ? "125, 211, 252" : "255, 210, 63");
     if (apiMenyala) {
       ctx.fillStyle = "rgba(255, 215, 60, " + (pulse * burnProgress) + ")";
     } else if (esMenyala) {
@@ -1525,26 +2107,37 @@ function drawHUD() {
     } else {
       ctx.fillStyle = "#ffd23f";
     }
-    ctx.fillText("ULTIMATE SIAP [R]", bxS + bwS / 2, byS + bhS + 24);
+    ctx.fillText("ULTIMATE SIAP [R]", 0, 0);
+    if (umurText < 0.8 && (apiMenyala || esMenyala)) {
+      ctx.shadowColor = "rgba(" + gl + ", 0.9)";
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = "rgba(255, 255, 255, " + (0.6 * (1 - umurText / 0.8)).toFixed(3) + ")";
+      ctx.fillText("ULTIMATE SIAP [R]", 0, 0);
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
     ctx.textAlign = "left";
   }
-  // UI dash: lingkaran hitam transparan pojok kanan bawah + logo sepatu.
-  const cx = W - 80, cy = H - 80, R = 56;
+
+  // ---------- DASH UI (kanan bawah) ----------
+  const dashR = Math.round(60 * s);
+  const cx = W - dashR - Math.round(28 * s);
+  const cy = H - dashR - Math.round(28 * s);
   ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
   ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = Math.max(1, Math.round(3 * s));
   ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Gambar satu sepatu mini (bisa dipakai ulang). Ukuran 2x canvas baru.
+  const skalaSepatu = s * 1.6;
   const gambarSepatu = (sx, sy, bad, sol, tali) => {
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.scale(2, 2);
+    ctx.scale(skalaSepatu, skalaSepatu);
     ctx.fillStyle = bad;
     ctx.beginPath();
     ctx.moveTo(-10, 5);
@@ -1563,39 +2156,33 @@ function drawHUD() {
   };
 
   if (player.dashMax > 1) {
-    // Kenzro (2 dash): cooldown tiap dash MANDIRI, angka tampilannya digabung.
-    // Sepatu: normal saat 2 dash siap, agak transparan saat hanya 1.
     ctx.globalAlpha = player.dashStacks >= 2 ? 1 : player.dashStacks === 1 ? 0.5 : 0.25;
-    // Sepasang sepatu.
-    gambarSepatu(cx - 4, cy, "rgba(125,211,252,0.85)", "#4a9fd8", "#dff4ff");
-    gambarSepatu(cx + 6, cy, "#ffffff", "#9fd9ff", "#7dd3fc");
+    gambarSepatu(cx - Math.round(4 * s), cy, "rgba(125,211,252,0.85)", "#4a9fd8", "#dff4ff");
+    gambarSepatu(cx + Math.round(6 * s), cy, "#ffffff", "#9fd9ff", "#7dd3fc");
     ctx.globalAlpha = 1;
-    // Titik charge di sisi kanan.
     for (let i = 0; i < player.dashMax; i++) {
-      const px = cx + R - 12, py = cy - 20 + i * 32;
+      const dotX = cx + dashR - Math.round(12 * s);
+      const dotY = cy - Math.round(20 * s) + i * Math.round(32 * s);
       ctx.fillStyle = i < player.dashStacks ? "#7dd3fc" : "rgba(255,255,255,0.2)";
       ctx.beginPath();
-      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.arc(dotX, dotY, Math.round(8 * s), 0, Math.PI * 2);
       ctx.fill();
     }
-    // Angka gabungan di DALAM sepatu, putih pekat.
     if (player.dashCd > 0) {
-      ctx.font = "bold 28px Zen Dots";
+      ctx.font = "bold " + fs(28) + "px Zen Dots";
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 14);
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(14 * s));
       ctx.textAlign = "left";
     }
   } else {
-    // Vender (1 dash): angka bersih di tengah saat cooldown.
     if (player.dashCd > 0) {
-      ctx.font = "bold 36px Zen Dots";
+      ctx.font = "bold " + fs(36) + "px Zen Dots";
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + 14);
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(14 * s));
       ctx.textAlign = "left";
     } else {
-      // Siap: sepatu putih-merah.
       gambarSepatu(cx, cy, "#ffffff", "#ff4d4d", "#ff2030");
     }
   }
