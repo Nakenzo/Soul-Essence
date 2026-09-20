@@ -59,6 +59,16 @@ function pilihDevice(dev) {
 layarDevice.querySelectorAll("[data-device]").forEach((b) =>
   b.addEventListener("click", () => pilihDevice(b.dataset.device)));
 
+// Nota KARTUMU hanya tampil saat permainan benar-benar berjalan
+// (statusGame === "main"); dikerjakan murah per frame di main.js loop.
+let _statusNotaTerakhir = null;
+function aturNotaKartu() {
+  if (_statusNotaTerakhir === statusGame) return;
+  _statusNotaTerakhir = statusGame;
+  const nota = document.getElementById("notaKartu");
+  if (nota) nota.classList.toggle("tampil", statusGame === "main");
+}
+
 // Tombol pause (II) hanya tampil saat permainan berjalan.
 function aturTombolPause() {
   if (statusGame === "main") {

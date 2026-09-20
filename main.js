@@ -29,6 +29,7 @@ function loop(now) {
   lastTime = now;
   update(dt);
   draw();
+  aturNotaKartu();
   requestAnimationFrame(loop);
 }
 

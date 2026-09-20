@@ -2,7 +2,7 @@
 // INPUT - keyboard & mouse (desktop) + layar sentuh (HP).
 // 1/2/3 : pilih karakter (layar pilih) / pilih kartu upgrade
 // R   : ulang dengan karakter yang sama
-// Mode HP: joystick tetap di pojok KIRI BAWAH; sisi kanan bisa dipakai
+// Mode HP: joystick tetap di pojok KIRI layar; sisi kanan bisa dipakai
 //          bidik+serang manual, tombol SERANG besar = auto-aim musuh
 //          terdekat, tombol DASH / SKILL / ULT melingkari tombol serang.
 // Vektor gerak gabungan joy+keyboard dipakai entities.js via gerakDx/Dy.
@@ -124,14 +124,7 @@ canvas.addEventListener("pointerdown", (e) => {
       }
     }
     const r = canvas.getBoundingClientRect();
-    if (e.clientX < r.left + r.width / 2) {
-      // Kiri: joystick gerak (acuan titik tetap joyBase).
-      if (_joyId === null) {
-        _joyId = e.pointerId;
-        _joyBasis = _pusatJoy();
-        _geserJoy(e);
-      }
-    } else if (_aimId === null) {
+    if (e.clientX >= r.left + r.width / 2 && _aimId === null) {
       // Kanan: bidik + serang manual (tekan & tahan).
       _aimId = e.pointerId;
       mouse.down = true;
@@ -152,6 +145,22 @@ canvas.addEventListener("pointerdown", (e) => {
 
 window.addEventListener("pointerup", lepasSentuh);
 window.addEventListener("pointercancel", lepasSentuh);
+
+// ---------- Joystick: elemen joyBase sendiri yang menerima sentuhan ----------
+// (area tetap di POJOK layar HP, di luar kanvas). Sentuhan kiri-atas hingga
+// kanan-under joystick dipetakan ke vektor gerak via _geserJoy.
+joyBase.addEventListener("pointerdown", (e) => {
+  if (deviceTerpilih !== "mobile") return;
+  if (_joyId !== null) return;
+  e.preventDefault();
+  _joyId = e.pointerId;
+  _joyBasis = _pusatJoy();
+  try { joyBase.setPointerCapture(e.pointerId); } catch (err) {}
+  _geserJoy(e);
+});
+joyBase.addEventListener("pointermove", (e) => {
+  if (e.pointerId === _joyId) _geserJoy(e);
+});
 
 function lepasSentuh(e) {
   if (deviceTerpilih === "mobile") {
@@ -307,14 +316,12 @@ function _gambarSinar4(c, cx, cy, sk, warna) {
 // canvas): visual penuh/isi berasal dari bar asli, tekan bar saat meter
 // PENUH untuk melancarkan ultimate.
 const tombolUlt = document.getElementById("tombolUlt");
-const ultLabel = tombolUlt.querySelector(".ult-label");
 
 function gambarSoulUlt() {
+  // Meter penuh → bar berpendar emas (canvas juga menyala): tanda siap ditekan
+  // untuk melancarkan ultimate. Tanpa teks agar tidak bertumpuk di bar.
   const soulNow = typeof soul === "number" ? soul : 0;
-  const penuh = soulNow >= SOUL_MAX;
-  ultLabel.textContent = penuh ? "ULTIMATE SIAP" : "";
-  ultLabel.classList.toggle("ult-menyala", penuh);
-  tombolUlt.classList.toggle("ult-siap", penuh);
+  tombolUlt.classList.toggle("ult-siap", soulNow >= SOUL_MAX);
 }
 
 (function loopSoulUlt() {
