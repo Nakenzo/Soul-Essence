@@ -2165,6 +2165,46 @@ function drawHUD() {
     ctx.textAlign = "left";
   }
 
+  // ---------- NOTA KARTU (mode HP: sidebar disembunyikan) ----------
+  // Upgrade yang sudah diambil ditampilkan sebagai teks ringkas di kiri
+  // atas (mis. "+15% damage serangan"), supaya tetap terbaca di game.
+  if (deviceTerpilih === "mobile" && statusGame === "main" && player && player.kartu) {
+    const kartu = player.kartu;
+    const ids = Object.keys(kartu);
+    if (ids.length > 0) {
+      const nota = [];
+      for (const id in kartu) {
+        const k = KARTU_UPGRADE.find((c) => c.id === id);
+        if (!k) continue;
+        const tierDef = TIER_DEF[k.tier || "common"] || TIER_DEF.common;
+        nota.push({ teks: k.ket, warna: tierDef.gem || "#d6b36a", jml: kartu[id] });
+      }
+      if (nota.length > 0) {
+        const nx = hpX;
+        const ny = skY + skBarH + Math.round(10 * s);
+        const lh = Math.round(18 * s);
+        const pad = Math.round(8 * s);
+        const lebar = hpBarW;
+        const tinggi = pad * 2 + lh * nota.length;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fillRect(nx, ny, lebar, tinggi);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.lineWidth = Math.max(1, Math.round(1 * s));
+        ctx.strokeRect(nx + 0.5, ny + 0.5, lebar - 1, tinggi - 1);
+        ctx.font = "bold " + fs(13) + "px Zen Dots";
+        ctx.textBaseline = "middle";
+        nota.forEach((b, i) => {
+          const ty = ny + pad + lh * i + lh / 2;
+          ctx.fillStyle = b.warna;
+          ctx.fillText("\u25C6", nx + Math.round(7 * s), ty);
+          ctx.fillStyle = "#e6edf5";
+          ctx.fillText(b.teks + (b.jml > 1 ? " \u00D7" + b.jml : ""), nx + Math.round(18 * s), ty);
+        });
+        ctx.textBaseline = "alphabetic";
+      }
+    }
+  }
+
   // ---------- SOUL METER (bawah tengah) ----------
   const bwS = Math.round(W * 0.34);
   const bhS = Math.round(H * 0.045);

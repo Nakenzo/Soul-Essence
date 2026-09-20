@@ -212,10 +212,12 @@ function sfxTembak() {
     sfxTone({ freq: 1650, endFreq: 2100, dur: 0.09, type: "sine", vol: 0.1, delay: 0.05 });
     return;
   }
-  // Panah biasa Kenzro: file lokal jika ada (assets/sfx/kenzro/panah.mp3).
+  // Panah biasa Kenzro: file lokal jika ada (assets/sfx/kenzro/panah.wav).
+  // Fallback sintesis dibuat bertenaga agar tetap terdengar di speaker HP.
   if (sfxFile("panah")) return;
-  sfxNoise({ dur: 0.07, vol: 0.1, fType: "highpass", fFreq: 2200 });
-  sfxTone({ freq: 1150, endFreq: 580, dur: 0.11, type: "triangle", vol: 0.16 });
+  sfxNoise({ dur: 0.08, vol: 0.18, fType: "highpass", fFreq: 2400 });
+  sfxTone({ freq: 1180, endFreq: 540, dur: 0.15, type: "triangle", vol: 0.26 });
+  sfxTone({ freq: 590, endFreq: 270, dur: 0.12, type: "sine", vol: 0.2, delay: 0.01 });
 }
 
 function sfxSabet() {

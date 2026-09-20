@@ -106,7 +106,7 @@ function mulai() {
     { kunci: "ultimate-vender-api", src: "assets/sfx/vender/ultimate-vender-api.mp3", vol: 1.0 },
     { kunci: "ultimate-vender-api-b", src: "assets/sfx/vender/ultimate-vender-api.mp3", vol: 1.0 },
     { kunci: "ultimate-kenzro", src: "assets/sfx/kenzro/ultimate-kenzro.mp3" },
-    { kunci: "panah", src: "assets/sfx/kenzro/panah.mp3", vol: 0.7 },
+    { kunci: "panah", src: "assets/sfx/kenzro/panah.wav", vol: 0.9 },
     { kunci: "beku", src: "assets/sfx/kenzro/beku.mp3", vol: 0.7 },
     { kunci: "dash", src: "assets/sfx/common/dash.wav" },
     { kunci: "panah-raksasa", src: "assets/sfx/kenzro/panah-raksasa.mp3" } // fallback sintesis jika file tidak ada

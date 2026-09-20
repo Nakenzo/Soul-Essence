@@ -145,7 +145,33 @@ canvas {
 /* Mode HP: kanvas GAME memakai hampir seluruh layar. Hanya canvas#game —
    jangan menimpa kanvas lain (ikon tombol sentuh, preview kartu karakter). */
 body[data-device="mobile"] canvas#game {
-    width: min(97vw, calc((100vh - 4px) * 4 / 3));
+    width: min(100vw, calc((100dvh - 4px) * 4 / 3));
+}
+
+@supports not (height: 100dvh) {
+    body[data-device="mobile"] canvas#game {
+        width: min(100vw, calc((100vh - 4px) * 4 / 3));
+    }
+}
+
+/* Sekaligus di mode HP: sembunyikan sidebar KARTUMU + rapikan pembungkus
+   supaya kanvas benar-benar lebar; latar menyatu dengan warna arena. */
+body[data-device="mobile"] .ruangan-utama {
+    gap: 0;
+    padding: 0;
+}
+
+body[data-device="mobile"] #notaKartu {
+    display: none;
+}
+
+body[data-device="mobile"] .kotak-game {
+    padding: 0;
+    gap: 0;
+}
+
+body[data-device="mobile"] {
+    background: #1a1a2e;
 }
 
 .posisi-game {
@@ -288,8 +314,8 @@ body[data-device="mobile"] canvas#game {
     position: absolute;
     left: 3%;
     bottom: 4%;
-    width: calc(var(--cs, 0.56) * 150px);
-    height: calc(var(--cs, 0.56) * 150px);
+    width: calc(var(--cs, 0.56) * 172px);
+    height: calc(var(--cs, 0.56) * 172px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.12);
     border: 2px solid rgba(120, 160, 255, 0.4);
@@ -300,8 +326,8 @@ body[data-device="mobile"] canvas#game {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: calc(var(--cs, 0.56) * 64px);
-    height: calc(var(--cs, 0.56) * 64px);
+    width: calc(var(--cs, 0.56) * 74px);
+    height: calc(var(--cs, 0.56) * 74px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.6);
     box-shadow: 0 0 12px rgba(120, 160, 255, 0.5);
@@ -313,8 +339,8 @@ body[data-device="mobile"] canvas#game {
     position: absolute;
     right: 2%;
     bottom: 2%;
-    width: calc(var(--cs, 0.56) * 240px);
-    height: calc(var(--cs, 0.56) * 240px);
+    width: calc(var(--cs, 0.56) * 268px);
+    height: calc(var(--cs, 0.56) * 268px);
 }
 
 .tombol-sentuh {
@@ -347,8 +373,8 @@ body[data-device="mobile"] canvas#game {
 .tombol-serang {
     left: 50%;
     top: 56%;
-    width: calc(var(--cs, 0.56) * 122px);
-    height: calc(var(--cs, 0.56) * 122px);
+    width: calc(var(--cs, 0.56) * 138px);
+    height: calc(var(--cs, 0.56) * 138px);
     border-color: rgba(255, 255, 255, 0.55);
 }
 
@@ -356,15 +382,15 @@ body[data-device="mobile"] canvas#game {
 .tombol-dash {
     left: 20%;
     top: 36%;
-    width: calc(var(--cs, 0.56) * 68px);
-    height: calc(var(--cs, 0.56) * 68px);
+    width: calc(var(--cs, 0.56) * 78px);
+    height: calc(var(--cs, 0.56) * 78px);
 }
 
 .tombol-skill {
     left: 80%;
     top: 36%;
-    width: calc(var(--cs, 0.56) * 68px);
-    height: calc(var(--cs, 0.56) * 68px);
+    width: calc(var(--cs, 0.56) * 78px);
+    height: calc(var(--cs, 0.56) * 78px);
 }
 
 /* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
