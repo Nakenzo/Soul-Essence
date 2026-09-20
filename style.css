@@ -142,6 +142,11 @@ canvas {
     aspect-ratio: 4 / 3;
 }
 
+/* Mode HP: pakai hampir seluruh layar (tidak sisakan ruang toolbar) */
+body[data-device="mobile"] canvas {
+    width: min(97vw, calc((100vh - 4px) * 4 / 3));
+}
+
 .posisi-game {
     position: relative;
     display: inline-block;
@@ -273,13 +278,14 @@ canvas {
     pointer-events: auto;
 }
 
-/* Joystick gerak: TETAP di pojok kiri bawah */
+/* Joystick gerak: TETAP di pojok kiri bawah. Ukuran mengikuti skala kanvas
+   (--cs), bukan lebar layar, jadi proporsional dengan area game. */
 .joy-basis {
     position: absolute;
-    left: calc(min(6vw, 30px));
-    bottom: calc(min(7vh, 52px));
-    width: clamp(96px, 30vw, 132px);
-    height: clamp(96px, 30vw, 132px);
+    left: 3%;
+    bottom: 4%;
+    width: calc(var(--cs, 0.56) * 150px);
+    height: calc(var(--cs, 0.56) * 150px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.12);
     border: 2px solid rgba(120, 160, 255, 0.4);
@@ -290,8 +296,8 @@ canvas {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 48px;
-    height: 48px;
+    width: calc(var(--cs, 0.56) * 64px);
+    height: calc(var(--cs, 0.56) * 64px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.6);
     box-shadow: 0 0 12px rgba(120, 160, 255, 0.5);
@@ -303,8 +309,8 @@ canvas {
     position: absolute;
     right: 2%;
     bottom: 2%;
-    width: clamp(170px, 52vw, 250px);
-    height: clamp(170px, 52vw, 250px);
+    width: calc(var(--cs, 0.56) * 240px);
+    height: calc(var(--cs, 0.56) * 240px);
 }
 
 .tombol-sentuh {
@@ -333,12 +339,12 @@ canvas {
     pointer-events: none;
 }
 
-/* SERANG: besar (seukuran tampilan dash dalam game) */
+/* SERANG: besar, proporsional kanvas */
 .tombol-serang {
     left: 50%;
     top: 56%;
-    width: clamp(104px, 34vw, 122px);
-    height: clamp(104px, 34vw, 122px);
+    width: calc(var(--cs, 0.56) * 122px);
+    height: calc(var(--cs, 0.56) * 122px);
     border-color: rgba(255, 255, 255, 0.55);
 }
 
@@ -346,15 +352,15 @@ canvas {
 .tombol-dash {
     left: 20%;
     top: 36%;
-    width: clamp(58px, 19vw, 70px);
-    height: clamp(58px, 19vw, 70px);
+    width: calc(var(--cs, 0.56) * 68px);
+    height: calc(var(--cs, 0.56) * 68px);
 }
 
 .tombol-skill {
     left: 80%;
     top: 36%;
-    width: clamp(58px, 19vw, 70px);
-    height: clamp(58px, 19vw, 70px);
+    width: calc(var(--cs, 0.56) * 68px);
+    height: calc(var(--cs, 0.56) * 68px);
 }
 
 /* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
@@ -376,7 +382,7 @@ canvas {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    font-size: 13px;
+    font-size: calc(var(--cs, 0.56) * 32px);
     letter-spacing: 1px;
     color: #ffd23f;
     text-shadow: 0 0 8px rgba(255, 210, 63, 0.9);

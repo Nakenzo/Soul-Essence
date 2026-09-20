@@ -2278,7 +2278,7 @@ function drawHUD() {
     ctx.textAlign = "left";
   }
 
-  if (soul >= SOUL_MAX) {
+  if (soul >= SOUL_MAX && deviceTerpilih !== "mobile") {
     ctx.font = soulFont;
     ctx.textAlign = "center";
     const ignT = apiMenyala ? soulIgniteStart : (esMenyala ? soulFreezeStart : null);
@@ -2309,6 +2309,8 @@ function drawHUD() {
   }
 
   // ---------- DASH UI (kanan bawah) ----------
+  // Di mode HP tombol dash sudah ada di kontrol sentuh — cukup satu saja.
+  if (deviceTerpilih !== "mobile") {
   const dashR = Math.round(60 * s);
   const cx = W - dashR - Math.round(28 * s);
   const cy = H - dashR - Math.round(28 * s);
@@ -2374,5 +2376,6 @@ function drawHUD() {
     } else {
       gambarSepatu(cx, cy, "#ffffff", "#ff4d4d", "#ff2030");
     }
+  }
   }
 }
