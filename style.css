@@ -350,12 +350,11 @@ body[data-device="mobile"] {
    (--cs), bukan lebar layar, jadi proporsional dengan area game. */
 .joy-basis {
     position: absolute;
-    /* Menempel ke POJOK KIRI layar HP (tepi fisik, memakai ruang letterbox),
-       bukan ke tepi kanvas — jadi mengikuti layar ponsel. */
-    left: calc((100vw - var(--cw, 0px)) / -2 + 14px);
-    bottom: 14px;
-    width: calc(var(--cs, 0.56) * 172px);
-    height: calc(var(--cs, 0.56) * 172px);
+    /* Menempel ke POJOK KIRI layar HP, tapi sedikit masuk (tidak mepet) */
+    left: calc((100vw - var(--cw, 0px)) / -2 + 52px);
+    bottom: 40px;
+    width: calc(var(--cs, 0.56) * 190px);
+    height: calc(var(--cs, 0.56) * 190px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.12);
     border: 2px solid rgba(120, 160, 255, 0.4);
@@ -367,8 +366,8 @@ body[data-device="mobile"] {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: calc(var(--cs, 0.56) * 74px);
-    height: calc(var(--cs, 0.56) * 74px);
+    width: calc(var(--cs, 0.56) * 82px);
+    height: calc(var(--cs, 0.56) * 82px);
     border-radius: 50%;
     background: rgba(120, 160, 255, 0.6);
     box-shadow: 0 0 12px rgba(120, 160, 255, 0.5);
@@ -380,8 +379,8 @@ body[data-device="mobile"] {
     position: absolute;
     right: calc((100vw - var(--cw, 0px)) / -2 + 14px);
     bottom: 14px;
-    width: calc(var(--cs, 0.56) * 268px);
-    height: calc(var(--cs, 0.56) * 268px);
+    width: calc(var(--cs, 0.56) * 296px);
+    height: calc(var(--cs, 0.56) * 296px);
 }
 
 .tombol-sentuh {
@@ -414,8 +413,8 @@ body[data-device="mobile"] {
 .tombol-serang {
     left: 50%;
     top: 56%;
-    width: calc(var(--cs, 0.56) * 138px);
-    height: calc(var(--cs, 0.56) * 138px);
+    width: calc(var(--cs, 0.56) * 156px);
+    height: calc(var(--cs, 0.56) * 156px);
     border-color: rgba(255, 255, 255, 0.55);
 }
 
@@ -423,15 +422,15 @@ body[data-device="mobile"] {
 .tombol-dash {
     left: 20%;
     top: 36%;
-    width: calc(var(--cs, 0.56) * 78px);
-    height: calc(var(--cs, 0.56) * 78px);
+    width: calc(var(--cs, 0.56) * 88px);
+    height: calc(var(--cs, 0.56) * 88px);
 }
 
 .tombol-skill {
     left: 80%;
     top: 36%;
-    width: calc(var(--cs, 0.56) * 78px);
-    height: calc(var(--cs, 0.56) * 78px);
+    width: calc(var(--cs, 0.56) * 88px);
+    height: calc(var(--cs, 0.56) * 88px);
 }
 
 /* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
