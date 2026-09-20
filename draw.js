@@ -890,8 +890,8 @@ function draw() {
     ctx.restore();
   }
 
-  // Senjata + Pemain. Saat pause/game over tetap digambar agar adegan beku terlihat.
-  if (karakter !== null && (statusGame === "main" || statusGame === "pause" || statusGame === "over")) {
+  // Senjata + Pemain. Saat pause/game over/pilih kartu tetap digambar agar adegan beku terlihat.
+  if (karakter !== null && (statusGame === "main" || statusGame === "pause" || statusGame === "over" || statusGame === "upgrade")) {
     gambarSenjata();
     // Aura es saat buff panah pembeku aktif.
     if (player.specialBuff > 0) {
@@ -1044,6 +1044,11 @@ function draw() {
 
   drawHUD();
 
+  // Layar pilih kartu upgrade antar gelombang.
+  if (statusGame === "upgrade" && pilihanKartu && pilihanKartu.length) {
+    gambarKartuUpgrade();
+  }
+
   // Biner error agar mudah terlihat bila ada runtime error.
   if (errorBanner) {
     const errH = H * 0.04;
@@ -1059,6 +1064,190 @@ function draw() {
 // Desain: api tinggi menjulang di kedua ujung (sayap/tanduk), pendek di tengah.
 // Mendukung transisi pembakaran bertahap (burnProgress: 0.0 -> 1.0) dari hijau ke api membara.
 let soulIgniteStart = null;
+
+// ---------- Layar pilih kartu upgrade antar gelombang ----------
+function gambarBundar(x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function kartuDefById(id) {
+  for (const k of KARTU_UPGRADE) if (k.id === id) return k;
+  return null;
+}
+
+function gambarKartuUpgrade() {
+  ctx.save();
+  const t = (performance.now() - kartuMulaiPada) / 1000;
+  const muncul = (i) => Math.max(0, Math.min(1, (t - 0.25 - i * 0.12) / 0.28));
+
+  // Latar gelap: game di belakang membeku.
+  ctx.fillStyle = "rgba(5, 8, 18, 0.78)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Judul.
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#ffd23f";
+  ctx.font = "bold " + Math.round(W * 0.036) + "px Zen Dots";
+  ctx.fillText("PILIH KARTU", W / 2, H * 0.28);
+
+  // Kartu.
+  const hoverIdx = kartuIndexDariKlik(mouse.x, mouse.y);
+  for (let i = 0; i < pilihanKartu.length; i++) {
+    const id = pilihanKartu[i];
+    const kart = kartuDefById(id);
+    if (!kart) continue;
+    const r = rectKartuUpgrade(i);
+    const a = muncul(i);
+    const ay = (1 - a) * 34;
+    const x = r.x, y = r.y + ay;
+    const cx = x + r.w / 2;
+    const hover = hoverIdx === i && a >= 1;
+    const wr = kart.warna;
+
+    ctx.globalAlpha = a;
+    ctx.save();
+    ctx.translate(cx, y);
+
+    // Bayangan.
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    gambarBundar(-r.w / 2 + 4, 4, r.w, r.h, 12);
+    ctx.fill();
+
+    // Badan kartu remi: warna flat sesuai tier (common krem, rare biru,
+    // epic ungu) — tanpa gradasi. Rare/epic: garis bingkai berwarna tier,
+    // pendar lembut, dan ornamen agar mencolok.
+    const tierDef = TIER_DEF[kart.tier || "common"] || TIER_DEF.common;
+    const tGaris = tierDef.garis || "#59492f";
+    const tAksen = tierDef.aksen || "#9a7b3c";
+    const bg = tierDef.bg || TIER_DEF.common.bg;
+    ctx.fillStyle = hover ? bg.hover : bg.gelap;
+    if (kart.tier !== "common") { ctx.shadowColor = tGaris + "88"; ctx.shadowBlur = 20; }
+    gambarBundar(-r.w / 2, 0, r.w, r.h, 12);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Bingkai rangkap (gaya kartu remi), menyala saat hover.
+    if (hover) {
+      ctx.shadowColor = wr + "aa";
+      ctx.shadowBlur = 22;
+    }
+    ctx.strokeStyle = hover ? wr : tGaris;
+    ctx.lineWidth = hover ? 3 : 1.5;
+    gambarBundar(-r.w / 2, 0, r.w, r.h, 12);
+    ctx.stroke();
+    if (hover) ctx.shadowBlur = 0;
+    ctx.strokeStyle = hover ? wr + "66" : tGaris + "55";
+    ctx.lineWidth = hover ? 1.5 : 1;
+    gambarBundar(-r.w / 2 + 6, 6, r.w - 12, r.h - 12, 8);
+    ctx.stroke();
+
+    // Ornamen tier: rare = belah ketupat biru + pita, epic = bintang emas + pita.
+    if (kart.tier === "rare") {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold " + Math.round(r.w * 0.1) + "px Zen Dots";
+      ctx.fillStyle = tAksen;
+      ctx.globalAlpha = 0.9;
+      ctx.fillText("\u25C6", -r.w / 2 + r.w * 0.15, -r.h / 2 + r.w * 0.18);
+      ctx.fillText("\u25C6", r.w / 2 - r.w * 0.15, r.h / 2 - r.w * 0.18);
+      ctx.font = Math.round(r.w * 0.05) + "px Zen Dots";
+      ctx.globalAlpha = 0.35 * a;
+      for (let q = 0; q < 3; q++) {
+        ctx.fillText("\u25C6", r.w * (q - 1) * 0.33, r.h * 0.43 + r.w * 0.02);
+      }
+      ctx.globalAlpha = a;
+    } else if (kart.tier === "epic") {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold " + Math.round(r.w * 0.1) + "px Zen Dots";
+      ctx.fillStyle = tAksen;
+      ctx.globalAlpha = 0.95 * a;
+      ctx.fillText("\u2726", -r.w / 2 + r.w * 0.15, -r.h / 2 + r.w * 0.18);
+      ctx.fillText("\u2726", r.w / 2 - r.w * 0.15, r.h / 2 - r.w * 0.18);
+      ctx.fillStyle = "rgba(109, 40, 217, 0.18)";
+      gambarBundar(-r.w * 0.36, r.h * 0.43, r.w * 0.72, r.h * 0.04, 5);
+      ctx.fill();
+      ctx.fillStyle = tAksen;
+      ctx.font = Math.round(r.w * 0.045) + "px Zen Dots";
+      ctx.globalAlpha = 0.6 * a;
+      ctx.fillText("\u2726 \u2726 \u2726", 0, r.h * 0.43);
+      ctx.globalAlpha = a;
+    }
+
+    // Sudut kartu (angka 1/2/3) seperti nilai kartu remi + diputar di kanan bawah.
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = hover ? wr : "#4a4237";
+    ctx.font = "bold " + Math.round(r.w * 0.1) + "px Zen Dots";
+    ctx.fillText(String(i + 1), -r.w / 2 + r.w * 0.07, -r.h / 2 + r.w * 0.11);
+    ctx.save();
+    ctx.translate(r.w / 2 - r.w * 0.07, r.h / 2 - r.w * 0.11);
+    ctx.rotate(Math.PI);
+    ctx.fillText(String(i + 1), 0, 0);
+    ctx.restore();
+
+    // Logo upgrade (ikon) di tengah atas.
+    const ir = Math.round(r.w * 0.13);
+    const icy = -r.h * 0.16;
+    ctx.fillStyle = wr + "26";
+    ctx.beginPath();
+    ctx.arc(0, icy, ir, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = wr;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = wr;
+    ctx.font = "bold " + Math.round(ir * 1.15) + "px Zen Dots";
+    ctx.fillText(kart.ikon, 0, icy);
+
+    // Nama kartu.
+    ctx.font = "bold " + Math.round(r.w * 0.082) + "px Zen Dots";
+    ctx.fillStyle = "#241f18";
+    ctx.fillText(kart.nama, 0, r.h * 0.075);
+
+    // Keterangan efek.
+    ctx.font = Math.round(r.w * 0.05) + "px Zen Dots";
+    ctx.fillStyle = "#4a4438";
+    const kata = kart.ket.split(" ");
+    let baris = "", garis = [];
+    for (const wd of kata) {
+      if (ctx.measureText(baris + wd).width > r.w * 0.82 && baris) { garis.push(baris); baris = wd; }
+      else baris = baris ? baris + " " + wd : wd;
+    }
+    if (baris) garis.push(baris);
+    for (let g = 0; g < Math.min(garis.length, 3); g++) {
+      ctx.fillText(garis[g], 0, r.h * 0.2 + g * r.h * 0.075);
+    }
+
+    // Badge tumpukan kartu yang sama (xN) di atas tengah.
+    const n = player.kartu[id] || 0;
+    if (n > 0) {
+      const bw = r.w * 0.24, bh = r.h * 0.1;
+      ctx.fillStyle = wr;
+      gambarBundar(-bw / 2, -r.h / 2 + r.w * 0.05, bw, bh, bh / 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold " + Math.round(bh * 0.6) + "px Zen Dots";
+      ctx.textBaseline = "middle";
+      ctx.fillText("x" + n, 0, -r.h / 2 + r.w * 0.05 + bh / 2);
+    }
+
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
 
 function gambarApiPixel(px, py, pw, ph, t, burnProgress = 1.0, tanpGlow = false) {
   ctx.save();
@@ -2155,7 +2344,7 @@ function drawHUD() {
     ctx.restore();
   };
 
-  if (player.dashMax > 1) {
+  if (player.base.dashMax > 1) {
     ctx.globalAlpha = player.dashStacks >= 2 ? 1 : player.dashStacks === 1 ? 0.5 : 0.25;
     gambarSepatu(cx - Math.round(4 * s), cy, "rgba(125,211,252,0.85)", "#4a9fd8", "#dff4ff");
     gambarSepatu(cx + Math.round(6 * s), cy, "#ffffff", "#9fd9ff", "#7dd3fc");

@@ -66,6 +66,13 @@ function levelSelesai() {
     return;
   }
 
+  // Selesai wave -> jeda sejenak, pilih 1 dari 3 kartu upgrade.
+  // (Kartu TIDAK diberikan saat game baru dimulai / tulisan "WAVES 1".)
+  if (typeof mulaiKartuUpgrade === "function") {
+    mulaiKartuUpgrade();
+    return;
+  }
+
   sfxLevel();
   level += 1;
   levelSpawn = 0;

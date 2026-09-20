@@ -14,6 +14,51 @@ const skorMenangEl = document.getElementById("skorMenang");
 const judulAkhirEl = document.getElementById("judulAkhir");
 const menuStatus = document.getElementById("menuStatus");
 
+// ---------- Layar awal: pilih perangkat ----------
+// Browser memblokir audio sebelum interaksi pertama, jadi klik perangkat
+// dipakai sekaligus untuk membuka AudioContext (musik lobby mulai).
+const layarDevice = document.getElementById("layarDevice");
+const layarPutar = document.getElementById("layarPutar");
+
+// Mode HP: minta fullscreen + kunci orientasi LANDSCAPE (di browser yang
+// mendukung). Gagal bukan masalah — layar "putar perangkat" yang jalan.
+function kunciLandscapeMobile() {
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen()
+      .then(() => {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }
+}
+
+// Kalau HP diputar portrait, tampilkan ajakan kembali ke landscape.
+function cekOrientasi() {
+  if (deviceTerpilih !== "mobile") return;
+  if (!layarPutar) return;
+  const portrait = window.innerHeight > window.innerWidth;
+  layarPutar.classList.toggle("tampil", portrait);
+}
+
+window.addEventListener("resize", cekOrientasi);
+window.addEventListener("orientationchange", () => setTimeout(cekOrientasi, 200));
+
+function pilihDevice(dev) {
+  deviceTerpilih = dev;
+  document.body.dataset.device = dev;
+  try { localStorage.setItem("soul-essence-device", dev); } catch (err) {}
+  bukaAudio();
+  layarDevice.classList.add("hidden");
+  if (dev === "mobile") {
+    kunciLandscapeMobile();
+    cekOrientasi();
+  }
+}
+layarDevice.querySelectorAll("[data-device]").forEach((b) =>
+  b.addEventListener("click", () => pilihDevice(b.dataset.device)));
+
 // Tombol pause (II) hanya tampil saat permainan berjalan.
 function aturTombolPause() {
   if (statusGame === "main") {
@@ -40,16 +85,20 @@ function tampilkanJudul() {
   resetArena({ skorBaru: true });
   layarJudul.classList.remove("hidden");
   aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
 }
 
 // ---------- Layar Pilih Karakter ----------
 function tampilkanPilih() {
   sembunyiSemua();
   statusGame = "select";
+  // Audio mungkin masih tersuspensi kalau datang dari layar jeda.
+  sinkronSfxTerjeda();
   menuStatus.textContent = "Pilih karakter dengan klik atau tekan 1/" + KARAKTER.length + ".";
   layarPilih.classList.remove("hidden");
   buatPilihanKarakter();
   aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
 }
 
 // ---------- Layar Game Over ----------
@@ -60,6 +109,7 @@ function tampilkanGameOver() {
   skorAkhirEl.textContent = "SKOR: " + score;
   layarGameOver.classList.remove("hidden");
   aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
 }
 
 // ---------- Layar Menang (selesai semua level) ----------
@@ -69,12 +119,14 @@ function tampilkanMenang() {
   skorMenangEl.textContent = "SKOR: " + score;
   layarMenang.classList.remove("hidden");
   aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
 }
 
 // ---------- Jeda (bekukan semua data: skor, HP, posisi) ----------
 function tampilkanPause() {
   if (statusGame !== "main") return;
   statusGame = "pause";
+  sinkronSfxTerjeda();
   layarPause.classList.remove("hidden");
   aturTombolPause();
 }
@@ -82,6 +134,7 @@ function tampilkanPause() {
 function lanjutDariPause() {
   if (statusGame !== "pause") return;
   statusGame = "main";
+  sinkronSfxTerjeda();
   layarPause.classList.add("hidden");
   aturTombolPause();
 }
@@ -91,16 +144,22 @@ function mulaiGameBaru() {
   sfxResume();
   resetArena({ skorBaru: true });
   statusGame = "main";
+  sinkronSfxTerjeda();
   sembunyiSemua();
   aturTombolPause();
+  if (typeof pasangIkonSentuh === "function") pasangIkonSentuh();
+  if (typeof setMusik === "function") setMusik("game");
 }
 
 // ---------- Game over: ulang dengan karakter SAMA ----------
 function ulangDenganKarakter() {
   resetArena({ skorBaru: true });
   statusGame = "main";
+  sinkronSfxTerjeda();
   sembunyiSemua();
   aturTombolPause();
+  if (typeof pasangIkonSentuh === "function") pasangIkonSentuh();
+  if (typeof setMusik === "function") setMusik("game");
 }
 
 // ---------- Event tombol ----------

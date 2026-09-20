@@ -7,7 +7,7 @@
 
 // Kenzro: panah yang ditembakkan selama buff akan membekukan musuh.
 function jurusKenzro() {
-  player.specialBuff = karakter.buffDurasi;
+  player.specialBuff = player.buffDurasi || karakter.buffDurasi;
   sfxJurus();
   addFlash("rgba(125, 211, 252, 0.28)", 0.5, 0.35);
   spawnParticles(player.x, player.y, "#7dd3fc", 18);

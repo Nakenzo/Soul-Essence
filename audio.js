@@ -18,6 +18,18 @@ function bukaAudio() {
     _master = _actx.createGain();
     _master.gain.value = 0.9;
     _master.connect(_actx.destination);
+    // Gain khusus musik latar (BGM) agar bisa diatur/fade terpisah dari SFX.
+    _musGain = _actx.createGain();
+    _musGain.gain.value = 0;
+    _musGain.connect(_actx.destination);
+    // Musik yang sempat diset sebelum interaksi pertama (audio diblokir
+    // browser) perlu diputar ulang sekarang, karena kunci masih sama maka
+    // setMusik akan langsung berhenti. Paksa hidupkan ulang.
+    if (_musKey) {
+      const kunciBgm = _musKey;
+      _musKey = null;
+      setMusik(kunciBgm);
+    }
   } catch (_) {
     _actx = null;
   }
@@ -27,6 +39,42 @@ window.addEventListener("pointerdown", bukaAudio, { once: false });
 window.addEventListener("keydown", bukaAudio, { once: false });
 
 function sfxResume() { bukaAudio(); }
+
+// ---------- Jeda/lanjutkan SFX saat PAUSE & PEMILIHAN KARTU ----------
+// Elemen file .mp3/.wav yang sedang berbunyi dilacak agar bisa di-pause
+// dan di-resume. Suara Web Audio (oscillator/noise) di-freeze lewat
+// suspend() AudioContext supaya ikut TERJEDA (bukan terpotong) dan
+// berlanjut tepat saat game dilanjutkan.
+let _sfxPlaying = new Set();
+function _mainkanElement(a) {
+  _sfxPlaying.add(a);
+  a.addEventListener("ended", () => _sfxPlaying.delete(a), { once: true });
+  a.play().catch(() => _sfxPlaying.delete(a));
+}
+function setSfxTerjeda(jeda) {
+  if (_actx) {
+    if (jeda && _actx.state === "running") _actx.suspend();
+    else if (!jeda && _actx.state === "suspended") _actx.resume();
+  }
+  if (jeda) {
+    _sfxPlaying.forEach((a) => { try { if (!a.paused) a.pause(); } catch (err) {} });
+    // Musik latar berbasis file ikut dijeda agar seragam dengan musik prosedural.
+    if (_musEl) { try { if (!_musEl.paused) _musEl.pause(); } catch (err) {} }
+  } else {
+    _sfxPlaying.forEach((a) => {
+      try {
+        if (a.ended) _sfxPlaying.delete(a);
+        else a.play().catch(() => {});
+      } catch (err) { _sfxPlaying.delete(a); }
+    });
+    if (_musEl) { try { _musEl.play().catch(() => {}); } catch (err) {} }
+  }
+}
+// Dipanggil di transisi status game: "pause" & "upgrade" = dijeda,
+// lainnya (lanjut bermain) = dilanjutkan.
+function sinkronSfxTerjeda() {
+  setSfxTerjeda(statusGame === "pause" || statusGame === "upgrade");
+}
 
 // ---------- Efek suara dari FILE lokal (opsional) ----------
 // Letakkan file mp3 di assets/sfx/ agar dipakai persis apa adanya.
@@ -55,7 +103,7 @@ function sfxFile(kunci) {
   if (!a) return false;
   a.currentTime = 0;
   a.volume = _sfxVol[kunci] != null ? _sfxVol[kunci] : 1;
-  a.play().catch(() => {});
+  _mainkanElement(a);
   return true;
 }
 
@@ -82,10 +130,11 @@ function sfxFileCrop(kunci, mulai, durasi, lapis) {
     const s = i === 0 ? el : new Audio(el.src);
     s.currentTime = tMulai;
     s.volume = vol;
-    s.play().catch(() => {});
+    _mainkanElement(s);
     if (durasi) {
       setTimeout(() => {
         try { s.pause(); s.currentTime = 0; } catch (e) {}
+        _sfxPlaying.delete(s);
       }, durasi * 1000);
     }
   }
@@ -93,7 +142,8 @@ function sfxFileCrop(kunci, mulai, durasi, lapis) {
 }
 
 // Suara dasar: nada tunggal (tone) dengan ADSR singkat.
-function sfxTone({ freq, endFreq, dur, type, vol, delay }) {
+// out: node gain tujuan (default _master; musik latar pakai _musGain).
+function sfxTone({ freq, endFreq, dur, type, vol, delay, out }) {
   if (!_actx) return;
   const t0 = _actx.currentTime + (delay || 0);
   const osc = _actx.createOscillator();
@@ -105,7 +155,7 @@ function sfxTone({ freq, endFreq, dur, type, vol, delay }) {
   g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(g);
-  g.connect(_master);
+  g.connect(out || _master);
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
@@ -113,7 +163,8 @@ function sfxTone({ freq, endFreq, dur, type, vol, delay }) {
 // Suara dasar: butiran noise (tiupan angin, ledakan, desis).
 // q = resonansi filter (bandpass) biar sapuan frekuensi terdengar tegas.
 // trem = kedalaman modulasi amplitudo (flutter khas sapuan udara/blade).
-function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq }) {
+// out: node gain tujuan (default _master; musik latar pakai _musGain).
+function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq, out }) {
   if (!_actx) return;
   const t0 = _actx.currentTime + (delay || 0);
   const n = Math.max(1, Math.floor((dur || 0.2) * _actx.sampleRate));
@@ -145,7 +196,7 @@ function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq }) {
   }
   src.connect(f);
   f.connect(g);
-  g.connect(_master);
+  g.connect(out || _master);
   src.start(t0);
   src.stop(t0 + dur + 0.02);
 }
@@ -161,6 +212,8 @@ function sfxTembak() {
     sfxTone({ freq: 1650, endFreq: 2100, dur: 0.09, type: "sine", vol: 0.1, delay: 0.05 });
     return;
   }
+  // Panah biasa Kenzro: file lokal jika ada (assets/sfx/kenzro/panah.mp3).
+  if (sfxFile("panah")) return;
   sfxNoise({ dur: 0.07, vol: 0.1, fType: "highpass", fFreq: 2200 });
   sfxTone({ freq: 1150, endFreq: 580, dur: 0.11, type: "triangle", vol: 0.16 });
 }
@@ -205,6 +258,8 @@ function sfxKena() {
 }
 
 function sfxBeku() {
+  // File lokal efek membeku (assets/sfx/kenzro/beku.mp3) jika ada.
+  if (sfxFile("beku")) return;
   sfxNoise({ dur: 0.14, vol: 0.12, fType: "highpass", fFreq: 4000 });
   sfxTone({ freq: 1400, endFreq: 2200, dur: 0.12, type: "sine", vol: 0.15 });
 }
@@ -282,4 +337,175 @@ function sfxGameOver() {
 
 function sfxKlik() {
   sfxTone({ freq: 700, endFreq: 940, dur: 0.06, type: "square", vol: 0.15 });
+}
+
+// ============================================================
+// LAGU LATAR (BGM) — dua lagu BERBEDA:
+//   "lobby" = menu (judul, pilih karakter, game over) — tenang, misterius.
+//   "game"  = saat bermain — lebih cepat, tegang, bertenaga.
+// Opsional: taruh file mp3 di assets/music/lobby.mp3 & game.mp3 → dipakai
+// apa adanya (loop). Kalau file tidak ada, dipakai musik PROSEDURAL Web
+// Audio (fallback) dengan komposisi berbeda per bagian. BGM berjalan lewat
+// gain khusus (_musGain) sehingga bisa di-fade terpisah dari SFX.
+// ============================================================
+let _musFiles = {};
+let _musKey = null;
+let _musEl = null;   // element file yang sedang diputar
+let _musSeq = null;  // interval sequencer (musik prosedural)
+let _musGain = null; // gain khusus musik
+// Volume file mp3 (0..1) dan gain target musik prosedural.
+// Prosedural diputar lewat _musGain; biarkan gain tinggi karena tiap nada
+// sudah punya volume kecil sendiri (0.03–0.1), hasil akhirnya seimbang SFX.
+const _MUS_VOL = { lobby: 0.5, game: 0.55 };
+const _MUS_GAIN = { lobby: 0.9, game: 0.95 };
+
+function muatLaguLokal(kunci, src) {
+  return new Promise((resolve) => {
+    const a = new Audio();
+    a.preload = "auto";
+    a.loop = true;
+    const ok = () => { _musFiles[kunci] = a; resolve(true); };
+    const gagal = () => resolve(false);
+    a.addEventListener("canplaythrough", ok, { once: true });
+    a.addEventListener("error", gagal, { once: true });
+    a.src = src;
+  });
+}
+
+// Fade volume element (file) dari kondisi sekarang ke target.
+function _fadeEl(el, vol, dt) {
+  const mulai = el.volume;
+  const t0 = performance.now();
+  const st = setInterval(() => {
+    const p = Math.min(1, (performance.now() - t0) / (dt * 1000));
+    el.volume = mulai + (vol - mulai) * p;
+    if (p >= 1) clearInterval(st);
+  }, 40);
+}
+
+function _hentiMusik() {
+  if (_musSeq) { clearInterval(_musSeq); _musSeq = null; }
+  if (_musEl) { try { _musEl.pause(); } catch (err) {} _musEl = null; }
+  if (_musGain && _actx) {
+    try { _musGain.gain.setTargetAtTime(0, _actx.currentTime, 0.15); } catch (err) {}
+  }
+  _musKey = null;
+}
+
+// Ganti lagu: berhentikan yang lama → mulai kunci baru sesudahnya.
+function setMusik(kunci) {
+  if (kunci === _musKey) return;
+  _hentiMusik();
+  _musKey = kunci;
+  if (!kunci) return;
+  // File mp3 jika tersedia; kalau gagal diputar (mis. diblokir autoplay),
+  // jatuh ke musik prosedural agar tetap ada suara.
+  if (!_mulaiFileMusik(kunci)) _mulaiMusikProsedural(kunci);
+}
+
+function _mulaiFileMusik(kunci) {
+  const el = _musFiles[kunci];
+  if (!el) return false;
+  _musEl = el;
+  el.volume = 0;
+  _fadeEl(el, _MUS_VOL[kunci] || 0.5, 1.2);
+  const janji = el.play();
+  if (janji && typeof janji.then === "function") {
+    janji.catch(() => {
+      if (_musEl !== el) return; // sudah ganti lagu, abaikan
+      _musEl = null;
+      _musKey = null;
+      _mulaiMusikProsedural(kunci);
+      _musKey = kunci;
+    });
+  }
+  return true;
+}
+
+function _mulaiMusikProsedural(kunci) {
+  if (!_actx || !_musGain || _actx.state === "closed") return;
+  _musGain.gain.setValueAtTime(0, _actx.currentTime);
+  _musGain.gain.setTargetAtTime(_MUS_GAIN[kunci] || 0.9, _actx.currentTime, 0.6);
+  const fn = kunci === "game" ? _barGame : _barLobby;
+  _seqStep = 0;
+  fn(0);
+  _musSeq = setInterval(() => {
+    if (_actx && _actx.state === "running") fn(_seqStep++);
+  }, _durBar(kunci));
+  _musKey = kunci;
+}
+
+// Durasi satu birama (detik) per lagu.
+function _durBar(kunci) {
+  const m = kunci === "game" ? _MUSIK_GAME : _MUSIK_LOBBY;
+  return (60 / m.bpm) * m.bar * 1000;
+}
+
+// ---------- Komposisi lobby (tenang, misterius) ----------
+const _MUSIK_LOBBY = {
+  bpm: 76, bar: 4,
+  prog: [
+    { root: 110.0, minor: true },   // Am
+    { root: 87.31, minor: false },  // F
+    { root: 130.81, minor: false }, // C
+    { root: 98.0, minor: false }    // G
+  ]
+};
+let _seqStep = 0;
+function _barLobby(step) {
+  if (!_actx || _actx.state !== "running") return;
+  const pr = _MUSIK_LOBBY.prog[step % _MUSIK_LOBBY.prog.length];
+  const r = pr.root, t3 = r * (pr.minor ? 1.1892 : 1.25), t5 = r * 1.5;
+  const B = _durBar("lobby") / 1000;
+  const out = _musGain;
+  // Pad (dua nada chord panjang).
+  sfxTone({ freq: r, dur: B * 0.96, type: "sine", vol: 0.05, out: out });
+  sfxTone({ freq: t5, dur: B * 0.96, type: "sine", vol: 0.035, out: out });
+  // Nada ketiga masuk pelan di tengah birama.
+  sfxTone({ freq: t3, dur: B * 0.5, type: "sine", vol: 0.03, delay: B * 0.5, out: out });
+  // Bass dalam.
+  sfxTone({ freq: r / 2, dur: 0.6, type: "triangle", vol: 0.07, out: out });
+  sfxTone({ freq: r / 2, dur: 0.4, type: "triangle", vol: 0.05, delay: B * 0.5, out: out });
+  // Arpeggio lambat naik-turun.
+  const arp = [r, t3, t5, r * 2, t5, t3];
+  const stepT = B / arp.length;
+  arp.forEach((f, i) =>
+    sfxTone({ freq: f, dur: stepT * 1.2, type: "triangle", vol: 0.04, delay: i * stepT, out: out }));
+}
+
+// ---------- Komposisi game (cepat, tegang) ----------
+const _MUSIK_GAME = {
+  bpm: 138, bar: 4, root: 55.0, // A1
+  riff: [1, 1.5, 0.75, 1.5, 2, 1.5, 1.192, 1.5]
+};
+function _barGame(step) {
+  if (!_actx || _actx.state !== "running") return;
+  const B = _durBar("game") / 1000;
+  const r8 = B / 8;
+  const out = _musGain;
+  // Naikkan nada dasar pelan setiap 4 birama untuk kesan menekan.
+  const root = _MUSIK_GAME.root * (1 + Math.floor(step / 4) * 0.06);
+  // Kick dua kali per birama.
+  [0, B * 0.5].forEach((t) => {
+    sfxNoise({ dur: 0.1, vol: 0.06, fType: "lowpass", fFreq: 260, delay: t, out: out });
+    sfxTone({ freq: 140, endFreq: 45, dur: 0.11, type: "sine", vol: 0.1, delay: t, out: out });
+  });
+  // Hi-hat kedelapan.
+  for (let i = 0; i < 8; i++) {
+    sfxNoise({ dur: 0.035, vol: 0.028, fType: "highpass", fFreq: 6200, delay: i * r8, out: out });
+  }
+  // Bass not-8.
+  const bassP = [1, 1, 1.5, 1, 1, 1.5, 1.192, 1];
+  for (let i = 0; i < 8; i++) {
+    sfxTone({ freq: root * bassP[i], dur: 0.32, type: "square", vol: 0.055, delay: i * r8, out: out });
+  }
+  // Lead melodi minor pendek.
+  const len = _MUSIK_GAME.riff.length;
+  for (let i = 0; i < len; i++) {
+    sfxTone({
+      freq: root * 2 * _MUSIK_GAME.riff[i],
+      endFreq: root * 2 * _MUSIK_GAME.riff[i] * 0.98,
+      dur: 0.16, type: "sawtooth", vol: 0.04, delay: i * r8, out: out
+    });
+  }
 }

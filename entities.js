@@ -32,12 +32,9 @@ function dashLari() {
   player.dashT = DASH_WAKTU;
   player.invuln = DASH_INVULN;
   const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
-  // Arah dash = arah gerak tombol (WASD). Kalau diam, ke arah pointer.
-  let dx = 0, dy = 0;
-  if (keys["w"] || keys["arrowup"]) dy -= 1;
-  if (keys["s"] || keys["arrowdown"]) dy += 1;
-  if (keys["a"] || keys["arrowleft"]) dx -= 1;
-  if (keys["d"] || keys["arrowright"]) dx += 1;
+  // Arah dash = arah gerak (joystick/keyboard). Kalau diam, ke arah pointer.
+  const dx = gerakDx();
+  const dy = gerakDy();
   player.dashAngle = (dx !== 0 || dy !== 0)
     ? Math.atan2(dy, dx)
     : Math.atan2(mouse.y - player.y, mouse.x - player.x);
@@ -93,10 +90,10 @@ function tembakPanahRaksasa(ang) {
 
 function shoot() {
   if (player.attackCd > 0) return;
-  player.attackCd = karakter.attackRate;
+  player.attackCd = player.attackRate;
   sfxTembak();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
-  const speed = 840;
+  const speed = player.bulletSpeed || 840;
   bullets.push({
     x: player.x,
     y: player.y,
@@ -111,10 +108,10 @@ function shoot() {
 
 function slashSwing() {
   if (player.attackCd > 0) return;
-  player.attackCd = karakter.attackRate;
+  player.attackCd = player.attackRate;
   sfxSabet();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
-  player.swing = karakter.swingDuration || 0.2;
+  player.swing = player.swingDuration || karakter.swingDuration || 0.2;
   // Efek tebasan muncul dari lokasi bilah sabit (titik orbit senjata),
   // bukan dari pusat karakter.
   const ox = player.x + Math.cos(angle) * 70;
@@ -124,10 +121,10 @@ function slashSwing() {
     y: oy,
     // Terpusat ke arah pointer (bukan frame rotasi sabit).
     angle: angle,
-    reach: karakter.reach,
-    halfArc: karakter.halfArc,
+    reach: player.reach || karakter.reach,
+    halfArc: player.halfArc || karakter.halfArc,
     t: 0,
-    life: karakter.swingDuration || 0.2,
+    life: player.swingDuration || 0.2,
     hit: new Set()
   });
   spawnParticles(ox, oy, "#ffffff", 6);
@@ -228,10 +225,8 @@ function update(dt) {
       });
     }
   } else {
-    if (keys["w"] || keys["arrowup"]) dy -= 1;
-    if (keys["s"] || keys["arrowdown"]) dy += 1;
-    if (keys["a"] || keys["arrowleft"]) dx -= 1;
-    if (keys["d"] || keys["arrowright"]) dx += 1;
+    dx = gerakDx();
+    dy = gerakDy();
     if (dx !== 0 || dy !== 0) {
       const len = Math.hypot(dx, dy);
       player.x += (dx / len) * player.speed * dt;
@@ -254,6 +249,11 @@ function update(dt) {
   // UltCd (Kenzro): jeda/charge SETELAH panah raksasa meluncur.
   player.ultCd = Math.max(0, (player.ultCd || 0) - dt);
 
+  // Regenerasi HP dari kartu upgrade.
+  if (player.regen > 0 && player.hp < player.maxHp) {
+    player.hp = Math.min(player.maxHp, player.hp + player.regen * dt);
+  }
+
   // Dash: tiap charge ber-cooldown MANDIRI. Begitu satu selesai (2 dtk),
   // dash langsung bisa dipakai walau timer lain masih berjalan.
   player.invuln = Math.max(0, (player.invuln || 0) - dt);
@@ -268,6 +268,20 @@ function update(dt) {
   }
   // dashCd = tampilan gabungan sisa waktu semua charge.
   player.dashCd = player.dashTimers.reduce((a, b) => a + b, 0);
+
+  // Mode HP + tombol SERANG: bidik otomatis ke musuh terdekat yang hidup.
+  if (autoAim) {
+    let bt = null, bd = Infinity;
+    for (const en of enemies) {
+      if (en.hp <= 0) continue;
+      const dd = (en.x - player.x) * (en.x - player.x) + (en.y - player.y) * (en.y - player.y);
+      if (dd < bd) { bd = dd; bt = en; }
+    }
+    if (bt) {
+      mouse.x = bt.x;
+      mouse.y = bt.y;
+    }
+  }
 
   if (mouse.down) {
     attack();
@@ -351,12 +365,16 @@ function update(dt) {
           rings.push({ x: e.x, y: e.y, r: 12, maxR: 110, life: 0.25, t: 0 });
           break;
         }
-        const dmg = karakter.damage;
+        let dmg = player.damage || karakter.damage;
+        if (Math.random() < (player.crit || 0)) {
+          dmg *= 2;
+          spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
+        }
         e.hp -= dmg;
         e.hitFlash = 0.1;
         sfxKena();
         if (b.beku) {
-          e.freeze = karakter.bekuDurasi;
+          e.freeze = player.bekuDurasi || karakter.bekuDurasi;
           sfxBeku();
           spawnParticles(e.x, e.y, "#7dd3fc", 8);
           spawnDamage(e.x, e.y - e.r - 56, "BEKU", "#7dd3fc");
@@ -414,13 +432,17 @@ function update(dt) {
       while (diff < -Math.PI) diff += Math.PI * 2;
       if (d < sl.reach + e.r && Math.abs(diff) < sl.halfArc + 0.2) {
         sl.hit.add(e);
-        const dmg = sl.dmg || karakter.damage;
+        let dmg = sl.dmg || player.damage || karakter.damage;
+        if (!sl.dmg && Math.random() < (player.crit || 0)) {
+          dmg *= 2;
+          spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
+        }
         e.hp -= dmg;
         e.hitFlash = 0.1;
         spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
         // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
         if (sl.skill && e.hp > 0) {
-          e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
+          e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
           spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         }
         e.x += Math.cos(sl.angle) * 60;
@@ -454,7 +476,7 @@ function update(dt) {
     // Sentuh → terbakar (burn SAMA seperti skill Vender: 3 dtk, tiap 0.25 dtk).
     for (const e of enemies) {
       if (!e.burn && dist(fl.x, fl.y, e.x, e.y) < fl.radius * 0.8 + e.r) {
-        e.burn = { durasi: 3, tick: 0.25, timer: 0, dmg: 1 };
+        e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: 1 };
         spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         spawnParticles(e.x, e.y, "#ff8c3f", 6);
       }
@@ -527,9 +549,10 @@ function update(dt) {
     }
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0) {
-      player.hp -= 20;
+      const dmgMasuk = Math.round(20 * (1 - (player.armor || 0)));
+      player.hp -= dmgMasuk;
       player.hitFlash = 0.15;
-      spawnDamage(player.x, player.y - 52, 20, "#ff4d4d");
+      spawnDamage(player.x, player.y - 52, dmgMasuk, "#ff4d4d");
       sfxPemainKena();
       hurtVig = 0.9;
       shake = 0.3;
@@ -612,7 +635,8 @@ function update(dt) {
     s.y += s.vy * dt;
     if (d < 26) {
       if (soul < SOUL_MAX) {
-        soul += 1;
+        const tambah = player.jiwaKali || 1;
+        soul = Math.min(SOUL_MAX, soul + tambah);
         sfxSoul();
         spawnParticles(s.x, s.y, "#7cff5e", 4);
       }

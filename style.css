@@ -38,10 +38,95 @@ body {
     padding: 5px;
 }
 
-.posisi-game {
-    position: relative;
-    display: inline-block;
-    line-height: 0;
+/* Catatan upgrade di luar area game (sebelah kiri) */
+.ruangan-utama {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 14px;
+    max-width: 100vw;
+    padding: 0 8px;
+}
+
+#notaKartu {
+    width: calc(var(--cs, 0.56) * 170px);
+    min-width: calc(var(--cs, 0.56) * 170px);
+    background: rgba(15, 17, 31, 0.92);
+    border: 1.5px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    color: #c8d6ea;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 11px);
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+}
+
+#notaKartu h3 {
+    color: #ffd23f;
+    font-size: calc(var(--cs, 0.56) * 14px);
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.nota-kosong {
+    color: rgba(200, 214, 234, 0.4);
+    text-align: center;
+    font-size: calc(var(--cs, 0.56) * 9px);
+    margin-top: 6px;
+}
+
+.nota-kosong.hidden {
+    display: none;
+}
+
+.daftar-upgrade {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.kartu-note {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 4px 5px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kartu-note-gem {
+    font-size: calc(var(--cs, 0.56) * 13px);
+    line-height: 1;
+    flex-shrink: 0;
+    text-shadow: 0 0 6px currentColor;
+}
+
+.kartu-note-bulat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(var(--cs, 0.56) * 26px);
+    width: calc(var(--cs, 0.56) * 26px);
+    height: calc(var(--cs, 0.56) * 26px);
+    border-radius: 50%;
+    font-size: calc(var(--cs, 0.56) * 13px);
+    color: #0c0f1e;
+    flex-shrink: 0;
+}
+
+.kartu-note-nm {
+    flex: 1;
+    word-break: break-word;
+}
+
+.kartu-note-jml {
+    color: #ffd23f;
+    font-size: calc(var(--cs, 0.56) * 11px);
+    font-weight: bold;
+    flex-shrink: 0;
 }
 
 canvas {
@@ -52,9 +137,15 @@ canvas {
     background: #1a1a2e;
     cursor: crosshair;
     display: block;
-    width: min(96vw, calc((100vh - 27.5px) * 4 / 3));
+    width: min(84vw, calc((100vh - 27.5px) * 4 / 3));
     height: auto;
     aspect-ratio: 4 / 3;
+}
+
+.posisi-game {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
 }
 
 /* ======================== */
@@ -84,6 +175,250 @@ canvas {
 .overlay-beku {
     background: rgba(10, 12, 25, 0.45);
     backdrop-filter: blur(0.5px);
+}
+
+/* ======================== */
+/*  LAYAR AWAL: pilih perangkat */
+/* ======================== */
+.layar-awal {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: #05070f;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 2px;
+}
+
+.layar-awal.hidden {
+    display: none;
+}
+
+.layar-awal .judul-besar {
+    margin-bottom: 0.5%;
+}
+
+.grup-device {
+    display: flex;
+    gap: 14px;
+    margin-top: 2.5%;
+    margin-bottom: 2%;
+}
+
+.tombol-device {
+    background: #1b2237;
+    color: #e2e8f0;
+    border: 2px solid #4ade80;
+    border-radius: 6px;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: clamp(16px, 2.2vw, 24px);
+    letter-spacing: 2px;
+    padding: 16px 34px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tombol-device:hover {
+    background: #25304d;
+    transform: scale(1.06);
+}
+
+.tombol-device:active {
+    transform: scale(0.96);
+}
+
+.keterangan-device {
+    color: #5b6b85;
+    font-size: clamp(10px, 1.1vw, 12px);
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/* ======================== */
+/*  LAYAR PUTAR PERANGKAT   */
+/* ======================== */
+.layar-putar {
+    position: absolute;
+    inset: 0;
+    z-index: 32;
+    background: #05070f;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    border-radius: 2px;
+}
+
+.layar-putar.tampil {
+    display: flex;
+}
+
+/* ======================== */
+/*  KONTROL SENTUH (mode HP) */
+/* ======================== */
+#kontrolSentuh {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    display: none;
+}
+
+#kontrolSentuh .tombol-sentuh {
+    pointer-events: auto;
+}
+
+/* Joystick gerak: TETAP di pojok kiri bawah */
+.joy-basis {
+    position: absolute;
+    left: calc(min(6vw, 30px));
+    bottom: calc(min(7vh, 52px));
+    width: clamp(96px, 30vw, 132px);
+    height: clamp(96px, 30vw, 132px);
+    border-radius: 50%;
+    background: rgba(120, 160, 255, 0.12);
+    border: 2px solid rgba(120, 160, 255, 0.4);
+    pointer-events: none;
+}
+
+.joy-tombol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(120, 160, 255, 0.6);
+    box-shadow: 0 0 12px rgba(120, 160, 255, 0.5);
+    pointer-events: none;
+}
+
+/* Kluster tombol aksi di pojok kanan bawah */
+.tombol-sentuh-grup {
+    position: absolute;
+    right: 2%;
+    bottom: 2%;
+    width: clamp(170px, 52vw, 250px);
+    height: clamp(170px, 52vw, 250px);
+}
+
+.tombol-sentuh {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(10, 12, 25, 0.62);
+    color: #fff;
+    font-family: "Zen Dots", "Courier New", monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    transform: translate(-50%, -50%);
+}
+
+.ikon-sentuh {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* SERANG: besar (seukuran tampilan dash dalam game) */
+.tombol-serang {
+    left: 50%;
+    top: 56%;
+    width: clamp(104px, 34vw, 122px);
+    height: clamp(104px, 34vw, 122px);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* DASH & SKILL: seukuran, melingkari tombol serang */
+.tombol-dash {
+    left: 20%;
+    top: 36%;
+    width: clamp(58px, 19vw, 70px);
+    height: clamp(58px, 19vw, 70px);
+}
+
+.tombol-skill {
+    left: 80%;
+    top: 36%;
+    width: clamp(58px, 19vw, 70px);
+    height: clamp(58px, 19vw, 70px);
+}
+
+/* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
+   Ibar bar: kanvas SOUL METER bawah tengah (bx 33%, by 86.5%, lebar 34%,
+   tinggi 4.5%); overlay sengaja lebih besar sedikit biar mudah ditekan. */
+.tombol-ult {
+    left: 31%;
+    top: 84%;
+    width: 38%;
+    height: 9%;
+    transform: none;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background: transparent;
+}
+
+.ult-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: #ffd23f;
+    text-shadow: 0 0 8px rgba(255, 210, 63, 0.9);
+    display: none;
+    pointer-events: none;
+}
+
+.ult-label.ult-menyala {
+    display: block;
+}
+
+.tombol-ult.ult-siap {
+    border-color: #ffd23f;
+    box-shadow: 0 0 14px rgba(255, 210, 63, 0.8);
+}
+
+.tombol-ult:active {
+    opacity: 0.85;
+}
+
+.tombol-serang:active {
+    filter: brightness(1.4);
+}
+
+.tombol-dash:active,
+.tombol-skill:active {
+    filter: brightness(1.4);
+    transform: translate(-50%, -50%) scale(0.94);
+}
+
+/* Hanya tampil bila pemain memilih HP / TABLET */
+body[data-device="mobile"] #kontrolSentuh {
+    display: block;
+}
+
+body[data-device="mobile"] canvas {
+    touch-action: none;
+}
+
+/* Di HP, petunjuk keyboard (WASD dll) tidak relevan */
+body[data-device="mobile"] .bantuan-canvas {
+    display: none;
 }
 
 /* ======================== */

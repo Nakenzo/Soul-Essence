@@ -9,9 +9,13 @@ const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
 
 // ---------- State ----------
-// statusGame: "title" (judul) | "select" (pilih karakter) | "main" (bermain) | "over" (game over)
+// statusGame: "title" (judul) | "select" (pilih karakter) | "main" (bermain)
+//             | "upgrade" (pilih kartu antar gelombang) | "pause" | "over" (game over)
 let karakter = null;
 let statusGame = "title";
+// Perangkat pemain: "desktop" (keyboard + mouse) atau "mobile" (layar sentuh).
+// Dipilih di layar awal sebelum masuk menu utama.
+let deviceTerpilih = null;
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
 let flashes, hurtVig;
@@ -69,6 +73,27 @@ function resetArena({ skorBaru }) {
     hitFlash: 0,
     dir: -1
   };
+  // Kartu upgrade (banyak gelombang): semua bonus di-reset tiap game baru.
+  player.kartu = {};                       // { idKartu: berapaKaliDiambil }
+  if (typeof perbaruiNotaKartu === "function") perbaruiNotaKartu();
+  player.mult = { speed: 1, damage: 1, atk: 1, reach: 1, halfA: 1, bSpeed: 1, special: 1, status: 1, hpA: 0, regen: 0, jiwa: 1, dash: 0, crit: 0, armor: 0 };
+  player.base = {
+    speed: karakter ? karakter.kecepatan : 180,
+    damage: karakter ? karakter.damage : 25,
+    attackRate: karakter ? karakter.attackRate : 0.18,
+    reach: karakter ? karakter.reach : 0,
+    halfArc: karakter ? karakter.halfArc : 0,
+    swingDuration: karakter ? karakter.swingDuration : 0.2,
+    buffDurasi: karakter ? karakter.buffDurasi : 5,
+    bekuDurasi: karakter ? karakter.bekuDurasi : 1,
+    burnDurasi: 3,
+    specialMax: karakter ? karakter.specialCd : 3,
+    maxHp: karakter ? karakter.hp : 100,
+    bulletSpeed: 840,
+    dashMax: (karakter && karakter.tipe === "jarak") ? 2 : 1
+  };
+  if (typeof hitungStatKartu === "function") hitungStatKartu();
+  pilihanKartu = null;
   bullets = [];
   enemies = [];
   particles = [];

@@ -10,9 +10,35 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="kotak-game">
-        <div class="posisi-game">
+    <!-- Catatan upgrade di luar area game (sebelah kiri) -->
+    <div class="ruangan-utama">
+        <aside id="notaKartu">
+            <h3>KARTUMU</h3>
+            <p id="notaKartuKosong" class="nota-kosong">Belum ambil kartu</p>
+            <div id="notaKartuIsi" class="daftar-upgrade"></div>
+        </aside>
+
+        <div class="kotak-game">
+            <div class="posisi-game">
             <canvas id="game" width="1280" height="960"></canvas>
+
+            <!-- Layar awal: pilih perangkat. Klik juga sekaligus mengaktifkan
+                 audio (browser melarang suara sebelum interaksi pertama). -->
+            <div id="layarDevice" class="layar-awal">
+                <h1 class="judul-besar">SOUL ESSENCE</h1>
+                <p class="sub-judul">Pilih perangkat yang kamu pakai</p>
+                <div class="grup-device">
+                    <button class="tombol-device" data-device="desktop">KOMPUTER</button>
+                    <button class="tombol-device" data-device="mobile">HP / TABLET</button>
+                </div>
+                <p class="keterangan-device">Tersimpan di perangkat ini &middot; suara aktif setelah klik</p>
+            </div>
+
+            <!-- Ajakan putar perangkat (mode HP dalam posisi portrait) -->
+            <div id="layarPutar" class="layar-putar">
+                <h1 class="judul-besar">PUTAR PERANGKAT</h1>
+                <p class="sub-judul">Miringkan HP / tablet ke posisi LANDSCAPE agar nyaman dimainkan</p>
+            </div>
 
             <!-- Help text (kiri bawah canvas) -->
             <div class="bantuan-canvas">
@@ -26,6 +52,19 @@
 
             <!-- Tombol Pause (hanya saat bermain) -->
             <button id="tombolPause" class="tombol-pause hidden" title="Jeda (Esc)">&#10073;&#10073;</button>
+
+            <!-- Kontrol sentuh (mode HP): joystick kiri + tombol aksi kanan -->
+            <div id="kontrolSentuh">
+                <div id="joyBase" class="joy-basis"><div id="joyKnob" class="joy-tombol"></div></div>
+                <div class="tombol-sentuh-grup">
+                    <button id="tombolSerang" class="tombol-sentuh tombol-serang" type="button"><canvas class="ikon-sentuh"></canvas></button>
+                    <button id="tombolDash" class="tombol-sentuh tombol-dash" type="button"><canvas class="ikon-sentuh"></canvas></button>
+                    <button id="tombolSkill" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas></button>
+                </div>
+                <!-- ULTIMATE = bar SOUL METER itu sendiri (di canvas):
+                     ditekan saat meter penuh untuk melancarkan ultimate. -->
+                <button id="tombolUlt" class="tombol-sentuh tombol-ult" type="button"><span class="ult-label">ULTIMATE SIAP</span></button>
+            </div>
 
             <!-- Layar Pause -->
             <div id="layarPause" class="overlay overlay-beku hidden">
@@ -72,6 +111,7 @@
         </div>
 
     </div>
+    </div>
 
     <script src="core.js"></script>
     <script src="audio.js"></script>
@@ -80,6 +120,7 @@
     <script src="menu.js"></script>
     <script src="input.js"></script>
     <script src="levels.js"></script>
+    <script src="upgrades.js"></script>
     <script src="skills.js"></script>
     <script src="entities.js"></script>
     <script src="draw.js"></script>
