@@ -142,8 +142,9 @@ canvas {
     aspect-ratio: 4 / 3;
 }
 
-/* Mode HP: pakai hampir seluruh layar (tidak sisakan ruang toolbar) */
-body[data-device="mobile"] canvas {
+/* Mode HP: kanvas GAME memakai hampir seluruh layar. Hanya canvas#game —
+   jangan menimpa kanvas lain (ikon tombol sentuh, preview kartu karakter). */
+body[data-device="mobile"] canvas#game {
     width: min(97vw, calc((100vh - 4px) * 4 / 3));
 }
 
@@ -209,7 +210,9 @@ body[data-device="mobile"] canvas {
 
 .grup-device {
     display: flex;
-    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(8px, calc(var(--cs, 0.56) * 14px), 18px);
     margin-top: 2.5%;
     margin-bottom: 2%;
 }
@@ -220,9 +223,10 @@ body[data-device="mobile"] canvas {
     border: 2px solid #4ade80;
     border-radius: 6px;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: clamp(16px, 2.2vw, 24px);
-    letter-spacing: 2px;
-    padding: 16px 34px;
+    font-size: calc(var(--cs, 0.56) * 24px);
+    letter-spacing: 1px;
+    padding: calc(var(--cs, 0.56) * 14px) calc(var(--cs, 0.56) * 30px);
+    white-space: nowrap;
     cursor: pointer;
     transition: all 0.15s;
 }
