@@ -12,7 +12,6 @@ const daftarKarakter = document.getElementById("daftarKarakter");
 const skorAkhirEl = document.getElementById("skorAkhir");
 const skorMenangEl = document.getElementById("skorMenang");
 const judulAkhirEl = document.getElementById("judulAkhir");
-const menuStatus = document.getElementById("menuStatus");
 
 // ---------- Layar awal: pilih perangkat ----------
 // Browser memblokir audio sebelum interaksi pertama, jadi klik perangkat
@@ -112,7 +111,6 @@ function tampilkanPilih() {
   statusGame = "select";
   // Audio mungkin masih tersuspensi kalau datang dari layar jeda.
   sinkronSfxTerjeda();
-  menuStatus.textContent = "Pilih karakter dengan klik atau tekan 1/" + KARAKTER.length + ".";
   layarPilih.classList.remove("hidden");
   buatPilihanKarakter();
   aturTombolPause();

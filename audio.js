@@ -8,6 +8,8 @@ let _actx = null;
 let _master = null;   // SUARA UMUM = volume akhir yang mencegat semua jalur
 let _sfxGain = null;  // jalur khusus EFEK (SFX)
 let _musVol = null;   // jalur khusus MUSIK (BGM)
+let _musFilter = null; // lowpass BGM: efek bunyi "dalam" saat pause/kartu
+let _sfxJeda = false; // true = SFX sedang dibisukan (pause / pilih kartu)
 
 // ---------- Volume pemain (diatur lewat menu PAUSE) ----------
 // UMUM mengalikan semua suara; EFEK hanya untuk SFX; MUSIK hanya BGM.
@@ -38,7 +40,7 @@ function aturVolumeUmum(v) {
 }
 function aturVolumeSfx(v) {
   _volSfx = Math.max(0, Math.min(1, v));
-  if (_sfxGain) _sfxGain.gain.value = _volSfx;
+  if (_sfxGain) _sfxGain.gain.setValueAtTime(_sfxJeda ? 0 : _volSfx, _actx ? _actx.currentTime : 0);
   _simpanVolume();
 }
 function aturVolumeMusik(v) {
@@ -67,13 +69,19 @@ function bukaAudio() {
     _sfxGain = _actx.createGain();
     _sfxGain.gain.value = _volSfx;
     _sfxGain.connect(_master);
-    // Jalur musik (BGM): _musGain untuk fade/komposisi, lalu _musVol
-    // sebagai volume musik yang diatur pemain.
+    // Jalur musik (BGM): _musGain untuk fade/komposisi, lalu _musFilter
+    // sebagai efek bunyi "dalam" (lowpass) saat pause/pilih kartu, dan
+    // _musVol sebagai volume musik yang diatur pemain.
     _musGain = _actx.createGain();
     _musGain.gain.value = 0;
+    _musFilter = _actx.createBiquadFilter();
+    _musFilter.type = "lowpass";
+    _musFilter.frequency.value = 18000;
+    _musFilter.Q.value = 0.0001;
     _musVol = _actx.createGain();
     _musVol.gain.value = _volMusik;
-    _musGain.connect(_musVol);
+    _musGain.connect(_musFilter);
+    _musFilter.connect(_musVol);
     _musVol.connect(_master);
     // Musik yang sempat diset sebelum interaksi pertama (audio diblokir
     // browser) perlu diputar ulang sekarang, karena kunci masih sama maka
@@ -95,24 +103,41 @@ function sfxResume() { bukaAudio(); }
 
 // ---------- Jeda/lanjutkan SFX saat PAUSE & PEMILIHAN KARTU ----------
 // Elemen file .mp3/.wav yang sedang berbunyi dilacak agar bisa di-pause
-// dan di-resume. Suara Web Audio (oscillator/noise) di-freeze lewat
-// suspend() AudioContext supaya ikut TERJEDA (bukan terpotong) dan
-// berlanjut tepat saat game dilanjutkan.
+// dan di-resume. Musik latar (BGM) TIDAK ikut dijeda: ia terus berbunyi
+// namun nadanya ditekuk rendah (lowpass "dalam" via _aturEfekBGM) supaya
+// terasa berbeda — seakan berpindah ke ruangan lain.
 let _sfxPlaying = new Set();
 function _mainkanElement(a) {
   _sfxPlaying.add(a);
   a.addEventListener("ended", () => _sfxPlaying.delete(a), { once: true });
   a.play().catch(() => _sfxPlaying.delete(a));
 }
-function setSfxTerjeda(jeda) {
-  if (_actx) {
-    if (jeda && _actx.state === "running") _actx.suspend();
-    else if (!jeda && _actx.state === "suspended") _actx.resume();
+
+// Efek BGM saat jeda: renggut frekuensi atas (treble) supaya bunyi "dalam"
+// dan teredam, lalu dikembalikan halus saat melanjutkan permainan.
+function _aturEfekBGM(jeda) {
+  if (!_actx || !_musFilter) return;
+  const t = _actx.currentTime;
+  if (jeda) {
+    _musFilter.frequency.setTargetAtTime(190, t, 0.7);
+    _musFilter.Q.setTargetAtTime(5, t, 0.7);
+  } else {
+    _musFilter.frequency.setTargetAtTime(18000, t, 0.4);
+    _musFilter.Q.setTargetAtTime(0.0001, t, 0.4);
   }
+}
+
+function setSfxTerjeda(jeda) {
+  _sfxJeda = jeda;
+  // SFX dibisukan lewat gain khusus (BUKAN suspend AudioContext) agar BGM
+  // tetap bisa berjalan selama pause/pemilihan kartu.
+  if (_actx && _sfxGain) {
+    _sfxGain.gain.setValueAtTime(jeda ? 0 : _volSfx, _actx.currentTime);
+  }
+  // BGM: efek "dalam" saat jeda, normal kembali saat lanjut.
+  _aturEfekBGM(jeda);
   if (jeda) {
     _sfxPlaying.forEach((a) => { try { if (!a.paused) a.pause(); } catch (err) {} });
-    // Musik latar berbasis file ikut dijeda agar seragam dengan musik prosedural.
-    if (_musEl) { try { if (!_musEl.paused) _musEl.pause(); } catch (err) {} }
   } else {
     _sfxPlaying.forEach((a) => {
       try {
@@ -120,8 +145,9 @@ function setSfxTerjeda(jeda) {
         else a.play().catch(() => {});
       } catch (err) { _sfxPlaying.delete(a); }
     });
-    if (_musEl) { try { _musEl.play().catch(() => {}); } catch (err) {} }
   }
+  // Catatan: _musEl tidak di-pause/di-resume di sini — lagu latar terus
+  // berbunyi dan cukup "ditekuk" rendah oleh _aturEfekBGM.
 }
 // Dipanggil di transisi status game: "pause" & "upgrade" = dijeda,
 // lainnya (lanjut bermain) = dilanjutkan.
@@ -463,11 +489,30 @@ function setMusik(kunci) {
   if (!_mulaiFileMusik(kunci)) _mulaiMusikProsedural(kunci);
 }
 
+// Elemen musik file yang sudah dialirkan lewat graph Web Audio (agar efek
+// lowpass saat jeda juga menyentuh lagu mp3). createMediaElementSource cuma
+// boleh sekali per element, jadi dilacak dengan WeakSet.
+let _musElTersambung = new WeakSet();
+function _alirkanFileMusik(el) {
+  if (!_actx || _musElTersambung.has(el)) return false;
+  try {
+    const src = _actx.createMediaElementSource(el);
+    src.connect(_musFilter || _musVol);
+    _musElTersambung.add(el);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function _mulaiFileMusik(kunci) {
   const el = _musFiles[kunci];
   if (!el) return false;
   _musEl = el;
   el.volume = 0;
+  // Alirkan lewat filter BGM bila AudioContext sudah siap; kalau belum
+  // (autoplay diblokir) lagu diputar langsung dan disambungkan saat bukaAudio.
+  _alirkanFileMusik(el);
   _fadeEl(el, _volFileMusik(kunci), 1.2);
   const janji = el.play();
   if (janji && typeof janji.then === "function") {

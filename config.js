@@ -26,6 +26,8 @@ const KARAKTER = [
     halfArc: 0,
     // rot: offset rotasi sprite senjata (radian) agar ujungnya menunjuk pointer.
     rot: Math.PI - Math.PI / 18 - Math.PI / 12 - Math.PI / 12,
+    // Warna aksen indikator DASH desktop mengikuti palet karakter (Kenzro: biru es).
+    warnaDash: "#7dd3fc",
     // Jurus Kenzro: buff panah pembeku. Cooldown sengaja panjang.
     specialCd: 9,
     buffDurasi: 5,
@@ -57,6 +59,8 @@ const KARAKTER = [
     // Ujung sabit di PNG menghadap ke atas -> rot +90 deg agar
     // saat diputar menunjuk ke arah pointer. (-10 deg koreksi arah)
     rot: Math.PI / 2 - Math.PI / 18,
+    // Warna aksen indikator DASH desktop mengikuti palet karakter (Vender: merah).
+    warnaDash: "#ff4d4d",
     // Jurus Vender: tebasan besar; cooldown sama panjang dengan Kenzro.
     specialCd: 9,
     specialRadius: 400,

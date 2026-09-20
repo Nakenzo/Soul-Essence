@@ -28,7 +28,7 @@
 //   gem = warna berlian penanda tier di panel samping
 //   maks = max penumpukan (stack) | bobotKali = pengali peluang muncul
 const TIER_DEF = {
-  common: { maks: 3, bobotKali: 1.0, garis: "#59492f", aksen: "#9a7b3c", gem: "#d6b36a",
+  common: { maks: 3, bobotKali: 1.0, garis: "#59492f", aksen: "#9a7b3c", gem: "#f3e5c0",
     bg: { gelap: "#f3ecd9", hover: "#fbf7ea" } },
   rare: { maks: 2, bobotKali: 0.65, garis: "#1d4ed8", aksen: "#164ea0", gem: "#4aa8ff",
     bg: { gelap: "#93b8ee", hover: "#b7d4f6" } },
@@ -302,7 +302,7 @@ function perbaruiNotaKartu() {
     // Penanda tier di panel samping: berlian kecil berwarna tier + garis
     // kiri senada, di sebelah kiri logo (ikon) kartu.
     const tierDef = TIER_DEF[k.tier || "common"] || TIER_DEF.common;
-    const warnaTier = tierDef.gem || "#d6b36a";
+    const warnaTier = tierDef.gem || "#f3e5c0";
     const baris = document.createElement("div");
     baris.className = "kartu-note";
     baris.style.borderLeft = "3px solid " + warnaTier;
@@ -314,16 +314,15 @@ function perbaruiNotaKartu() {
     bulat.className = "kartu-note-bulat";
     bulat.style.background = k.warna;
     bulat.textContent = k.ikon;
-    const nm = document.createElement("span");
-    nm.className = "kartu-note-nm";
-    nm.textContent = k.nama;
+    // Lencana jumlah di pojok logo: menampilkan berapa kartu yang ditumpuk.
     const jml = document.createElement("span");
     jml.className = "kartu-note-jml";
-    jml.textContent = "x" + kartu[id];
+    jml.textContent = kartu[id];
+    // Nama tersimpan sebagai tooltip (hover/ketuk tahan) agar panel tetap ringkas.
+    baris.title = k.nama;
     baris.appendChild(gem);
+    bulat.appendChild(jml);
     baris.appendChild(bulat);
-    baris.appendChild(nm);
-    baris.appendChild(jml);
     isi.appendChild(baris);
   }
 }

@@ -96,8 +96,9 @@ body {
 .kartu-note {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
-    padding: 5px 4px 5px 6px;
+    padding: 5px 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -109,28 +110,42 @@ body {
 }
 
 .kartu-note-bulat {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: calc(var(--cs, 0.56) * 26px);
-    width: calc(var(--cs, 0.56) * 26px);
-    height: calc(var(--cs, 0.56) * 26px);
+    min-width: calc(var(--cs, 0.56) * 30px);
+    width: calc(var(--cs, 0.56) * 30px);
+    height: calc(var(--cs, 0.56) * 30px);
     border-radius: 50%;
-    font-size: calc(var(--cs, 0.56) * 13px);
-    color: #0c0f1e;
+    font-size: calc(var(--cs, 0.56) * 17px);
+    /* Logo putih tebal berlatar warna tier: garis tepi gelap + bayangan
+       bikin setiap ikon jelas terbedakan meski polos. */
+    color: #fff;
+    font-weight: 900;
+    -webkit-text-stroke: 1.2px #0c0f1e;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
 }
 
-.kartu-note-nm {
-    flex: 1;
-    word-break: break-word;
-}
-
+/* Lencana jumlah kartu yang ditumpuk (pojok kanan-atas logo). */
 .kartu-note-jml {
-    color: #ffd23f;
-    font-size: calc(var(--cs, 0.56) * 11px);
-    font-weight: bold;
-    flex-shrink: 0;
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: calc(var(--cs, 0.56) * 15px);
+    height: calc(var(--cs, 0.56) * 15px);
+    padding: 0 3px;
+    border-radius: 8px;
+    background: #ffd23f;
+    color: #0c0f1e;
+    font-size: calc(var(--cs, 0.56) * 9px);
+    font-weight: 900;
+    line-height: calc(var(--cs, 0.56) * 15px);
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: none;
+    -webkit-text-stroke: 0;
 }
 
 canvas {
@@ -374,13 +389,14 @@ body[data-device="mobile"] {
     pointer-events: none;
 }
 
-/* Kluster tombol aksi: menempel ke POJOK KANAN layar HP */
+/* Kluster tombol aksi: menempel ke POJOK KANAN layar HP. Area sengaja
+   dibuat lebih luas agar tombol bisa tersebar tanpa bertumpukan. */
 .tombol-sentuh-grup {
     position: absolute;
-    right: calc((100vw - var(--cw, 0px)) / -2 + 14px);
-    bottom: 14px;
-    width: calc(var(--cs, 0.56) * 296px);
-    height: calc(var(--cs, 0.56) * 296px);
+    right: calc((100vw - var(--cw, 0px)) / -2 + 10px);
+    bottom: 10px;
+    width: calc(var(--cs, 0.56) * 440px);
+    height: calc(var(--cs, 0.56) * 440px);
 }
 
 .tombol-sentuh {
@@ -409,28 +425,29 @@ body[data-device="mobile"] {
     pointer-events: none;
 }
 
-/* SERANG: besar, proporsional kanvas */
+/* SERANG: tombol paling besar, di pojok kanan-bawah */
 .tombol-serang {
-    left: 50%;
-    top: 56%;
-    width: calc(var(--cs, 0.56) * 156px);
-    height: calc(var(--cs, 0.56) * 156px);
+    left: 56%;
+    top: 68%;
+    width: calc(var(--cs, 0.56) * 190px);
+    height: calc(var(--cs, 0.56) * 190px);
     border-color: rgba(255, 255, 255, 0.55);
 }
 
-/* DASH & SKILL: seukuran, melingkari tombol serang */
+/* DASH & SKILL: lebih besar dan TERPISAH dari tombol serang —
+   menempati kolom kiri (dash di atas, skill di bawah). */
 .tombol-dash {
-    left: 20%;
-    top: 36%;
-    width: calc(var(--cs, 0.56) * 88px);
-    height: calc(var(--cs, 0.56) * 88px);
+    left: 18%;
+    top: 22%;
+    width: calc(var(--cs, 0.56) * 130px);
+    height: calc(var(--cs, 0.56) * 130px);
 }
 
 .tombol-skill {
-    left: 80%;
-    top: 36%;
-    width: calc(var(--cs, 0.56) * 88px);
-    height: calc(var(--cs, 0.56) * 88px);
+    left: 18%;
+    top: 62%;
+    width: calc(var(--cs, 0.56) * 130px);
+    height: calc(var(--cs, 0.56) * 130px);
 }
 
 /* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
@@ -571,18 +588,17 @@ body[data-device="mobile"] .bantuan-canvas {
     letter-spacing: 3px;
 }
 
-/* Teks status di layar pilih karakter: tidak wrap */
-#layarPilih #menuStatus {
-    white-space: nowrap;
-    font-size: calc(var(--cs, 0.56) * 16px);
-}
-
 .tombol-karakter {
     display: flex;
     gap: calc(var(--cs, 0.56) * 12px);
     flex-wrap: wrap;
     justify-content: center;
     padding: 0 1%;
+}
+
+/* Jarak lebih renggang antara judul PILIH KARAKTER dan deretan kartu. */
+#layarPilih .tombol-karakter {
+    margin-top: calc(var(--cs, 0.56) * 22px);
 }
 
 .kartu-karakter {

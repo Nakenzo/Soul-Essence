@@ -2227,7 +2227,7 @@ function drawHUD() {
         const k = KARTU_UPGRADE.find((c) => c.id === id);
         if (!k) continue;
         const tierDef = TIER_DEF[k.tier || "common"] || TIER_DEF.common;
-        nota.push({ teks: k.ket, warna: tierDef.gem || "#d6b36a", jml: kartu[id] });
+        nota.push({ teks: k.ket, warna: tierDef.gem || "#f3e5c0", jml: kartu[id] });
       }
       if (nota.length > 0) {
         const nx = hpX;
@@ -2436,36 +2436,42 @@ function drawHUD() {
     ctx.restore();
   };
 
-  if (player.base.dashMax > 1) {
-    ctx.globalAlpha = player.dashStacks >= 2 ? 1 : player.dashStacks === 1 ? 0.5 : 0.25;
-    gambarSepatu(cx - Math.round(4 * s), cy, "rgba(125,211,252,0.85)", "#4a9fd8", "#dff4ff");
-    gambarSepatu(cx + Math.round(6 * s), cy, "#ffffff", "#9fd9ff", "#7dd3fc");
-    ctx.globalAlpha = 1;
-    for (let i = 0; i < player.dashMax; i++) {
-      const dotX = cx + dashR - Math.round(12 * s);
-      const dotY = cy - Math.round(20 * s) + i * Math.round(32 * s);
-      ctx.fillStyle = i < player.dashStacks ? "#7dd3fc" : "rgba(255,255,255,0.2)";
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, Math.round(8 * s), 0, Math.PI * 2);
-      ctx.fill();
+  // Warna aksen dash mengikuti palet karakter (kenzro: biru es, vender: merah).
+  const warnaDash = (karakter && karakter.warnaDash) ||
+    (karakter && karakter.tipe === "dekat" ? "#ff4d4d" : "#7dd3fc");
+
+  // Sepatu pusat: satu saja, berwarna palet karakter.
+  gambarSepatu(cx, cy, warnaDash, "#0c0f1e", "#ffffff");
+
+  // Titik charge MELINGKAR tepat di GARIS TEPI lingkaran indikator: jumlah
+  // = dashMax (dasar karakter + kartu DASH +1). Titik yang tersedia berwarna
+  // palet, yang masih kosong/terisi transparan.
+  const nMax = Math.max(1, player.dashMax || 1);
+  const rDot = Math.max(1, Math.round(7 * s));
+  for (let i = 0; i < nMax; i++) {
+    const sudut = -Math.PI / 2 + (i * Math.PI * 2) / nMax;
+    // Jari-jari = dashR: titik duduk sejajar dengan garis tepi lingkaran.
+    const dx = cx + Math.cos(sudut) * dashR;
+    const dy = cy + Math.sin(sudut) * dashR;
+    const siap = i < player.dashStacks;
+    ctx.fillStyle = siap ? warnaDash : "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.arc(dx, dy, rDot, 0, Math.PI * 2);
+    ctx.fill();
+    if (siap) {
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = Math.max(1, Math.round(1 * s));
+      ctx.stroke();
     }
-    if (player.dashCd > 0) {
-      ctx.font = "bold " + fs(28) + "px Zen Dots";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(14 * s));
-      ctx.textAlign = "left";
-    }
-  } else {
-    if (player.dashCd > 0) {
-      ctx.font = "bold " + fs(36) + "px Zen Dots";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#fff";
-      ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(14 * s));
-      ctx.textAlign = "left";
-    } else {
-      gambarSepatu(cx, cy, "#ffffff", "#ff4d4d", "#ff2030");
-    }
+  }
+
+  // Teks cooldown di tengah indikator bila sedang mengisi.
+  if (player.dashCd > 0) {
+    ctx.font = "bold " + fs(30) + "px Zen Dots";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(16 * s));
+    ctx.textAlign = "left";
   }
   }
 }
