@@ -8,7 +8,9 @@
 // Vektor gerak gabungan joy+keyboard dipakai entities.js via gerakDx/Dy.
 // ============================================================
 const keys = {};
-let mouse = { x: W / 2, y: H / 2, down: false };
+// mouse.x/y  = koordinat DUNIA (dipakai bidik/serang).
+// mouse.sx/sy = koordinat LAYAR kanvas (dipakai klik kartu upgrade / HTML).
+let mouse = { x: WORLD_W / 2, y: WORLD_H / 2, sx: W / 2, sy: H / 2, down: false };
 
 // ---------- Joystick tetap (mode HP, pojok kiri bawah) ----------
 const joy = { x: 0, y: 0 };
@@ -38,8 +40,12 @@ function gerakDy() {
 
 function _poinMouse(e) {
   const r = canvas.getBoundingClientRect();
-  mouse.x = (e.clientX - r.left) * (W / r.width);
-  mouse.y = (e.clientY - r.top) * (H / r.height);
+  // Koordinat layar kanvas (0..W, 0..H).
+  mouse.sx = (e.clientX - r.left) * (W / r.width);
+  mouse.sy = (e.clientY - r.top) * (H / r.height);
+  // Koordinat DUNIA: layar + offset kamera.
+  mouse.x = (mouse.sx || 0) + kam.x;
+  mouse.y = (mouse.sy || 0) + kam.y;
 }
 
 // Pusat joystick tetap (pada elemen joyBase) dalam koordinat klien.
@@ -117,7 +123,7 @@ canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     // Layar kartu upgrade: sentuh kartu = langsung pilih.
     if (statusGame === "upgrade" && pilihanKartu) {
-      const k = kartuIndexDariKlik(mouse.x, mouse.y);
+      const k = kartuIndexDariKlik(mouse.sx, mouse.sy);
       if (k !== -1) {
         pilihKartuUpgrade(k);
         return;
@@ -133,7 +139,7 @@ canvas.addEventListener("pointerdown", (e) => {
   }
   // Desktop (mouse): klik kiri serang, klik kanan dash.
   if (e.button === 0 && statusGame === "upgrade" && pilihanKartu) {
-    const k = kartuIndexDariKlik(mouse.x, mouse.y);
+    const k = kartuIndexDariKlik(mouse.sx, mouse.sy);
     if (k !== -1) {
       pilihKartuUpgrade(k);
       return;

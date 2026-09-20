@@ -53,9 +53,9 @@ function tembakPanahRaksasa(ang) {
   const px = -ny;
   const py = nx;
   let tExit = 1e9;
-  if (nx > 0) tExit = Math.min(tExit, (W + 10 - player.x) / nx);
+  if (nx > 0) tExit = Math.min(tExit, (WORLD_W + 10 - player.x) / nx);
   if (nx < 0) tExit = Math.min(tExit, (-10 - player.x) / nx);
-  if (ny > 0) tExit = Math.min(tExit, (H + 10 - player.y) / ny);
+  if (ny > 0) tExit = Math.min(tExit, (WORLD_H + 10 - player.y) / ny);
   if (ny < 0) tExit = Math.min(tExit, (-10 - player.y) / ny);
   const koridor = {
     x0: player.x,
@@ -131,18 +131,55 @@ function slashSwing() {
 }
 
 // ---------- Musuh ----------
+// Cari TITIK SPAWN/HELIKOPTER AMAN di cincin sekitar pemain: di luar pandangan,
+// TIDAK di dalam dinding (piksel hitam), bukan menimpa musuh lain, dan dijauhi
+// tepi/pojok dunia (border 2px PNG = 32 unit + r + jarak aman). Dipakai saat
+// lahir (spawnEnemy) DAN saat musuh nyangkut dipindah (jam tangan anti-sangkut).
+function titikSpawnAman(r) {
+  for (let upaya = 0; upaya < 40; upaya++) {
+    const a = Math.random() * Math.PI * 2;
+    const jarak = 700 + Math.random() * 320;
+    let x = player.x + Math.cos(a) * jarak;
+    let y = player.y + Math.sin(a) * jarak;
+    x = Math.max(108, Math.min(WORLD_W - 108, x));
+    y = Math.max(108, Math.min(WORLD_H - 108, y));
+    if (tesLingkaran(x, y, r + 2)) continue;
+    let tabrakMusuh = false;
+    for (const mm of enemies) {
+      const a2 = x - mm.x, b2 = y - mm.y;
+      const rr2 = r + mm.r + 6;
+      if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrakMusuh = true; break; }
+    }
+    if (!tabrakMusuh) return { x, y };
+  }
+  // Semua upaya kena tembok (arena sangat padat): rendahkan ke pusat dunia
+  // yang hampir pasti kosong — tapi tetap dicek agar tidak nyangkut.
+  for (let upaya = 0; upaya < 40; upaya++) {
+    let x = Math.max(46, Math.min(WORLD_W - 46, WORLD_W / 2 + (Math.random() - 0.5) * 240));
+    let y = Math.max(46, Math.min(WORLD_H - 46, WORLD_H / 2 + (Math.random() - 0.5) * 240));
+    if (tesLingkaran(x, y, r + 2)) continue;
+    let tabrakMusuh = false;
+    for (const mm of enemies) {
+      const a2 = x - mm.x, b2 = y - mm.y;
+      const rr2 = r + mm.r + 6;
+      if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrakMusuh = true; break; }
+    }
+    if (!tabrakMusuh) return { x, y };
+  }
+  return null;
+}
+
 function spawnEnemy() {
   const def = LEVELS[level];
   const tipe = pilihTipeMusuh(def.campur);
   const t = TIPE_MUSUH[tipe];
   const hp = Math.max(8, Math.round(def.hp * t.hpKali));
 
-  let x, y;
-  const edge = Math.floor(Math.random() * 4);
-  if (edge === 0) { x = -40; y = Math.random() * H; }
-  else if (edge === 1) { x = W + 40; y = Math.random() * H; }
-  else if (edge === 2) { x = Math.random() * W; y = -40; }
-  else { x = Math.random() * W; y = H + 40; }
+  // Dunia luas: musuh muncul di luar pandangan, membentuk cincin di sekitar
+  // pemain (bukan tepi arena) — jadi tidak kebanyakan jalan dari ujung dunia.
+  let p = titikSpawnAman(t.r);
+  if (!p) p = { x: WORLD_W / 2, y: WORLD_H / 2 };
+  let x = p.x, y = p.y;
 
   const kecepatanMin = def.kecepatan[0];
   const kecepatanMax = def.kecepatan[1];
@@ -206,11 +243,12 @@ function update(dt) {
   }
 
   let dx = 0, dy = 0;
+  let mvx = 0, mvy = 0;
   if (player.dashT > 0) {
     // Sedang dash: gerak cepat mengikuti arah, abaikan tombol gerak.
     player.dashT -= dt;
-    player.x += Math.cos(player.dashAngle) * DASH_SPEED * dt;
-    player.y += Math.sin(player.dashAngle) * DASH_SPEED * dt;
+    mvx = Math.cos(player.dashAngle) * DASH_SPEED * dt;
+    mvy = Math.sin(player.dashAngle) * DASH_SPEED * dt;
     const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
     if (Math.random() < 0.8) {
       particles.push({
@@ -229,14 +267,20 @@ function update(dt) {
     dy = gerakDy();
     if (dx !== 0 || dy !== 0) {
       const len = Math.hypot(dx, dy);
-      player.x += (dx / len) * player.speed * dt;
-      player.y += (dy / len) * player.speed * dt;
+      mvx = (dx / len) * player.speed * dt;
+      mvy = (dy / len) * player.speed * dt;
       if (dx !== 0) player.dir = dx < 0 ? -1 : 1;
     }
   }
 
-  player.x = Math.max(20, Math.min(W - 20, player.x));
-  player.y = Math.max(20, Math.min(H - 20, player.y));
+  // Gerak per-sumbu + dinding PNG: bila satu sumbu terblokir, sumbu lain
+  // tetap jalan → pemain MELUNCUR mengitari tembok (tidak pernah nyangkut).
+  // Dinding = piksel hitam di assets/maps/*.png, dicek lewat tesLingkaran.
+  const pR = 14;
+  if (!tesLingkaran(player.x + mvx, player.y, pR)) player.x += mvx;
+  if (!tesLingkaran(player.x, player.y + mvy, pR)) player.y += mvy;
+  player.x = Math.max(10, Math.min(WORLD_W - 10, player.x));
+  player.y = Math.max(10, Math.min(WORLD_H - 10, player.y));
 
   // Untuk animasi: sedang bergerak (jalan/dash) atau diam (idle).
   player.gerak = player.dashT > 0 || dx !== 0 || dy !== 0;
@@ -280,6 +324,9 @@ function update(dt) {
     if (bt) {
       mouse.x = bt.x;
       mouse.y = bt.y;
+      // Layar (untuk klik/HTML + kartu upgrade) ikut disesuaikan.
+      mouse.sx = bt.x - kam.x;
+      mouse.sy = bt.y - kam.y;
     }
   }
 
@@ -295,7 +342,7 @@ function update(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
-    if (b.life <= 0 || b.x < -10 || b.x > W + 10 || b.y < -10 || b.y > H + 10) {
+    if (b.life <= 0 || b.x < -10 || b.x > WORLD_W + 10 || b.y < -10 || b.y > WORLD_H + 10) {
       bullets.splice(i, 1);
       continue;
     }
@@ -544,8 +591,25 @@ function update(dt) {
 
     if (e.freeze <= 0) {
       const angle = Math.atan2(player.y - e.y, player.x - e.x);
-      e.x += Math.cos(angle) * e.speed * dt;
-      e.y += Math.sin(angle) * e.speed * dt;
+      const mvx = Math.cos(angle) * e.speed * dt;
+      const mvy = Math.sin(angle) * e.speed * dt;
+      // JAM TANGAN ANTI-SANGKUT: kalau musuh tidak bisa maju ke dua-duanya
+      // (terperangkap di kantong cekung dinding = bentuk U / pojok dalam),
+      // timpa posisi dengan titik aman di cincin sekitar pemain. Jadi musuh
+      // TIDAK PERNAH permanen macet — apa pun bentuk tembok di PNG kamu.
+      const majuX = !tesLingkaran(e.x + mvx, e.y, e.r);
+      const majuY = !tesLingkaran(e.x, e.y + mvy, e.r);
+      e.sangkutT = (majuX || majuY) ? 0 : (e.sangkutT || 0) + dt;
+      if (e.sangkutT >= 0.85) {
+        const pos = titikSpawnAman(e.r);
+        if (pos) { e.x = pos.x; e.y = pos.y; }
+        e.sangkutT = 0;
+      } else {
+        if (majuX) e.x += mvx;
+        if (majuY) e.y += mvy;
+      }
+    } else {
+      e.sangkutT = 0;
     }
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0) {

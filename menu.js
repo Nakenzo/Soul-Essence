@@ -50,6 +50,8 @@ function pilihDevice(dev) {
   document.body.dataset.device = dev;
   try { localStorage.setItem("soul-essence-device", dev); } catch (err) {}
   bukaAudio();
+  // Bg latar dibake sesuai skala perangkat → bangun ulang bila skala berubah.
+  if (typeof latarSkala === "function" && latarSkala() !== latarSkalaTerpakai) latarCache = null;
   layarDevice.classList.add("hidden");
   if (dev === "mobile") {
     kunciLandscapeMobile();

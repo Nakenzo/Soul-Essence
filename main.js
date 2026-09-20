@@ -5,6 +5,9 @@
 // ---------- Biner error ----------
 window.addEventListener("error", (e) => {
   errorBanner = e.message || "Terjadi error";
+  if (typeof e === "object" && e && e.error && typeof e.error.stack === "string") {
+    errorBanner += " — " + e.error.stack.split("\n")[1] || "";
+  }
 });
 
 // ---------- CSS Variables berdasarkan ukuran canvas aktual ----------
@@ -27,9 +30,16 @@ window.addEventListener("resize", updateCanvasVars);
 function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
-  update(dt);
-  draw();
-  aturNotaKartu();
+  try {
+    update(dt);
+    draw();
+    aturNotaKartu();
+  } catch (err) {
+    // Jangan biarkan satu error mematikan loop — tampilkan di banner.
+    errorBanner = err && err.message ? err.message : String(err);
+    const st = err && err.stack ? err.stack.split("\n") : [];
+    if (st[1]) errorBanner += " — " + st[1].trim();
+  }
   requestAnimationFrame(loop);
 }
 

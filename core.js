@@ -5,8 +5,28 @@
 
 const W = 1280;
 const H = 960;
+// Dunia / battlefield sebenarnya: lebih luas dari layar (W×H adalah area
+// TAMPILAN/HUD). Kamera mengikuti pemain — khas arena seperti Guardian
+// Tales / Pokemon: pemain bebas roaming, layar ikut bergeser.
+const WORLD_W = 2560;
+const WORLD_H = 1920;
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
+
+// Posisi kamera (pojok kiri-atas dunia yang terlihat di layar). Di-set
+// tiap frame oleh hitungKamera() (draw.js) dan dipakai input untuk
+// mengubah koordinat layar → dunia.
+let kam = { x: 0, y: 0 };
+
+// Geser kamera mengikuti pemain, dijepit ke batas dunia agar tidak keluar.
+function hitungKamera() {
+  const px = player ? player.x : WORLD_W / 2;
+  const py = player ? player.y : WORLD_H / 2;
+  const cx = WORLD_W > W ? Math.max(0, Math.min(WORLD_W - W, px - W / 2)) : Math.max(0, (W - WORLD_W) / 2);
+  const cy = WORLD_H > H ? Math.max(0, Math.min(WORLD_H - H, py - H / 2)) : Math.max(0, (H - WORLD_H) / 2);
+  kam.x = cx;
+  kam.y = cy;
+}
 
 // ---------- State ----------
 // statusGame: "title" (judul) | "select" (pilih karakter) | "main" (bermain)
@@ -15,7 +35,11 @@ let karakter = null;
 let statusGame = "title";
 // Perangkat pemain: "desktop" (keyboard + mouse) atau "mobile" (layar sentuh).
 // Dipilih di layar awal sebelum masuk menu utama.
-let deviceTerpilih = null;
+// Perangkat yang dipakai (desktop/mobile); dibaca dari simpanan agar sejak
+// awal (mis. skala bake latar) sudah tahu target perangkat.
+let deviceTerpilih = (() => {
+  try { return localStorage.getItem("soul-essence-device"); } catch (err) { return null; }
+})();
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
 let flashes, hurtVig;
@@ -49,8 +73,8 @@ const DASH_INVULN = 0.3; // kebal sejenak setelah dash
 // ---------- Setup arena ----------
 function resetArena({ skorBaru }) {
   player = {
-    x: W / 2,
-    y: H / 2,
+    x: WORLD_W / 2,
+    y: WORLD_H / 2,
     hp: karakter ? karakter.hp : 100,
     maxHp: karakter ? karakter.hp : 100,
     speed: karakter ? karakter.kecepatan : 180,

@@ -37,33 +37,73 @@ function gambarSenjata() {
   ctx.restore();
 }
 
-// ---------- Latar di-cache sekali (agar tidak menggambar 600 kotak/frame) ----------
+// ---------- Latar MAP (PNG asset, di-cache sekali) ----------
 const _BG_M = 16;
 let latarCache = null;
+// Jadi true bila asset map PNG selesai dimuat → bake dibuat ulang.
+let latarDirty = false;
+// Skala bake latar: mode HP pakai ½ resolusi (blur halus, tapi jauh lebih
+// ringan untuk perangkat kecil — tetap satu drawImage tiap frame, bukan
+// rasterisasi ulang). Desktop: resolusi penuh.
+function latarSkala() {
+  return typeof deviceTerpilih === "string" && deviceTerpilih === "mobile" ? 0.5 : 1;
+}
+let latarSkalaTerpakai = 0;
+
+// RNG deterministik agar hasil bake sama walaupun dirender ulang.
+function rngPohon(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => {
+    s = (s * 1103515245 + 12345) >>> 0;
+    return s / 4294967296;
+  };
+}
 
 function buatLatarCache() {
-  if (latarCache) return;
+  const S = latarSkala();
+  // Build ulang hanya kalau belum ada ATAU skala berubah (ganti perangkat)
+  // ATAU asset map baru selesai dimuat/diubah (latarDirty).
+  if (latarCache && latarSkalaTerpakai === S && !latarDirty) return;
+  latarSkalaTerpakai = S;
+  latarDirty = false;
   const c = document.createElement("canvas");
-  c.width = W + _BG_M * 2;
-  c.height = H + _BG_M * 2;
+  // Latar dibake untuk SELURUH DUNIA (kamera bisa bergeser), + margin shake.
+  c.width = Math.max(2, Math.ceil((WORLD_W + _BG_M * 2) * S));
+  c.height = Math.max(2, Math.ceil((WORLD_H + _BG_M * 2) * S));
   const g = c.getContext("2d");
-  g.fillStyle = "#1a1a2e";
-  g.fillRect(0, 0, c.width, c.height);
-  g.fillStyle = "#182538";
-  for (let i = Math.floor(-_BG_M / 32) - 1; i * 32 <= W + _BG_M; i++) {
-    for (let j = Math.floor(-_BG_M / 32) - 1; j * 32 <= H + _BG_M; j++) {
-      if ((i + j) % 2 === 0) {
-        g.fillRect(i * 32 + _BG_M, j * 32 + _BG_M, 32, 32);
-      }
-    }
+  g.imageSmoothingEnabled = false;
+  const M = _BG_M;
+  const cw = WORLD_W + _BG_M * 2, chh = WORLD_H + _BG_M * 2;
+
+  // ============ MAP = GAMBAR PNG (asset, persis seperti karakter) ============
+  // Tanah dasar: alas di belakang gambar map (tertutup penuh bila PNG ada).
+  g.fillStyle = MAP_ASSET.warnaTanah;
+  g.fillRect(0, 0, cw, chh);
+  // Gambar assets/maps/*.png diperbesar "pixel-perfect" ke ukuran DUNIA
+  // (WORLD_W×WORLD_H), ditempatkan di offset margin. User menggambar map
+  // di editor pixel (mis. 160×120 → tiap 1px = 16 unit dunia). Pixel HITAM
+  // (#000000) = penghalang (dinding/batu); warna lain bebas = bisa dilewati.
+  if (petaSiap && petaImage) {
+    g.drawImage(petaImage, M * S, M * S, WORLD_W * S, WORLD_H * S);
   }
+
   latarCache = c;
 }
 
 function gambarLatar() {
   if (!latarCache) buatLatarCache();
-  // Margin _BG_M menutupi pergeseran shake (maks ±4px) agar tidak bolong.
-  ctx.drawImage(latarCache, -_BG_M, -_BG_M);
+  // Gambar hanya jendela dunia yang terlihat (+ margin untuk shake), lebar
+  // sama dengan buffer → jangan rasterisasi seluruh lahan 2560x1920 / frame.
+  const S = latarSkala();
+  const sw = W + _BG_M * 2;
+  const sh = H + _BG_M * 2;
+  // Sumber = piksel bake ter-scaling; dartikan agar srcX/S - M = koordinat
+  // dunia (sejajar dengan translate(-kam)) dan dijepit ke tepi canvas bake.
+  const sx = Math.min(latarCache.width - 1, Math.max(0, kam.x * S));
+  const sy = Math.min(latarCache.height - 1, Math.max(0, kam.y * S));
+  const srx = Math.min(sw * S, latarCache.width - sx);
+  const sry = Math.min(sh * S, latarCache.height - sy);
+  ctx.drawImage(latarCache, sx, sy, srx, sry, sx / S - _BG_M, sy / S - _BG_M, srx / S, sry / S);
 }
 
 // ---------- Lidah api kecil (3 lapis gradient) — dipakai Kobaran API Vender.
@@ -153,6 +193,9 @@ function draw() {
   _shakeY = 0;
   ctx.save();
 
+  // Kamera mengikuti pemain (batas → tepi dunia tidak kelihatan kosong).
+  hitungKamera();
+
   if (shake > 0) {
     shake -= 1 / 60;
     _shakeX = (Math.random() - 0.5) * 8;
@@ -160,7 +203,13 @@ function draw() {
     ctx.translate(_shakeX, _shakeY);
   }
 
+  // Seluruh isi DUNIA digambar dalam koordinat dunia; kamera menggesernya.
+  ctx.translate(-kam.x, -kam.y);
+
   gambarLatar();
+
+  // (Batas dunia = dinding batu di-bake di buatLatarCache: statis,
+  // ikut bergeser bersama tanah, tidak berkedip saat kamera digeser.)
 
   // Layar judul & pilih karakter: cukup latar + partikel dekoratif.
   if (statusGame === "title" || statusGame === "select") {
@@ -437,7 +486,9 @@ function draw() {
     ctx.globalAlpha = fade;
     ctx.save();
     // sprite → world: piksel (0,0) sprite diletakkan di P0, sumbu-x = arah n.
-    ctx.setTransform(
+    // Dikali ke transform KAMERA (pakai transform, bukan setTransform, agar
+    // offset kamera tetap berlaku).
+    ctx.transform(
       fz.nx, fz.ny, fz.px, fz.py,
       fz.x0 - fz.uOff * fz.nx - fz.vOff * fz.px,
       fz.y0 - fz.uOff * fz.ny - fz.vOff * fz.py
@@ -1099,7 +1150,7 @@ function gambarKartuUpgrade() {
   ctx.fillText("PILIH KARTU", W / 2, H * 0.28);
 
   // Kartu.
-  const hoverIdx = kartuIndexDariKlik(mouse.x, mouse.y);
+  const hoverIdx = kartuIndexDariKlik(mouse.sx, mouse.sy);
   for (let i = 0; i < pilihanKartu.length; i++) {
     const id = pilihanKartu[i];
     const kart = kartuDefById(id);
@@ -2102,37 +2153,32 @@ function drawHUD() {
   ctx.fillStyle = "#fff";
   ctx.fillText("HP", hpX + hpBarW + Math.round(12 * s), hpY + hpBarH * 0.85);
 
-  // ---------- INFO BOX (kanan atas) ----------
+  // ---------- INFO BOX (kanan atas): nama karakter, wave, sisa musuh ----------
   const infoW = Math.round(380 * s);
   const infoPad = Math.round(16 * s);
   const infoLineH = Math.round(32 * s);
-  const infoBaris = 3 + (player.specialBuff > 0 ? 1 : 0) + (player.ultBuff ? 1 : 0);
+  const infoBaris = 3;
   const infoH = Math.round(infoPad * 2 + infoLineH * infoBaris + fs(8));
   const infoX = W - infoW - m, infoY = m;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
   ctx.fillRect(infoX, infoY, infoW, infoH);
   ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
   ctx.lineWidth = Math.max(1, Math.round(2 * s));
   ctx.strokeRect(infoX + Math.round(1 * s), infoY + Math.round(1 * s), infoW - Math.round(2 * s), infoH - Math.round(2 * s));
+
   ctx.font = "bold " + fs(24) + "px Zen Dots";
+  ctx.textAlign = "left";
   if (karakter) {
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "#ffd23f";
     ctx.fillText(karakter.nama.toUpperCase(), infoX + infoPad, infoY + infoPad + fs(4));
   }
+  const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#ffd23f";
   ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, infoX + infoPad, infoY + infoPad + infoLineH);
-  const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#fff";
   ctx.fillText("MUSUH " + sisa, infoX + infoPad, infoY + infoPad + infoLineH * 2);
-  if (player.specialBuff > 0) {
-    ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("FROSTBITE " + player.specialBuff.toFixed(1), infoX + infoPad, infoY + infoPad + infoLineH * 3);
-  }
-  if (player.ultBuff) {
-    ctx.fillStyle = "#7dd3fc";
-    ctx.fillText("PANAH RAKSASA " + player.ultArrows, infoX + infoPad, infoY + infoPad + infoLineH * 4);
-  }
+  ctx.textAlign = "left";
 
   // ---------- SKILL BAR (bawah HP bar) ----------
   const namaSkill = karakter && karakter.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";

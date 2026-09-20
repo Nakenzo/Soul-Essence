@@ -138,7 +138,7 @@ canvas {
     border-radius: 1px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    background: #1a1a2e;
+    background: #45a049;
     cursor: crosshair;
     display: block;
     width: min(84vw, calc((100vh - 27.5px) * 4 / 3));
@@ -190,7 +190,7 @@ body[data-device="mobile"] #notaKartu {
 }
 
 body[data-device="mobile"] {
-    background: #1a1a2e;
+    background: #45a049;
 }
 
 .posisi-game {
@@ -693,14 +693,14 @@ body[data-device="mobile"] .bantuan-canvas {
     position: absolute;
     bottom: 2%;
     left: 1.5%;
-    color: rgba(200, 210, 230, 0.55);
+    color: rgba(12, 35, 18, 0.85);
     font-size: calc(var(--cs, 0.56) * 11px);
     line-height: 1.6;
     z-index: 3;
     pointer-events: none;
-    text-shadow: 1px 1px 2px #000;
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .bantuan-canvas b {
-    color: rgba(125, 211, 252, 0.7);
+    color: rgba(10, 70, 45, 0.95);
 }
