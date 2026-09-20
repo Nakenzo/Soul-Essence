@@ -687,6 +687,49 @@ body[data-device="mobile"] .bantuan-canvas {
 }
 
 /* ======================== */
+/*  ATUR SUARA (menu Pause) */
+/* ======================== */
+.atur-suara {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--cs, 0.56) * 8px);
+    background: rgba(10, 14, 30, 0.6);
+    border: 1px solid #3a3f5c;
+    border-radius: 6px;
+    padding: calc(var(--cs, 0.56) * 10px) calc(var(--cs, 0.56) * 14px);
+    width: calc(var(--cs, 0.56) * 300px);
+}
+
+.baris-suara {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 8px);
+    color: #7dd3fc;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 13px);
+    letter-spacing: 1px;
+}
+
+.baris-suara label {
+    width: calc(var(--cs, 0.56) * 68px);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.baris-suara input[type="range"] {
+    flex: 1;
+    accent-color: #4ade80;
+    cursor: pointer;
+}
+
+.nilai-suara {
+    width: calc(var(--cs, 0.56) * 30px);
+    text-align: right;
+    color: #e6edf5;
+    font-size: calc(var(--cs, 0.56) * 11px);
+}
+
+/* ======================== */
 /*  BANTUAN (overlay kiri bawah canvas) */
 /* ======================== */
 .bantuan-canvas {

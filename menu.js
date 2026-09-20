@@ -61,14 +61,20 @@ function pilihDevice(dev) {
 layarDevice.querySelectorAll("[data-device]").forEach((b) =>
   b.addEventListener("click", () => pilihDevice(b.dataset.device)));
 
-// Nota KARTUMU hanya tampil saat permainan benar-benar berjalan
-// (statusGame === "main"); dikerjakan murah per frame di main.js loop.
+// Nota KARTUMU tampil saat permainan berjalan (main), pemilihan kartu
+// upgrade, jeda, dan game over/menang — APA PUN di dalam permainan. Cuma
+// layar pra-game (judul & pilih karakter) yang menyembunyikannya. Tujuannya:
+// sidebar dipesan di susunan flex SEPANJANG sesi bermain, jadi kanvas tidak
+// pernah bergeser saat pindah layar (mis. main → pilih kartu).
 let _statusNotaTerakhir = null;
 function aturNotaKartu() {
   if (_statusNotaTerakhir === statusGame) return;
   _statusNotaTerakhir = statusGame;
   const nota = document.getElementById("notaKartu");
-  if (nota) nota.classList.toggle("tampil", statusGame === "main");
+  if (!nota) return;
+  const tampil = statusGame === "main" || statusGame === "upgrade" ||
+    statusGame === "pause" || statusGame === "over";
+  nota.classList.toggle("tampil", tampil);
 }
 
 // Tombol pause (II) hanya tampil saat permainan berjalan.
@@ -135,10 +141,23 @@ function tampilkanMenang() {
 }
 
 // ---------- Jeda (bekukan semua data: skor, HP, posisi) ----------
+function segarkanUISuara() {
+  const set = (slId, nilId, v) => {
+    const sl = document.getElementById(slId);
+    if (sl) sl.value = Math.round(v * 100);
+    const n = document.getElementById(nilId);
+    if (n) n.textContent = Math.round(v * 100);
+  };
+  set("slUmum", "nilUmum", typeof _volUmum === "number" ? _volUmum : 0.9);
+  set("slSfx", "nilSfx", typeof _volSfx === "number" ? _volSfx : 1);
+  set("slMusik", "nilMusik", typeof _volMusik === "number" ? _volMusik : 1);
+}
+
 function tampilkanPause() {
   if (statusGame !== "main") return;
   statusGame = "pause";
   sinkronSfxTerjeda();
+  segarkanUISuara();
   layarPause.classList.remove("hidden");
   aturTombolPause();
 }
@@ -191,6 +210,22 @@ function pasangTombol() {
     .forEach((el) => el.addEventListener("click", sfxKlik));
   // Kartu karakter dibuat dinamis, bunyi klik lewat container via bubbling.
   daftarKarakter.addEventListener("click", sfxKlik);
+
+  // Slider volume di menu PAUSE (ke fungsi aturVolume* dari audio.js).
+  const pasangSlider = (slId, nilId, fn) => {
+    const sl = document.getElementById(slId);
+    if (!sl) return;
+    sl.addEventListener("input", () => {
+      fn(sl.value / 100);
+      const n = document.getElementById(nilId);
+      if (n) n.textContent = sl.value;
+    });
+  };
+  if (typeof aturVolumeUmum === "function") {
+    pasangSlider("slUmum", "nilUmum", aturVolumeUmum);
+    pasangSlider("slSfx", "nilSfx", aturVolumeSfx);
+    pasangSlider("slMusik", "nilMusik", aturVolumeMusik);
+  }
 }
 
 // ---------- Kartu karakter (minimalis: kotak kecil) ----------

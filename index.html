@@ -70,6 +70,23 @@
             <div id="layarPause" class="overlay overlay-beku hidden">
                 <h2>PAUSE</h2>
                 <p class="sub-judul">Permainan dijeda</p>
+                <div class="atur-suara">
+                    <div class="baris-suara">
+                        <label for="slUmum">SUARA</label>
+                        <input id="slUmum" type="range" min="0" max="100" step="1" value="90">
+                        <span id="nilUmum" class="nilai-suara">90</span>
+                    </div>
+                    <div class="baris-suara">
+                        <label for="slSfx">EFEK</label>
+                        <input id="slSfx" type="range" min="0" max="100" step="1" value="100">
+                        <span id="nilSfx" class="nilai-suara">100</span>
+                    </div>
+                    <div class="baris-suara">
+                        <label for="slMusik">MUSIK</label>
+                        <input id="slMusik" type="range" min="0" max="100" step="1" value="100">
+                        <span id="nilMusik" class="nilai-suara">100</span>
+                    </div>
+                </div>
                 <div class="grup-tombol">
                     <button id="tombolLanjut" class="tombol-hijau">&#9654; Lanjut</button>
                     <button id="tombolMenuPause" class="tombol-abu">&#8635; Ganti Karakter</button>
@@ -125,6 +142,7 @@
     <script src="skills.js"></script>
     <script src="entities.js"></script>
     <script src="draw.js"></script>
+    <script src="ambience.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

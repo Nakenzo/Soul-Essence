@@ -142,6 +142,8 @@ function resetArena({ skorBaru }) {
   spawnTimer = 0;
   shake = 0;
   lastTime = performance.now();
+  // Animasi lingkungan map disetel ulang mengikuti arena yang baru.
+  if (typeof ambBuat === "function") ambBuat();
 }
 
 // ---------- Background partikel dekoratif (layar judul/pilih) ----------

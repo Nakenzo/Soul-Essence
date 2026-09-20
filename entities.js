@@ -236,6 +236,9 @@ function update(dt) {
 
   if (gameOver || statusGame !== "main") return;
 
+  // Animasi lingkungan map (daun, angin, awan, kilau) jalan hanya saat main.
+  updateAmbience(dt);
+
   // Banner transisi level (dijeda saat bukan main).
   if (levelBanner) {
     levelBanner.t += dt;

@@ -5,7 +5,50 @@
 // karena browser melarang suara sebelum ada interaksi.
 // ============================================================
 let _actx = null;
-let _master = null;
+let _master = null;   // SUARA UMUM = volume akhir yang mencegat semua jalur
+let _sfxGain = null;  // jalur khusus EFEK (SFX)
+let _musVol = null;   // jalur khusus MUSIK (BGM)
+
+// ---------- Volume pemain (diatur lewat menu PAUSE) ----------
+// UMUM mengalikan semua suara; EFEK hanya untuk SFX; MUSIK hanya BGM.
+// Tersimpan di localStorage agar diingat antar sesi.
+let _volUmum = 0.9;
+let _volSfx = 1;
+let _volMusik = 1;
+(function _muatVolume() {
+  try {
+    const v = JSON.parse(localStorage.getItem("soul-essence-volume") || "{}");
+    if (typeof v.umum === "number") _volUmum = Math.max(0, Math.min(1, v.umum));
+    if (typeof v.sfx === "number") _volSfx = Math.max(0, Math.min(1, v.sfx));
+    if (typeof v.musik === "number") _volMusik = Math.max(0, Math.min(1, v.musik));
+  } catch (_) {}
+})();
+function _simpanVolume() {
+  try {
+    localStorage.setItem("soul-essence-volume",
+      JSON.stringify({ umum: _volUmum, sfx: _volSfx, musik: _volMusik }));
+  } catch (_) {}
+}
+function aturVolumeUmum(v) {
+  _volUmum = Math.max(0, Math.min(1, v));
+  if (_master) _master.gain.value = _volUmum;
+  // File musik yang sedang diputar ikut disetel ulang volumenya.
+  if (_musEl && _musKey) _fadeEl(_musEl, _volFileMusik(_musKey), 0.15);
+  _simpanVolume();
+}
+function aturVolumeSfx(v) {
+  _volSfx = Math.max(0, Math.min(1, v));
+  if (_sfxGain) _sfxGain.gain.value = _volSfx;
+  _simpanVolume();
+}
+function aturVolumeMusik(v) {
+  _volMusik = Math.max(0, Math.min(1, v));
+  if (_musVol) _musVol.gain.value = _volMusik;
+  // File musik yang sedang diputar ikut disetel ulang volumenya.
+  if (_musEl && _musKey) _fadeEl(_musEl, _volFileMusik(_musKey), 0.15);
+  _simpanVolume();
+}
+
 function bukaAudio() {
   if (_actx) {
     if (_actx.state === "suspended") _actx.resume();
@@ -15,13 +58,23 @@ function bukaAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     _actx = new AC();
+    // SUARA UMUM di posisi paling akhir; SFX & musik melewatinya.
     _master = _actx.createGain();
-    _master.gain.value = 0.9;
+    _master.gain.value = _volUmum;
     _master.connect(_actx.destination);
-    // Gain khusus musik latar (BGM) agar bisa diatur/fade terpisah dari SFX.
+    // Jalur SFX (efek prosedural + file) lewat gain khusus agar volume
+    // efek bisa diatur terpisah dari musik.
+    _sfxGain = _actx.createGain();
+    _sfxGain.gain.value = _volSfx;
+    _sfxGain.connect(_master);
+    // Jalur musik (BGM): _musGain untuk fade/komposisi, lalu _musVol
+    // sebagai volume musik yang diatur pemain.
     _musGain = _actx.createGain();
     _musGain.gain.value = 0;
-    _musGain.connect(_actx.destination);
+    _musVol = _actx.createGain();
+    _musVol.gain.value = _volMusik;
+    _musGain.connect(_musVol);
+    _musVol.connect(_master);
     // Musik yang sempat diset sebelum interaksi pertama (audio diblokir
     // browser) perlu diputar ulang sekarang, karena kunci masih sama maka
     // setMusik akan langsung berhenti. Paksa hidupkan ulang.
@@ -102,7 +155,7 @@ function sfxFile(kunci) {
   const a = _sfxFiles[kunci];
   if (!a) return false;
   a.currentTime = 0;
-  a.volume = _sfxVol[kunci] != null ? _sfxVol[kunci] : 1;
+  a.volume = (_sfxVol[kunci] != null ? _sfxVol[kunci] : 1) * _volSfx * _volUmum;
   _mainkanElement(a);
   return true;
 }
@@ -124,7 +177,7 @@ function sfxFileCrop(kunci, mulai, durasi, lapis) {
     tMulai = total * tMulai;
   }
   tMulai = Math.max(0, Math.min((total || 0) - 0.05, tMulai || 0));
-  const vol = _sfxVol[kunci] != null ? _sfxVol[kunci] : 1;
+  const vol = (_sfxVol[kunci] != null ? _sfxVol[kunci] : 1) * _volSfx * _volUmum;
   const n = Math.max(1, lapis || 1);
   for (let i = 0; i < n; i++) {
     const s = i === 0 ? el : new Audio(el.src);
@@ -155,7 +208,7 @@ function sfxTone({ freq, endFreq, dur, type, vol, delay, out }) {
   g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(g);
-  g.connect(out || _master);
+  g.connect(out || _sfxGain);
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
@@ -196,7 +249,7 @@ function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq, out 
   }
   src.connect(f);
   f.connect(g);
-  g.connect(out || _master);
+  g.connect(out || _sfxGain);
   src.start(t0);
   src.stop(t0 + dur + 0.02);
 }
@@ -361,6 +414,11 @@ let _musGain = null; // gain khusus musik
 const _MUS_VOL = { lobby: 0.5, game: 0.55 };
 const _MUS_GAIN = { lobby: 0.9, game: 0.95 };
 
+// Volume akhir file musik: ketetapan lagu x volume musik x volume umum.
+function _volFileMusik(kunci) {
+  return (_MUS_VOL[kunci] || 0.5) * _volMusik * _volUmum;
+}
+
 function muatLaguLokal(kunci, src) {
   return new Promise((resolve) => {
     const a = new Audio();
@@ -410,7 +468,7 @@ function _mulaiFileMusik(kunci) {
   if (!el) return false;
   _musEl = el;
   el.volume = 0;
-  _fadeEl(el, _MUS_VOL[kunci] || 0.5, 1.2);
+  _fadeEl(el, _volFileMusik(kunci), 1.2);
   const janji = el.play();
   if (janji && typeof janji.then === "function") {
     janji.catch(() => {

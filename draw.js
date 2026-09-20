@@ -208,6 +208,10 @@ function draw() {
 
   gambarLatar();
 
+  // Animasi lingkungan map (bayangan awan, daun, hembusan angin, kilau).
+  // Digambar dalam koordinat dunia, di bawah objek game.
+  gambarAmbience();
+
   // (Batas dunia = dinding batu di-bake di buatLatarCache: statis,
   // ikut bergeser bersama tanah, tidak berkedip saat kamera digeser.)
 
