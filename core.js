@@ -44,13 +44,13 @@ let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
 let flashes, hurtVig;
 let deathPixels = [];
-let score, gameOver, lastTime, spawnTimer, shake;
+let koin, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
 
 // Sistem ultimate: musuh menjatuhkan jiwa (partikel hijau) yang diserap
 // untuk mengisi SOUL METER. Penebusan dengan tombol R (lihat skills.js).
 const SOUL_MAX = 50;
-const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5 };
+const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5, jamur: 4, serigala: 3, semak: 6 };
 
 // Durasi charge tiap panah raksasa ultimate Kenzro (detik).
 const ULT_CHARGE = 0.8;
@@ -73,8 +73,13 @@ const DASH_INVULN = 0.3; // kebal sejenak setelah dash
 // Radius hitbox pemain (dunia). Dipakai untuk tabrakan DAN ukuran render sprite.
 const P_RADIUS = 14;
 
+// Proyektil & area racun musuh (hutan): hidup selama level berjalan.
+// enemyShots = bola spora/larutan ditembak jamur; hazards = duri racun semak.
+let enemyShots = [];
+let hazards = [];
+
 // ---------- Setup arena ----------
-function resetArena({ skorBaru }) {
+function resetArena({ koinBaru }) {
   player = {
     x: WORLD_W / 2,
     y: WORLD_H / 2,
@@ -125,6 +130,8 @@ function resetArena({ skorBaru }) {
   pilihanKartu = null;
   bullets = [];
   enemies = [];
+  enemyShots = [];
+  hazards = [];
   particles = [];
   rings = [];
   slashes = [];
@@ -140,8 +147,8 @@ function resetArena({ skorBaru }) {
   level = typeof levelPilihan === "number" ? waveMulaiLevel() : 0;
   levelSpawn = 0;
   tampilkanBannerLevel(level);
-  if (skorBaru) {
-    score = 0;
+  if (koinBaru) {
+    koin = 0;
   }
   gameOver = false;
   spawnTimer = 0;

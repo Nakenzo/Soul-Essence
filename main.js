@@ -68,30 +68,17 @@ function mulai() {
         return daftar;
       })
     )
-    .concat(
-      KARAKTER.flatMap((k) => {
-        return [
-          { kunci: k.kunci + "-hit-0", src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-hit-0.png" }
-        ];
-      })
-    )
     .concat([
+      // PNG statis musuh: fallback death-pixel bila frame idle-0 belum siap.
       { kunci: "musuh", src: "assets/enemies/musuh.png" },
       { kunci: "cepet", src: "assets/enemies/cepet.png" },
       { kunci: "tank", src: "assets/enemies/tank.png" }
     ])
-    // Frame animasi musuh (idle & jalan: 2 frame) di assets/animasi/<nama>/.
     .concat(
+      // Musuh digambar prosedural (slime/monster), hanya perlu idle-0 sebagai
+      // tekstur death-pixel saat musuh mati.
       ["musuh", "cepet", "tank"].flatMap((nama) => {
-        const daftar = [];
-        for (let i = 0; i < 2; i++) {
-          daftar.push({ kunci: nama + "-idle-" + i, src: "assets/animasi/" + nama + "/" + nama + "-idle-" + i + ".png" });
-        }
-        for (let i = 0; i < 2; i++) {
-          daftar.push({ kunci: nama + "-walk-" + i, src: "assets/animasi/" + nama + "/" + nama + "-walk-" + i + ".png" });
-        }
-        daftar.push({ kunci: nama + "-hit-0", src: "assets/animasi/" + nama + "/" + nama + "-hit-0.png" });
-        return daftar;
+        return [{ kunci: nama + "-idle-0", src: "assets/animasi/" + nama + "/" + nama + "-idle-0.png" }];
       })
     );
 
@@ -140,7 +127,7 @@ function mulai() {
     .then(() => {
       pasangTombol();
       buatBgPartikel();
-      resetArena({ skorBaru: true });
+      resetArena({ koinBaru: true });
       lastTime = performance.now();
       requestAnimationFrame(loop);
       tampilkanJudul();

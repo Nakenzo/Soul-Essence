@@ -116,7 +116,7 @@
             <!-- Layar Game Over -->
             <div id="layarGameOver" class="overlay hidden">
                 <h2 id="judulAkhir" class="judul-gameover">GAME OVER</h2>
-                <p id="skorAkhir" class="teks-skor">SKOR: 0</p>
+                <p id="skorAkhir" class="teks-skor">KOIN: 0</p>
                 <div class="grup-tombol">
                     <button id="tombolUlang" class="tombol-hijau">&#9654; Main Lagi</button>
                     <button id="tombolMenu" class="tombol-abu">&#8635; Ganti Karakter</button>
@@ -126,7 +126,8 @@
             <!-- Layar Menang (semua level selesai) -->
             <div id="layarMenang" class="overlay hidden">
                 <h2 class="judul-gameover" style="color:#ffd23f">KAMU MENANG!</h2>
-                <p id="skorMenang" class="teks-skor">SKOR: 0</p>
+                <p id="skorMenang" class="teks-skor">KOIN: 0</p>
+                <p id="teksLevelBaru" class="teks-skor" style="color:#a3e635"></p>
                 <div class="grup-tombol">
                     <button id="tombolUlangMenang" class="tombol-hijau">&#9654; Main Lagi</button>
                     <button id="tombolMenuMenang" class="tombol-abu">&#8592; Menu Utama</button>
@@ -138,6 +139,7 @@
     </div>
 
     <script src="core.js"></script>
+    <script src="save.js"></script>
     <script src="audio.js"></script>
     <script src="config.js"></script>
     <script src="maps.js"></script>

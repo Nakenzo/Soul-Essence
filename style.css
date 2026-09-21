@@ -750,8 +750,30 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: scale(1.05);
 }
 
+/* Level terkunci: suram, plus di-kelabui (opacity) & cursor tidak boleh. */
+.kartu-level.terkunci {
+    border-left-color: #666;
+    filter: grayscale(0.9) brightness(0.6);
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+.kartu-level.terkunci:hover {
+    transform: none;
+    background: #222;
+    border-color: #555;
+}
+
+.kartu-level.terkunci .judul-level {
+    color: #9aa7bb;
+}
+
 .kartu-level:active {
     transform: scale(0.97);
+}
+
+.kartu-level.terkunci:active {
+    transform: none;
 }
 
 .judul-level {

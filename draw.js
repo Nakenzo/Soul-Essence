@@ -8,14 +8,15 @@
 function gambarSenjata() {
   const img = tekstur[karakter.senjata];
   if (!img) return;
-  // Normalisasi: target lebar senjata = ±2× hitbox pemain, tinggi ikut rasio.
-  // Senjata PNG kecil (40x64) atau besar (256x256) tetap tampil konsisten.
+// Normalisasi: target lebar senjata = ±4× hitbox pemain, tinggi ikut rasio
+// (dibesarkan 2× dari semula agar terlihat jelas di tangan karakter).
+// Senjata PNG kecil (40x64) atau besar (256x256) tetap tampil konsisten.
   const skala = karakter.senjataSkala || karakter.skala || 1;
-  const { lebar: w, tinggi: h } = ukuranSprite(img, player.r * 3 * skala);
+  const { lebar: w, tinggi: h } = ukuranSprite(img, player.r * 6 * skala);
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
   // Jarak orbit dari pusat karakter
-  const jarak = 35;
+  const jarak = 48;
 
   ctx.save();
   ctx.translate(
@@ -319,6 +320,205 @@ function gambarSlime(e, tAnim) {
     ctx.arc(mx + ex - r * 0.03, my + ey - r * 0.04, r * 0.035, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+// ===== Monster HUTAN (level 2): desain berbeda + ability masing-masing =====
+// jamur: batang + payung berbintik (penyembur spora).
+function gambarJamur(e, tAnim) {
+  const r = e.r, x = e.x, y = e.y;
+  const warna = e.warna || "#86efac";
+  const bob = Math.sin(tAnim * 5 + x * 0.1) * r * 0.05; // badan jalan
+  const payung = r * 1.55;
+  // Bayangan.
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(x, y + r * 0.7, r * 0.95, r * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Batang (krem).
+  const bx = x, bt = y - bob;
+  ctx.fillStyle = campurWarna("#fdf6e3", 0.05);
+  ctx.beginPath();
+  ctx.ellipse(bx, bt + r * 0.05, r * 0.55, r * 0.75, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Payung: lebar, cembung, berbintik.
+  const px = bx, py = bt - r * 0.45;
+  const grd = ctx.createRadialGradient(px - r * 0.2, py - r * 0.2, r * 0.1, px, py, payung);
+  grd.addColorStop(0, campurWarna(warna, 0.35));
+  grd.addColorStop(0.6, warna);
+  grd.addColorStop(1, campurWarna(warna, -0.2));
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(px, py, payung, Math.PI, 0);
+  ctx.closePath();
+  ctx.fill();
+  // Bintik jamur.
+  ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+  for (const [ox, oy, or] of [[-0.5, 0.55, 0.16], [0.15, 0.75, 0.1], [0.5, 0.4, 0.12]]) {
+    ctx.beginPath();
+    ctx.arc(px + ox * r, py - oy * r * 0.9, or * r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Cahaya spora di bawah payung (menyala saat menembak).
+  if (e.cd < 0.3) {
+    ctx.fillStyle = "rgba(163, 230, 53, 0.55)";
+    ctx.beginPath();
+    ctx.arc(px, py - r * 0.95, r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Mata: dua, menghadap pemain.
+  const a = Math.atan2(player.y - y, player.x - x);
+  const ex = Math.cos(a) * r * 0.2, ey = Math.sin(a) * r * 0.2;
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.ellipse(bx + s * r * 0.22, bt + r * 0.05, r * 0.14, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#14532d";
+    ctx.beginPath();
+    ctx.arc(bx + s * r * 0.22 + ex, bt + r * 0.05 + ey, r * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// serigala: badan panjang + kepala (lari cepat / lunge).
+// Palet abu-abu (mirip serigala asli): aksen gelap di telinga/ekor/cakar.
+function gambarSerigala(e, tAnim) {
+  const r = e.r, x = e.x, y = e.y;
+  const warna = e.warna || "#aab3bc";
+  const a = Math.atan2(player.y - y, player.x - x);
+  const flp = Math.cos(a) >= 0 ? 1 : -1;       // menghadap pemain
+  const bersiap = e.lungeBersiap > 0;          // ancang-ancang (telegraph)
+  const lunge = e.lungeT > 0;                  // pose melompat saat lunge
+  const lari = Math.sin(tAnim * 10) * r * 0.18; // kaki berlari
+  // Ancang-ancang: badan merendah pelan, mata menyala sebagai isyarat.
+  const crouch = bersiap ? Math.min(1, e.lungeBersiap * 3) * 0.35 : 0;
+  // Bayangan.
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(x, y + r * 0.7 - crouch * r * 0.2, r * 1.1, r * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(flp, 1);
+  ctx.translate(0, crouch * r * 0.3);
+  // Kaki (4, bawah).
+  ctx.fillStyle = campurWarna(warna, -0.25);
+  for (let k = 0; k < 4; k++) {
+    const fx = -r * 0.55 + k * r * 0.38;
+    const lift = (k % 2 === 0) ? lari : -lari;
+    const fy = r * 0.15 - (lunge ? r * 0.28 : Math.max(0, lift));
+    ctx.fillRect(fx - r * 0.07, fy - r * 0.42, r * 0.14, r * 0.42);
+  }
+  // Ekor.
+  ctx.strokeStyle = campurWarna(warna, -0.15);
+  ctx.lineWidth = r * 0.22;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.85, -r * 0.1);
+  ctx.quadraticCurveTo(-r * 1.15, -r * 0.35, -r * 1.0, -r * 0.7);
+  ctx.stroke();
+  const ang = a * flp;
+  ctx.rotate(ang * 0.35); // badan sedikit mengarah ke pemain
+  // Badan lonjong.
+  const grd = ctx.createLinearGradient(0, -r * 0.5, 0, r * 0.2);
+  grd.addColorStop(0, campurWarna(warna, 0.25));
+  grd.addColorStop(1, campurWarna(warna, -0.15));
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.ellipse(0, -r * 0.12, r * 0.85, r * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Kepala (moncong).
+  ctx.fillStyle = campurWarna(warna, 0.05);
+  ctx.beginPath();
+  ctx.ellipse(r * 0.72, -r * 0.18, r * 0.42, r * 0.34, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Telinga.
+  ctx.fillStyle = campurWarna(warna, -0.05);
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(r * 0.5 + s * r * 0.14, -r * 0.45);
+    ctx.lineTo(r * 0.5 + s * r * 0.32, -r * 0.75);
+    ctx.lineTo(r * 0.5 + s * r * 0.04, -r * 0.42);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Mata (satu menghadap flp); iris gelap syok, menyala merah saat ancang.
+  const irit = bersiap ? "#ff3d3d" : "#3d4248";
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(r * 0.92, -r * 0.3, r * 0.11, 0, Math.PI * 2);
+  ctx.fill();
+  if (bersiap) {
+    ctx.fillStyle = "rgba(255, 80, 30, 0.35)";
+    ctx.beginPath();
+    ctx.arc(r * 0.95, -r * 0.3, r * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = irit;
+  ctx.beginPath();
+  ctx.arc(r * 0.95, -r * 0.3, r * 0.055, 0, Math.PI * 2);
+  ctx.fill();
+  // Hidung.
+  ctx.fillStyle = "#2a2e33";
+  ctx.beginPath();
+  ctx.arc(r * 1.06, -r * 0.12, r * 0.07, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// semak: rumpun berduri tebal (menanam duri racun).
+function gambarSemak(e, tAnim) {
+  const r = e.r, x = e.x, y = e.y;
+  const warna = e.warna || "#3ea05f";
+  const goyang = Math.sin(tAnim * 4 + x * 0.07) * r * 0.05;
+  // Bayangan.
+  ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+  ctx.beginPath();
+  ctx.ellipse(x, y + r * 0.65, r * 1.1, r * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Rumpun: 3 gundukan daun.
+  for (const [ox, oy, sr] of [[-r * 0.55, r * 0.05, r * 0.6], [r * 0.5, r * 0.05, r * 0.58], [0, -r * 0.25, r * 0.7]]) {
+    const grd = ctx.createRadialGradient(x + ox - sr * 0.3, y + oy - sr * 0.3, sr * 0.1, x + ox, y + oy, sr);
+    grd.addColorStop(0, campurWarna(warna, 0.35));
+    grd.addColorStop(1, campurWarna(warna, -0.25));
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(x + ox, y + oy - Math.abs(goyang) * 0.4, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Duri di tepi rumpun.
+  ctx.strokeStyle = campurWarna(warna, -0.4);
+  ctx.lineWidth = 2;
+  for (let k = 0; k < 8; k++) {
+    const dg = (k / 8) * Math.PI * 2 + goyang * 0.3 + Math.PI;
+    const dx = x + Math.cos(dg) * r * 0.85;
+    const dy = y + Math.sin(dg) * r * 0.55 + r * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(dx, dy);
+    ctx.lineTo(dx + Math.cos(dg) * r * 0.28, dy + Math.sin(dg) * r * 0.28);
+    ctx.stroke();
+  }
+  // Mata kuning menyala menghadap pemain.
+  const a = Math.atan2(player.y - y, player.x - x);
+  const ex = Math.cos(a) * r * 0.28, ey = Math.sin(a) * r * 0.28;
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = "#fef08a";
+    ctx.beginPath();
+    ctx.arc(x + s * r * 0.3, y - r * 0.15, r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#422006";
+    ctx.beginPath();
+    ctx.arc(x + s * r * 0.3 + ex, y - r * 0.15 + ey, r * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// Dispatcher render musuh: tipe hutan punya desain sendiri, sisanya slime.
+function gambarMusuh(e, tAnim) {
+  if (e.tipe === "jamur") return gambarJamur(e, tAnim);
+  if (e.tipe === "serigala") return gambarSerigala(e, tAnim);
+  if (e.tipe === "semak") return gambarSemak(e, tAnim);
+  return gambarSlime(e, tAnim);
 }
 
 function draw() {
@@ -638,9 +838,10 @@ function draw() {
   ctx.globalAlpha = 1;
 
   for (const e of enemies) {
-    // Slime digambar prosedural dengan warna tipe (jiggle + lihat pemain).
+    // Monster digambar prosedural: slime (level 1) atau monster hutan
+    // (level 2 — jamur/serigala/semak punya desain & ability sendiri).
     // Hitbox tetap e.r, ukuran render mengikuti r agar konsisten.
-    gambarSlime(e, performance.now() / 1000);
+    gambarMusuh(e, performance.now() / 1000);
     const sw = e.r * 2.1, sh = e.r * 1.7;
     // Flash overlay saat kena damage
     if (e.hitFlash > 0) {
@@ -677,6 +878,52 @@ function draw() {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+  }
+
+  // Area duri racun semak: lingkaran ilalang gelap merata yang menganga.
+  for (const hz of hazards) {
+    const p = 1 - hz.t / hz.life; // 1 baru lahir → 0 mau habis
+    ctx.globalAlpha = 0.35 + p * 0.45;
+    ctx.fillStyle = "#365e43";
+    ctx.beginPath();
+    ctx.arc(hz.x, hz.y, hz.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.3 + p * 0.4;
+    ctx.strokeStyle = "#4ade80";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(hz.x, hz.y, hz.r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Duri kecil di tepi area.
+    for (let k = 0; k < 10; k++) {
+      const dg = (k / 10) * Math.PI * 2 + hz.t;
+      const dx = hz.x + Math.cos(dg) * hz.r;
+      const dy = hz.y + Math.sin(dg) * hz.r;
+      ctx.strokeStyle = "#86efac";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(dx, dy);
+      ctx.lineTo(dx + Math.cos(dg) * 8, dy + Math.sin(dg) * 8);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Proyektil musuh (bola spora jamur): lingkaran kehijauan berdenyut.
+  for (const s of enemyShots) {
+    const pulsa = 1 + Math.sin(s.life * 20) * 0.2;
+    const grd = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, s.r * pulsa);
+    grd.addColorStop(0, "#ecfccb");
+    grd.addColorStop(0.6, "#a3e635");
+    grd.addColorStop(1, "#65a30d");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * pulsa, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath();
+    ctx.arc(s.x - s.r * 0.25, s.y - s.r * 0.25, s.r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // Efek TEbasan sabit Vender: garis api merayap di sepanjang TEPI ATAS
@@ -1152,11 +1399,13 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Jiwa hijau terang: berdenyut kecil (kosmetik, bisa diserap pemain).
+  // Jiwa: berdenyut kecil dan berkelap-kelip hijau ⇄ kuning (cosmetis,
+  // agar jelas beda dari proyektil musuh / efek hijau lain di lapangan).
   for (const s of souls) {
     const pulse = 0.6 + 0.4 * Math.sin(s.t * 6);
+    const kedipWarna = Math.sin(s.t * 5) > 0 ? "#7cff5e" : "#ffd23f";
     ctx.globalAlpha = 0.35 * pulse;
-    ctx.fillStyle = "#7cff5e";
+    ctx.fillStyle = kedipWarna;
     ctx.fillRect(s.x - 8, s.y - 8, 16, 16);
     ctx.globalAlpha = pulse;
     ctx.fillRect(s.x - 4, s.y - 4, 8, 8);
@@ -2304,7 +2553,7 @@ function drawHUD() {
   const infoW = Math.round(380 * s);
   const infoPad = Math.round(16 * s);
   const infoLineH = Math.round(32 * s);
-  const infoBaris = 3;
+  const infoBaris = 4;
   const infoH = Math.round(infoPad * 2 + infoLineH * infoBaris + fs(8));
   const infoX = W - infoW - m, infoY = m;
 
@@ -2325,6 +2574,8 @@ function drawHUD() {
   ctx.fillText("WAVES " + (level - waveMulaiLevel() + 1) + "/" + totalWaveLevel(), infoX + infoPad, infoY + infoPad + infoLineH);
   ctx.fillStyle = "#fff";
   ctx.fillText("MUSUH " + sisa, infoX + infoPad, infoY + infoPad + infoLineH * 2);
+  ctx.fillStyle = "#ffd23f";
+  ctx.fillText("KOIN " + koin, infoX + infoPad, infoY + infoPad + infoLineH * 3);
   ctx.textAlign = "left";
 
   // ---------- SKILL BAR (bawah HP bar) ----------

@@ -9,10 +9,19 @@
 const TIPE_MUSUH = {
   biasa: { kunci: "musuh", r: 24, skala: 1, hpKali: 1, kecepatanKali: 1, warna: "#ff4d4d" },
   cepet: { kunci: "cepet", r: 18, skala: 0.75, hpKali: 0.6, kecepatanKali: 1.45, warna: "#4dc3ff" },
-  tank: { kunci: "tank", r: 32, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" }
+  tank: { kunci: "tank", r: 32, skala: 1.33, hpKali: 2.2, kecepatanKali: 0.6, warna: "#b26bff" },
+  // ===== Monster HUTAN (level 2) =====
+  // jamur: penyembur spora — menembak bola racun dari jarak (ability "spora").
+  jamur: { kunci: "jamur", r: 22, skala: 1, hpKali: 1.3, kecepatanKali: 0.5, warna: "#86efac" },
+  // serigala: cepat & melompat (ability "lunge") — sprint pendek ke pemain.
+  serigala: { kunci: "serigala", r: 28, skala: 1.35, hpKali: 1.2, kecepatanKali: 1.55, warna: "#aab3bc" },
+  // semak: lambat & tebal + menanam area duri beracun (ability "duri").
+  semak: { kunci: "semak", r: 34, skala: 1.45, hpKali: 2.4, kecepatanKali: 0.5, warna: "#3ea05f" }
 };
 
 // campur: bobot tiap tipe musuh di level itu (tinggi bobot = makin sering).
+// LEVELS 0..9 = Level 1 (Padang Terbuka) — 10 wave.
+// LEVELS 10..19 = Level 2 (Hutan) — 10 wave, jejamur/serigala/semak muncul.
 const LEVELS = [
   { jumlah: 6, hp: 25, kecepatan: [80, 160], campur: { biasa: 1 }, jedaSpawn: 1.4 },
   { jumlah: 8, hp: 30, kecepatan: [90, 170], campur: { biasa: 0.8, cepet: 0.2 }, jedaSpawn: 1.3 },
@@ -23,7 +32,21 @@ const LEVELS = [
   { jumlah: 18, hp: 75, kecepatan: [140, 230], campur: { biasa: 0.5, cepet: 0.3, tank: 0.2 }, jedaSpawn: 0.85 },
   { jumlah: 20, hp: 85, kecepatan: [150, 240], campur: { biasa: 0.45, cepet: 0.3, tank: 0.25 }, jedaSpawn: 0.8 },
   { jumlah: 22, hp: 95, kecepatan: [160, 260], campur: { biasa: 0.4, cepet: 0.32, tank: 0.28 }, jedaSpawn: 0.75 },
-  { jumlah: 26, hp: 110, kecepatan: [180, 280], campur: { biasa: 0.35, cepet: 0.35, tank: 0.3 }, jedaSpawn: 0.7 }
+  { jumlah: 26, hp: 110, kecepatan: [180, 280], campur: { biasa: 0.35, cepet: 0.35, tank: 0.3 }, jedaSpawn: 0.7 },
+  // ---- LEVEL 2: HUTAN ----
+// Jumlah musuh mengikuti pola level 1 (6→26), hanya sedikit lebih padat di
+// akhir. Kesulitannya dinaikkan lewat jenis monster + hp, bukan jumlah.
+  { jumlah: 6, hp: 80, kecepatan: [120, 200], campur: { biasa: 0.7, cepet: 0.2, tank: 0.05, jamur: 0.05 }, jedaSpawn: 1.3 },
+  { jumlah: 8, hp: 95, kecepatan: [130, 210], campur: { biasa: 0.6, cepet: 0.2, tank: 0.08, jamur: 0.12 }, jedaSpawn: 1.2 },
+  { jumlah: 10, hp: 110, kecepatan: [140, 220], campur: { biasa: 0.55, cepet: 0.22, tank: 0.08, jamur: 0.1, serigala: 0.05 }, jedaSpawn: 1.1 },
+  { jumlah: 12, hp: 125, kecepatan: [145, 225], campur: { biasa: 0.5, cepet: 0.24, tank: 0.1, jamur: 0.1, serigala: 0.06 }, jedaSpawn: 1.0 },
+  // Wave 5+. Slime lama (biasa/cepet/tank) HILANG — hanya monster hutan.
+  { jumlah: 14, hp: 150, kecepatan: [145, 235], campur: { jamur: 0.46, serigala: 0.4, semak: 0.14 }, jedaSpawn: 0.95 },
+  { jumlah: 16, hp: 170, kecepatan: [150, 245], campur: { jamur: 0.44, serigala: 0.42, semak: 0.14 }, jedaSpawn: 0.9 },
+  { jumlah: 18, hp: 190, kecepatan: [155, 250], campur: { jamur: 0.42, serigala: 0.44, semak: 0.14 }, jedaSpawn: 0.85 },
+  { jumlah: 20, hp: 210, kecepatan: [160, 260], campur: { jamur: 0.4, serigala: 0.45, semak: 0.15 }, jedaSpawn: 0.8 },
+  { jumlah: 22, hp: 230, kecepatan: [165, 270], campur: { jamur: 0.39, serigala: 0.46, semak: 0.15 }, jedaSpawn: 0.75 },
+  { jumlah: 24, hp: 250, kecepatan: [170, 290], campur: { jamur: 0.37, serigala: 0.47, semak: 0.16 }, jedaSpawn: 0.7 }
 ];
 
 // Pilih tipe musuh dengan pemberatan campur level.
@@ -52,6 +75,15 @@ const DAFTAR_LEVEL = [
     mulaiWave: 0,     // index LEVELS permulaan (0 = wave pertama)
     selesaiWave: 10,  // jumlah wave di level ini (10 = semua LEVELS)
     warna: "#4ade80"
+  },
+  {
+    kunci: "lvl2",
+    nama: "Level 2",
+    judul: "Hutan Ajaib",
+    deskripsi: "Monster hutan mulai muncul.",
+    mulaiWave: 10,    // level 2 = wave ke-11 (index 10)
+    selesaiWave: 20,  // sampai wave ke-20
+    warna: "#a3e635"
   }
 ];
 
@@ -80,12 +112,12 @@ function tampilkanBannerLevel(lv) {
 
 // Semua musuh level ini habis -> wave berikutnya (atau menang).
 function levelSelesai() {
-  score += 50 + level * 10;
+  koin += 50 + level * 10;
   player.hp = Math.min(player.maxHp, player.hp + 30);
   spawnParticles(player.x, player.y, "#ffd23f", 24);
 
   if (level + 1 >= waveSelesaiLevel()) {
-    score += 100;
+    koin += 100;
     sfxMenang();
     tampilkanMenang();
     return;

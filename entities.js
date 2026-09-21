@@ -204,14 +204,34 @@ function spawnEnemy() {
     skala: t.skala,
     warna: t.warna,
     hitFlash: 0,
-    freeze: 0
+    freeze: 0,
+    // Ability monster hutan: interval tembak/lompat acak biar tidak serempak.
+    cd: 1.5 + Math.random() * 1.5,   // spora & duri (jamur/semak)
+    lungeBersiap: 0,                 // ancang-ancang serigala (telegraph)
+    lungeT: 0,                       // sprint serigala (0 = tidak melompat)
+    lungeCd: 0.5 + Math.random() * 1.5,
+    mundurT: 0                       // parry: terdorong mundur sesaat
   });
+}
+
+// PARRY serigala: saat serigala sedang menerkam/ancang-ancang lalu terkena
+// basic attack / skill, lompatannya langsung terhenti (tertangkis).
+function parrySerigala(e) {
+  if (e.tipe !== "serigala") return;
+  if (e.lungeT > 0 || e.lungeBersiap > 0) {
+    e.lungeT = 0;
+    e.lungeBersiap = 0;
+    e.lungeCd = 1.2 + Math.random() * 0.6; // sedikit jeda sebelum bisa menerkam lagi
+    e.mundurT = 0.3;                       // terdorong mundur sesaat (terselat)
+    spawnDamage(e.x, e.y - e.r - 56, "PARRY", "#fbbf24");
+    spawnParticles(e.x, e.y, "#fbbf24", 8);
+  }
 }
 
 function killEnemy(e) {
   const i = enemies.indexOf(e);
   if (i === -1) return;
-  score += 10;
+  koin += 10;
   sfxMatMusuh();
   // Efek pixel disintegration: spawn potongan sprite beterbangan
   const imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
@@ -427,6 +447,7 @@ function update(dt) {
             e2.hp -= dmg;
             e2.hitFlash = 0.1;
             e2.freeze = 7;
+            parrySerigala(e2);
             sfxBeku();
             spawnParticles(e2.x, e2.y, "#7dd3fc", 10);
             spawnDamage(e2.x, e2.y - e2.r - 56, "BEKU 7D", "#7dd3fc");
@@ -444,6 +465,7 @@ function update(dt) {
         }
         e.hp -= dmg;
         e.hitFlash = 0.1;
+        parrySerigala(e);
         sfxKena();
         if (b.beku) {
           e.freeze = player.bekuDurasi || karakter.bekuDurasi;
@@ -512,6 +534,7 @@ function update(dt) {
         e.hp -= dmg;
         e.hitFlash = 0.1;
         spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
+        parrySerigala(e);
         // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
         if (sl.skill && e.hp > 0) {
           e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
@@ -605,6 +628,7 @@ function update(dt) {
         e.hp -= e.burn.dmg;
         e.hitFlash = 0.1;
         spawnDamage(e.x, e.y - e.r - 16, e.burn.dmg, "#ff8c3f");
+        parrySerigala(e);
       }
       e.burn.durasi -= dt;
       if (e.burn.durasi <= 0) e.burn = null;
@@ -616,8 +640,75 @@ function update(dt) {
 
     if (e.freeze <= 0) {
       const angle = Math.atan2(player.y - e.y, player.x - e.x);
-      const mvx = Math.cos(angle) * e.speed * dt;
-      const mvy = Math.sin(angle) * e.speed * dt;
+      let spd = e.speed;
+      // SERIGALA (hutan): ancang-ancang dulu (telegraph), baru menerkam pelan.
+      if (e.tipe === "serigala") {
+        if (e.mundurT > 0) {
+          // Tertangkis (parry): terdorong menjauh dari pemain sejenak.
+          e.mundurT -= dt;
+          spd *= -1.4;
+        } else if (e.lungeBersiap > 0) {
+          // Pose ancang: jalan pelan / menekuk sebelum lompat (biar tidak tiba-tiba).
+          e.lungeBersiap -= dt;
+          spd *= 0.3;
+        } else if (e.lungeT > 0) {
+          // Menerkam: lebih pelan & panjang jalurnya supaya mudah dihindari.
+          e.lungeT -= dt;
+          spd *= 2.4;
+        } else {
+          e.lungeCd -= dt;
+          if (e.lungeCd <= 0) {
+            const jd = dist(e.x, e.y, player.x, player.y);
+            if (jd < 380) {
+              e.lungeBersiap = 0.5;  // ancang-ancang sebelum lompat
+              e.lungeT = 0.5;
+              e.lungeCd = 3.8 + Math.random() * 0.9;
+            } else {
+              e.lungeCd = 0.4;
+            }
+          }
+        }
+      }
+      const mvx = Math.cos(angle) * spd * dt;
+      const mvy = Math.sin(angle) * spd * dt;
+      // JAMUR (hutan): penyembur spora — jaga jarak aman, tembak dari jauh.
+      if (e.tipe === "jamur") {
+        const jd = dist(e.x, e.y, player.x, player.y);
+        // Mundur pelan bila pemain terlalu dekat.
+        if (jd < 170) {
+          e.x -= Math.cos(angle) * e.speed * 0.8 * dt;
+          e.y -= Math.sin(angle) * e.speed * 0.8 * dt;
+        }
+        e.cd -= dt;
+        if (e.cd <= 0 && jd < 520) {
+          e.cd = 2.4 + Math.random() * 1.2;
+          // Bola spora lambat yang bisa dihindari pemain.
+          const sp = 150 + Math.random() * 60;
+          enemyShots.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(angle) * sp,
+            vy: Math.sin(angle) * sp,
+            life: 3, r: 9, dmg: 10
+          });
+          spawnParticles(e.x, e.y, "#a3e635", 6);
+        }
+      }
+      // SEMAK (hutan): menanam area duri beracun di sekitar pemain.
+      // Cooldown 6-8 detik agar tidak terlalu sering mengeluarkan duri.
+      if (e.tipe === "semak") {
+        e.cd -= dt;
+        if (e.cd <= 0) {
+          e.cd = 6 + Math.random() * 2;
+          if (hazards.length < 12) {
+            const hsx = player.x + (Math.random() - 0.5) * 200;
+            const hsy = player.y + (Math.random() - 0.5) * 200;
+            hazards.push({
+              x: hsx, y: hsy, r: 64, life: 4.5, t: 0
+            });
+            spawnParticles(hsx, hsy, "#4ade80", 10);
+          }
+        }
+      }
       // JAM TANGAN ANTI-SANGKUT: kalau musuh tidak bisa maju ke dua-duanya
       // (terperangkap di kantong cekung dinding = bentuk U / pojok dalam),
       // timpa posisi dengan titik aman di cincin sekitar pemain. Jadi musuh
@@ -662,6 +753,78 @@ function update(dt) {
   // Level tuntas: kuota level sudah di-spawn dan tak ada musuh yang hidup.
   if (levelSpawn >= LEVELS[level].jumlah && enemies.length === 0) {
     levelSelesai();
+  }
+
+  // Proyektil musuh (bola spora jamur): bergerak, menyerang pemain saat kena.
+  for (let i = enemyShots.length - 1; i >= 0; i--) {
+    const s = enemyShots[i];
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.life -= dt;
+    if (s.life <= 0 || s.x < -20 || s.x > WORLD_W + 20 || s.y < -20 || s.y > WORLD_H + 20) {
+      enemyShots.splice(i, 1);
+      continue;
+    }
+    if (!player.invuln && dist(s.x, s.y, player.x, player.y) < s.r + player.r) {
+      const dmgMasuk = Math.round(s.dmg * (1 - (player.armor || 0)));
+      player.hp -= dmgMasuk;
+      player.hitFlash = 0.15;
+      spawnDamage(player.x, player.y - 52, dmgMasuk, "#a3e635");
+      sfxPemainKena();
+      hurtVig = 0.7;
+      enemyShots.splice(i, 1);
+      spawnParticles(player.x, player.y, "#a3e635", 10);
+      if (player.hp <= 0) {
+        player.hp = 0;
+        gameOver = true;
+        spawnParticles(player.x, player.y, "#3aa0ff", 30);
+        shake = 0.6;
+        sfxGameOver();
+        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
+        tampilkanGameOver();
+      }
+    }
+  }
+
+  // Area duri racun (semak): SAMA seperti efek burn — damage bertahap (1 per
+  // 0.25 detik) HANYA selama pemain masih berdiri di dalam area duri.
+  // Keluar area = efek berhenti (tidak menerus meracuni).
+  let berdiriDuri = false;
+  for (let i = hazards.length - 1; i >= 0; i--) {
+    const hz = hazards[i];
+    hz.t += dt;
+    if (hz.t >= hz.life) {
+      hazards.splice(i, 1);
+      continue;
+    }
+    for (const e of enemies) if (e.tipe === "semak" && Math.random() < 0.15) {
+      spawnParticles(hz.x + (Math.random() - 0.5) * hz.r * 1.6, hz.y + (Math.random() - 0.5) * hz.r * 1.6, "#4ade80", 1);
+    }
+    if (hz.t < hz.life && !player.invuln && dist(hz.x, hz.y, player.x, player.y) < hz.r + player.r) {
+      berdiriDuri = true;
+    }
+  }
+  if (berdiriDuri) {
+    player.racunTick = (player.racunTick || 0) + dt;
+    if (player.racunTick >= 0.25) {
+      player.racunTick -= 0.25;
+      player.hp -= 1;
+      player.hitFlash = 0.12;
+      spawnDamage(player.x, player.y - 52, 1, "#4ade80");
+      sfxPemainKena();
+      hurtVig = 0.25;
+      if (player.hp <= 0) {
+        player.hp = 0;
+        gameOver = true;
+        spawnParticles(player.x, player.y, "#3aa0ff", 30);
+        shake = 0.6;
+        sfxGameOver();
+        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
+        tampilkanGameOver();
+      }
+    }
+  } else {
+    player.racunTick = 0;
   }
 
   for (let i = particles.length - 1; i >= 0; i--) {

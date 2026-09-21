@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // MENU - alur layar: Judul -> Pilih Karakter -> Game -> Game Over.
 // Karakter terpilih dipakai sampai permainan berakhir (game over).
 // ============================================================
@@ -10,8 +10,8 @@ const layarMenang = document.getElementById("layarMenang");
 const layarPause = document.getElementById("layarPause");
 const tombolPause = document.getElementById("tombolPause");
 const daftarKarakter = document.getElementById("daftarKarakter");
-const skorAkhirEl = document.getElementById("skorAkhir");
-const skorMenangEl = document.getElementById("skorMenang");
+const koinAkhirEl = document.getElementById("skorAkhir");
+const koinMenangEl = document.getElementById("skorMenang");
 const judulAkhirEl = document.getElementById("judulAkhir");
 
 // ---------- Layar awal: pilih perangkat ----------
@@ -21,7 +21,7 @@ const layarDevice = document.getElementById("layarDevice");
 const layarPutar = document.getElementById("layarPutar");
 
 // Mode HP: minta fullscreen + kunci orientasi LANDSCAPE (di browser yang
-// mendukung). Gagal bukan masalah — layar "putar perangkat" yang jalan.
+// mendukung). Gagal bukan masalah � layar "putar perangkat" yang jalan.
 function kunciLandscapeMobile() {
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen()
@@ -50,7 +50,7 @@ function pilihDevice(dev) {
   document.body.dataset.device = dev;
   try { localStorage.setItem("soul-essence-device", dev); } catch (err) {}
   bukaAudio();
-  // Bg latar dibake sesuai skala perangkat → bangun ulang bila skala berubah.
+  // Bg latar dibake sesuai skala perangkat ? bangun ulang bila skala berubah.
   if (typeof latarSkala === "function" && latarSkala() !== latarSkalaTerpakai) latarCache = null;
   layarDevice.classList.add("hidden");
   if (dev === "mobile") {
@@ -62,10 +62,10 @@ layarDevice.querySelectorAll("[data-device]").forEach((b) =>
   b.addEventListener("click", () => pilihDevice(b.dataset.device)));
 
 // Nota KARTUMU tampil saat permainan berjalan (main), pemilihan kartu
-// upgrade, jeda, dan game over/menang — APA PUN di dalam permainan. Cuma
+// upgrade, jeda, dan game over/menang � APA PUN di dalam permainan. Cuma
 // layar pra-game (judul & pilih karakter) yang menyembunyikannya. Tujuannya:
 // sidebar dipesan di susunan flex SEPANJANG sesi bermain, jadi kanvas tidak
-// pernah bergeser saat pindah layar (mis. main → pilih kartu).
+// pernah bergeser saat pindah layar (mis. main ? pilih kartu).
 let _statusNotaTerakhir = null;
 function aturNotaKartu() {
   if (_statusNotaTerakhir === statusGame) return;
@@ -100,8 +100,8 @@ function tampilkanJudul() {
   sembunyiSemua();
   statusGame = "title";
   karakter = null;
-  score = 0;
-  resetArena({ skorBaru: true });
+  koin = 0;
+  resetArena({ koinBaru: true });
   layarJudul.classList.remove("hidden");
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
@@ -134,7 +134,8 @@ function tampilkanGameOver() {
   sembunyiSemua();
   statusGame = "over";
   judulAkhirEl.textContent = "GAME OVER";
-  skorAkhirEl.textContent = "SKOR: " + score;
+  koinAkhirEl.textContent = "KOIN: " + koin;
+  if (typeof catatKoinTertinggi === "function") catatKoinTertinggi(koin);
   layarGameOver.classList.remove("hidden");
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
@@ -144,7 +145,18 @@ function tampilkanGameOver() {
 function tampilkanMenang() {
   sembunyiSemua();
   statusGame = "over";
-  skorMenangEl.textContent = "SKOR: " + score;
+  koinMenangEl.textContent = "KOIN: " + koin;
+  // Progres: level ini ditamatkan (membuka level berikutnya) + simpan koin.
+  if (typeof tandaiLevelSelesai === "function") tandaiLevelSelesai(levelPilihan, koin);
+  const teksBaru = document.getElementById("teksLevelBaru");
+  if (teksBaru) {
+    const nextIdx = levelPilihan + 1;
+    const adaLevelBaru = DAFTAR_LEVEL[nextIdx]
+      && (typeof apakahLevelTerbuka !== "function" || apakahLevelTerbuka(nextIdx));
+    teksBaru.textContent = adaLevelBaru
+      ? ("LEVEL BARU TERBUKA: " + (DAFTAR_LEVEL[nextIdx].nama || ("Level " + (nextIdx + 1))))
+      : "";
+  }
   layarMenang.classList.remove("hidden");
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
@@ -183,7 +195,7 @@ function lanjutDariPause() {
 // ---------- Mulai bermain (dari layar pilih) ----------
 function mulaiGameBaru() {
   sfxResume();
-  resetArena({ skorBaru: true });
+  resetArena({ koinBaru: true });
   statusGame = "main";
   sinkronSfxTerjeda();
   sembunyiSemua();
@@ -194,7 +206,7 @@ function mulaiGameBaru() {
 
 // ---------- Game over: ulang dengan karakter SAMA ----------
 function ulangDenganKarakter() {
-  resetArena({ skorBaru: true });
+  resetArena({ koinBaru: true });
   statusGame = "main";
   sinkronSfxTerjeda();
   sembunyiSemua();
@@ -256,7 +268,7 @@ function buatPilihanKarakter() {
       const s = 56 / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
-      // Perkecil â†’ smoothing agar kartu tidak tampak pecah.
+      // Perkecil → smoothing agar kartu tidak tampak pecah.
       c.imageSmoothingEnabled = s < 1;
       c.drawImage(img, (56 - w) / 2, (56 - h) / 2, w, h);
     } else {
@@ -297,18 +309,31 @@ function buatPilihanLevel() {
     card.className = "kartu-level";
     card.style.setProperty("--warna-level", lvl.warna || "#4ade80");
 
+    // Level yang belum dibuka tampil terkunci dan tak bisa diklik.
+    const terbuka = typeof apakahLevelTerbuka === "function"
+      ? apakahLevelTerbuka(idx)
+      : idx === 0;
+    if (!terbuka) card.classList.add("terkunci");
+
     const nama = document.createElement("div");
     nama.className = "judul-level";
-    nama.textContent = lvl.nama || ("Level " + (idx + 1));
+    nama.textContent = terbuka
+      ? (lvl.nama || ("Level " + (idx + 1)))
+      : "???";
+    if (!terbuka) nama.textContent += " ??";
 
     const tempat = document.createElement("div");
     tempat.className = "nama-level";
-    tempat.textContent = lvl.judul || "";
+    tempat.textContent = terbuka ? (lvl.judul || "") : "Tamatkan level sebelumnya";
 
     card.appendChild(nama);
     card.appendChild(tempat);
 
     card.addEventListener("click", () => {
+      if (!terbuka) {
+        if (typeof sfxKlik === "function") sfxKlik();
+        return;
+      }
       levelPilihan = idx;
       tampilkanPilih();
     });
