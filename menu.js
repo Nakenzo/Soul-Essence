@@ -262,6 +262,45 @@ function buatPilihanKarakter() {
       mulaiGameBaru();
     });
 
+    // Hover: tampilkan info status karakter di bawah kartu; sembunyikan lagi
+    // saat pointer keluar dari kartu.
+    card.addEventListener("pointerenter", () => tampilInfoKarakter(kar));
+    card.addEventListener("pointerleave", sembunyiInfoKarakter);
+
     daftarKarakter.appendChild(card);
   });
+  // Kalau pointer keluar dari seluruh grid kartu, info ikut disembunyikan.
+  daftarKarakter.addEventListener("pointerleave", sembunyiInfoKarakter);
+}
+
+// Info status karakter pada layar pilih: tampil saat kartu di-hover.
+function tampilInfoKarakter(kar) {
+  const info = document.getElementById("infoKarakter");
+  if (!info) return;
+  const tipe = kar.tipe === "jarak" ? "JARAK JAUH" : "JARAK DEKAT";
+  info.innerHTML = "";
+  const parts = [
+    { lbl: "HP", nilai: kar.hp },
+    { lbl: "TIPE", nilai: tipe },
+    { lbl: "ELEMEN", nilai: kar.element || "-" }
+  ];
+  // Setiap stat ditulis berjejer KEBawah (satu baris per stat).
+  parts.forEach((p) => {
+    const baris = document.createElement("div");
+    baris.className = "info-baris";
+    const lbl = document.createElement("span");
+    lbl.className = "info-lbl";
+    lbl.textContent = p.lbl + ": ";
+    const val = document.createElement("span");
+    val.textContent = p.nilai;
+    baris.appendChild(lbl);
+    baris.appendChild(val);
+    info.appendChild(baris);
+  });
+  info.classList.remove("hidden");
+}
+
+function sembunyiInfoKarakter() {
+  const info = document.getElementById("infoKarakter");
+  if (info) info.classList.add("hidden");
 }

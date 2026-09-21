@@ -95,6 +95,7 @@ function resetArena({ skorBaru }) {
     dashAngle: 0,
     invuln: 0,
     hitFlash: 0,
+    attackAnimT: 0,
     dir: -1
   };
   // Kartu upgrade (banyak gelombang): semua bonus di-reset tiap game baru.

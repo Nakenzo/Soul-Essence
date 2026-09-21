@@ -18,6 +18,8 @@ function attack() {
     return;
   }
   shoot();
+  // Aktifkan animasi serangan dasar (4 frame).
+  player.attackAnimT = 0.25;
 }
 
 // Dash/menghindar: klik kanan, lari cepat + kebal sejenak.
@@ -109,6 +111,8 @@ function shoot() {
 function slashSwing() {
   if (player.attackCd > 0) return;
   player.attackCd = player.attackRate;
+  // Aktifkan animasi serangan dasar (4 frame).
+  player.attackAnimT = 0.25;
   sfxSabet();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.swing = player.swingDuration || karakter.swingDuration || 0.2;
@@ -136,13 +140,19 @@ function slashSwing() {
 // tepi/pojok dunia (border 2px PNG = 32 unit + r + jarak aman). Dipakai saat
 // lahir (spawnEnemy) DAN saat musuh nyangkut dipindah (jam tangan anti-sangkut).
 function titikSpawnAman(r) {
-  for (let upaya = 0; upaya < 40; upaya++) {
-    const a = Math.random() * Math.PI * 2;
-    const jarak = 700 + Math.random() * 320;
-    let x = player.x + Math.cos(a) * jarak;
-    let y = player.y + Math.sin(a) * jarak;
-    x = Math.max(108, Math.min(WORLD_W - 108, x));
-    y = Math.max(108, Math.min(WORLD_H - 108, y));
+  // Musuh lahir di KELILING dunia: di luar barrier tepi (TEPI_BLOK_X/Y dari
+  // maps.js). Sisi dipilih acak, posisi acak sepanjang sisi itu.
+  const kiri = BARRIER_KIRI + 60;
+  const kanan = WORLD_W - BARRIER_KANAN - 60;
+  const atas = BARRIER_ATAS + 60;
+  const bawah = WORLD_H - BARRIER_BAWAH - 60;
+  for (let upaya = 0; upaya < 60; upaya++) {
+    const sisi = Math.floor(Math.random() * 4);
+    let x, y;
+    if (sisi === 0) { x = kiri; y = atas + Math.random() * (bawah - atas); }
+    else if (sisi === 1) { x = kanan; y = atas + Math.random() * (bawah - atas); }
+    else if (sisi === 2) { x = kiri + Math.random() * (kanan - kiri); y = atas; }
+    else { x = kiri + Math.random() * (kanan - kiri); y = bawah; }
     if (tesLingkaran(x, y, r + 2)) continue;
     let tabrakMusuh = false;
     for (const mm of enemies) {
@@ -175,8 +185,7 @@ function spawnEnemy() {
   const t = TIPE_MUSUH[tipe];
   const hp = Math.max(8, Math.round(def.hp * t.hpKali));
 
-  // Dunia luas: musuh muncul di luar pandangan, membentuk cincin di sekitar
-  // pemain (bukan tepi arena) — jadi tidak kebanyakan jalan dari ujung dunia.
+  // Dunia luas: musuh lahir di KELILING dunia — di luar barrier tepi map.
   let p = titikSpawnAman(t.r);
   if (!p) p = { x: WORLD_W / 2, y: WORLD_H / 2 };
   let x = p.x, y = p.y;
@@ -289,6 +298,7 @@ function update(dt) {
   player.gerak = player.dashT > 0 || dx !== 0 || dy !== 0;
 
   player.attackCd -= dt;
+  player.attackAnimT = Math.max(0, (player.attackAnimT || 0) - dt);
   player.specialCd = Math.max(0, player.specialCd - dt);
   player.specialBuff = Math.max(0, (player.specialBuff || 0) - dt);
   player.swing = Math.max(0, (player.swing || 0) - dt);

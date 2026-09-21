@@ -983,10 +983,14 @@ function draw() {
       ctx.strokeRect(bx, by, bw, bh);
     }
     if (tekstur[karakter.kunci]) {
-      // Animasi karakter: IDLE/WALK, atau HIT frame merah saat kena damage.
+      // Animasi karakter: ATTACK > HIT > WALK/IDLE.
       const tAnim = performance.now() / 1000;
       let modeP, jmlF, fpsF;
-      if (player.hitFlash > 0) {
+      if (player.attackAnimT > 0) {
+        modeP = "attack";
+        jmlF = 4;
+        fpsF = 16;
+      } else if (player.hitFlash > 0) {
         modeP = "idle";
         jmlF = 1;
         fpsF = 1;
@@ -996,7 +1000,9 @@ function draw() {
         fpsF = player.gerak ? 12 : 4;
       }
       const idxF = Math.floor(tAnim * fpsF) % jmlF;
-      const imgA = tekstur[karakter.kunci + "-" + modeP + "-" + idxF] || tekstur[karakter.kunci];
+      const imgA = tekstur[karakter.kunci + "-" + modeP + "-" + idxF]
+        || tekstur[karakter.kunci + "-idle-" + idxF]
+        || tekstur[karakter.kunci];
       // Normalisasi ukuran render ke 64x64
       const sz = 64 * karakter.skala;
       ctx.drawImage(imgA, player.x - sz / 2, player.y - sz / 2, sz, sz);

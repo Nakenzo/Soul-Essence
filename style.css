@@ -640,6 +640,45 @@ body[data-device="mobile"] .bantuan-canvas {
     margin-top: 4px;
 }
 
+/* Info status karakter (di bawah kartu) — tampil saat kartu di-hover.
+   AREA selalu dialokasikan (height tetap) dan hanya visibilitasnya yang
+   berubah, agar muncul/hilang panel TIDAK menggeser layout (mencegah
+   kedap-kedip saat pointer melintas). */
+.info-karakter {
+    box-sizing: border-box;
+    height: calc(var(--cs, 0.56) * 150px);
+    width: calc(var(--cs, 0.56) * 260px);
+    margin-top: calc(var(--cs, 0.56) * 10px);
+    padding: calc(var(--cs, 0.56) * 10px) calc(var(--cs, 0.56) * 20px);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #e6edf5;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 15px);
+    letter-spacing: 1px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: calc(var(--cs, 0.56) * 12px);
+    line-height: 1.7;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.12s;
+    pointer-events: none;
+}
+
+.info-karakter:not(.hidden) {
+    visibility: visible;
+    opacity: 1;
+}
+
+.info-karakter .info-lbl {
+    color: #ffd23f;
+}
+
 /* ======================== */
 /*  LAYAR GAME OVER         */
 /* ======================== */

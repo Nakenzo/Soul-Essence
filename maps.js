@@ -31,6 +31,16 @@ let pesanPeta = "";        // pesan error yang tampil di layar (="" bila aman)
 let petaSelX = WORLD_W;
 let petaSelY = WORLD_H;
 
+// Barrier tak terlihat di tepi map: pemain/musuh dibatasi agar tidak sampai
+// ke area kosong di luar batas gambar PNG. Pemain berhenti sebelum kamera
+// sempat memperlihatkan kekosongan di balik tepi map.
+// Kiri/kanan lebih lebar karena kamera horizontal lebih rentan memperlihatkan
+// area kosong (dunia 2560 unit lebar, kamera ~1280).
+const BARRIER_KIRI = 270;
+const BARRIER_KANAN = 260;
+const BARRIER_ATAS = 160;
+const BARRIER_BAWAH = 170;
+
 // Memuat gambar map, lalu membangun grid penghalang dari pixel hitam.
 // Setelah siap, tandai latarDirty (= di draw.js) supaya bake digambar ulang.
 function muatPeta() {
@@ -92,6 +102,10 @@ muatPeta();
 function tesBlokTile(x, y) {
   if (!petaSiap) return false;
   if (x < 0 || y < 0 || x >= petaKolom || y >= petaBaris) return true;
+  // Barrier tepi: blokir area di sepanjang tepi map agar kamera tidak
+  // sempat memperlihatkan kekosongan di luar batas gambar PNG.
+  const wx = x * petaSelX, wy = y * petaSelY;
+  if (wx < BARRIER_KIRI || wy < BARRIER_ATAS || wx > WORLD_W - BARRIER_KANAN || wy > WORLD_H - BARRIER_BAWAH) return true;
   return petaBlok[y * petaKolom + x];
 }
 

@@ -61,6 +61,10 @@ function mulai() {
         for (let i = 0; i < 12; i++) {
           daftar.push({ kunci: k.kunci + "-walk-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-walk-" + i + ".png" });
         }
+        // Frame animasi serangan dasar (4 frame).
+        for (let i = 0; i < 4; i++) {
+          daftar.push({ kunci: k.kunci + "-attack-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-attack-" + i + ".png" });
+        }
         return daftar;
       })
     )

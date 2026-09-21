@@ -207,7 +207,7 @@ function sfxFileCrop(kunci, mulai, durasi, lapis) {
   const n = Math.max(1, lapis || 1);
   for (let i = 0; i < n; i++) {
     const s = i === 0 ? el : new Audio(el.src);
-    s.currentTime = tMulai;
+    if (Number.isFinite(tMulai)) s.currentTime = tMulai;
     s.volume = vol;
     _mainkanElement(s);
     if (durasi) {
