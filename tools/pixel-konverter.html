@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Konverter Gambar ke Pixel Art (simple)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; font-family: 'Consolas', monospace;
+    background: #111827; color: #e5e7eb;
+  }
+  h1 { font-size: 20px; margin: 0 0 16px; color: #4ade80; }
+  .kolom { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .kartu {
+    background: #1f2937; border: 1px solid #374151; border-radius: 8px;
+    padding: 16px; min-width: 320px;
+  }
+  .kartu h2 { font-size: 13px; margin: 0 0 10px; color: #9ca3af; letter-spacing: 1px; }
+  label { display: block; font-size: 12px; margin: 8px 0 3px; color: #9ca3af; }
+  input[type=file] { font-size: 12px; }
+  input[type=range], input[type=color], select {
+    background: #111827; color: #e5e7eb; border: 1px solid #374151;
+    border-radius: 4px; padding: 4px 6px; font-size: 12px;
+  }
+  input[type=range] { width: 200px; }
+  canvas {
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    border: 1px solid #374151; border-radius: 4px;
+    max-width: 320px;
+  }
+  .peta { display: inline-block; background: repeating-conic-gradient(#222 0 25%, #2a2a2a 0 50%) 0 0/16px 16px; }
+  .peta canvas { display: block; }
+  .preview { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .cantum { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  button {
+    background: #3aaa35; color: #fff; border: 0; border-radius: 4px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: #45c33f; }
+  .bar { display: flex; align-items: center; gap: 8px; }
+  .bar span { font-size: 12px; color: #4ade80; width: 38px; }
+  .checkbox { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #d1d5db; }
+  .info { font-size: 11px; color: #6b7280; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>&#9670; KONVERTER GAMBAR &#8594; PIXEL ART (SIMPLE)</h1>
+
+<div class="kolom">
+  <div class="kartu">
+    <h2>1. SUMBER</h2>
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="peta"><canvas id="cvSumber" width="256" height="256"></canvas></div>
+    <div class="checkbox"><input type="checkbox" id="chkFlip"> Flip horizontal (menghadap kanan)</div>
+  </div>
+
+  <div class="kartu">
+    <h2>2. SETTINGS</h2>
+    <label>Ukuran pixel (berapa banyak pixel hasilnya)</label>
+    <div class="bar">
+      <input type="range" id="rngUkuran" min="16" max="128" value="64" step="4">
+      <span id="lblUkuran">64</span>
+    </div>
+    <label>Perbesaran hasil (tiap pixel jadi balok sebesar ini)</label>
+    <div class="bar">
+      <input type="range" id="rngSkala" min="1" max="16" value="1">
+      <span id="lblSkala">1</span>
+    </div>
+    <label>Kurangi warna kalau perlu (0 = pakai semua warna)</label>
+    <div class="bar">
+      <input type="range" id="rngWarna" min="0" max="64" value="0">
+      <span id="lblWarna">0</span>
+    </div>
+    <label>Hapus background: isi warna / matikan</label>
+    <div class="bar">
+      <input type="color" id="warnaBg" value="#ffffff">
+      <select id="selBg">
+        <option value="0">Mati (default)</option>
+        <option value="1" selected>Satu warna solid</option>
+        <option value="2">Auto: pinggir gambar / pojok</option>
+      </select>
+    </div>
+    <label>Toleransi hapus background</label>
+    <div class="bar">
+      <input type="range" id="rngTol" min="0" max="120" value="40">
+      <span id="lblTol">40</span>
+    </div>
+  </div>
+
+  <div class="kartu">
+    <h2>3. HASIL (dengan perbesaran)</h2>
+    <div class="preview">
+      <div class="peta"><canvas id="cvHasil" width="128" height="128"></canvas></div>
+      <div class="peta"><canvas id="cvZoom" width="128" height="128" style="max-width:320px; width:100%; height:auto;"></canvas></div>
+    </div>
+    <div class="cantum">
+      <label>Nama file</label>
+      <input type="text" id="namaFile" value="karakter-0.png" style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:4px 6px;font-size:12px;">
+      <button id="btnSimpan">&#8681; Simpan PNG (perbesaran)</button>
+      <div class="info" id="infoHasil">Preview pertama = hasil kecil, kedua = versi diperbesar.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cvSumber = document.getElementById("cvSumber");
+  const cvHasil = document.getElementById("cvHasil");
+  const cvZoom = document.getElementById("cvZoom");
+  const gS = cvSumber.getContext("2d");
+  const gH = cvHasil.getContext("2d");
+
+  let imgAsli = null; // Image asli (untuk crop center)
+  const SIZE_SRC = 256;
+
+  // ---------- Load ----------
+  document.getElementById("fileInput").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const img = new Image();
+    const url = URL.createObjectURL(f);
+    img.onload = () => {
+      imgAsli = img;
+      tampilkanSumber();
+      proses();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+
+  document.getElementById("chkFlip").addEventListener("change", () => {
+    if (imgAsli) { tampilkanSumber(); proses(); }
+  });
+
+  function tampilkanSumber() {
+    if (!imgAsli) return;
+    const flip = document.getElementById("chkFlip").checked;
+    gS.imageSmoothingEnabled = false;
+    gS.clearRect(0, 0, SIZE_SRC, SIZE_SRC);
+    gS.save();
+    if (flip) { gS.translate(SIZE_SRC, 0); gS.scale(-1, 1); }
+    const s = Math.min(imgAsli.width, imgAsli.height);
+    // crop center ke persegi lalu gambar ke SIZE_SRC (nearest = blur biar detail ketangkap)
+    gS.drawImage(imgAsli, (imgAsli.width-s)/2, (imgAsli.height-s)/2, s, s, 0, 0, SIZE_SRC, SIZE_SRC);
+    gS.restore();
+  }
+
+  // ---------- Proses ----------
+  const rngUkuran = document.getElementById("rngUkuran");
+  const rngSkala = document.getElementById("rngSkala");
+  const rngWarna = document.getElementById("rngWarna");
+  const rngTol = document.getElementById("rngTol");
+  const selBg = document.getElementById("selBg");
+
+  function ambilSetting() {
+    lblUkuran.textContent = rngUkuran.value;
+    lblSkala.textContent = rngSkala.value;
+    lblWarna.textContent = rngWarna.value;
+    lblTol.textContent = rngTol.value;
+  }
+
+  function proses() {
+    if (!imgAsli) return;
+    ambilSetting();
+    const uk = Number(rngUkuran.value);      // pixel logical
+    const skala = Number(rngSkala.value);    // perbesaran tiap pixel
+
+    // 1. Downscale nearest-neighbor: SIZE_SRC -> uk
+    const kecil = document.createElement("canvas");
+    kecil.width = uk; kecil.height = uk;
+    const gk = kecil.getContext("2d");
+    gk.imageSmoothingEnabled = false;
+    gk.clearRect(0, 0, uk, uk);
+    gk.drawImage(cvSumber, 0, 0, SIZE_SRC, SIZE_SRC, 0, 0, uk, uk);
+
+    // 2. Hapus background opsional
+    let data = gk.getImageData(0, 0, uk, uk);
+    const mode = Number(selBg.value);
+    if (mode > 0) {
+      const tol = Number(rngTol.value);
+      const w = document.getElementById("warnaBg").value;
+      let r = parseInt(w.slice(1,3),16), g = parseInt(w.slice(3,5),16), b = parseInt(w.slice(5,7),16);
+      if (mode === 2) { // auto: ambil warna dari pojok gambar
+        const p = data.data;
+        const warnaPojok = [];
+        for (const [px,py] of [[0,0],[uk-1,0],[0,uk-1],[uk-1,uk-1]]) {
+          const i = (py*uk+px)*4;
+          warnaPojok.push([p[i],p[i+1],p[i+2]]);
+        }
+        // rata-rata 4 pojok
+        r = Math.round(warnaPojok.reduce((a,c)=>a+c[0],0)/4);
+        g = Math.round(warnaPojok.reduce((a,c)=>a+c[1],0)/4);
+        b = Math.round(warnaPojok.reduce((a,c)=>a+c[2],0)/4);
+      }
+      for (let i=0; i<data.data.length; i+=4) {
+        const dr = data.data[i]-r, dg = data.data[i+1]-g, db = data.data[i+2]-b;
+        if (dr*dr + dg*dg + db*db <= tol*tol) data.data[i+3] = 0;
+      }
+    }
+
+    // 3. Kurangi warna opsional
+    if (Number(rngWarna.value) > 0) {
+      const jml = Number(rngWarna.value);
+      const n = data.data;
+      const warna = new Map();
+      for (let i=0;i<n.length;i+=4) {
+        if (!n[i+3]) continue;
+        const key = (n[i]&248)<<8 | (n[i+1]&248) | (n[i+2]>>5); // 3-bit sampling
+        warna.set(key, [n[i], n[i+1], n[i+2]]);
+      }
+      // Ambil jml warna paling sering (kasar) - pakai 2 bit channel paling tinggi
+      // Simpel: quantize 4 bit tiap channel biar warna "menjadix"
+      const q = Math.max(2, Math.round(jml/5.3)); // ~ per channel
+      const step = 256 / q;
+      for (let i=0;i<n.length;i+=4) {
+        if (!n[i+3]) continue;
+        n[i]   = Math.min(255, Math.round(Math.round(n[i]/step)*step));
+        n[i+1] = Math.min(255, Math.round(Math.round(n[i+1]/step)*step));
+        n[i+2] = Math.min(255, Math.round(Math.round(n[i+2]/step)*step));
+      }
+    }
+
+    gk.putImageData(data, 0, 0);
+
+    // 4. Tampilkan preview kecil
+    cvHasil.width = uk; cvHasil.height = uk;
+    gH.clearRect(0,0,uk,uk);
+    gH.drawImage(kecil, 0, 0);
+
+    // 5. Tampilkan preview besar (= hasil diperbesar)
+    const z = uk * skala;
+    cvZoom.width = z; cvZoom.height = z;
+    const gz = cvZoom.getContext("2d");
+    gz.imageSmoothingEnabled = false;
+    gz.clearRect(0,0,z,z);
+    gz.drawImage(kecil, 0, 0, uk, uk, 0, 0, z, z);
+
+    infoHasil.textContent = "Pixel: " + uk + "x" + uk + " -> ukuran file: " + z + "x" + z + " px";
+  }
+
+  for (const el of [rngUkuran, rngSkala, rngWarna, rngTol, selBg, document.getElementById("warnaBg")]) {
+    el.addEventListener("input", proses);
+    el.addEventListener("change", proses);
+  }
+
+  // ---------- Simpan ----------
+  document.getElementById("btnSimpan").addEventListener("click", () => {
+    const uk = Number(rngUkuran.value), skala = Number(rngSkala.value);
+    const z = uk * skala;
+    const off = document.createElement("canvas");
+    off.width = z; off.height = z;
+    const go = off.getContext("2d");
+    go.imageSmoothingEnabled = false;
+    go.drawImage(cvHasil, 0, 0, uk, uk, 0, 0, z, z);
+    const nama = (document.getElementById("namaFile").value || "sprite.png").replace(/[^a-z0-9._-]/gi,"_");
+    off.toBlob(b => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = nama;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  });
+</script>
+</body>
+</html>

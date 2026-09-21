@@ -38,6 +38,26 @@ function pilihTipeMusuh(campur) {
   return "biasa";
 }
 
+// ============================================================
+// DAFTAR LEVEL — menu pemilihan level setelah layar judul.
+// Setiap level menentukan LINGKUP waves dari LEVELS (mulai & selesai).
+// Level berikutnya nanti bisa punya peta & susunan musuh sendiri.
+// ============================================================
+const DAFTAR_LEVEL = [
+  {
+    kunci: "lvl1",
+    nama: "Level 1",
+    judul: "Padang Terbuka",
+    deskripsi: "Mulai petualanganmu di padang rumput.",
+    mulaiWave: 0,     // index LEVELS permulaan (0 = wave pertama)
+    selesaiWave: 10,  // jumlah wave di level ini (10 = semua LEVELS)
+    warna: "#4ade80"
+  }
+];
+
+// Level yang sedang dipilih pemain (index DAFTAR_LEVEL).
+let levelPilihan = 0;
+
 // ---------- Progres level ----------
 // level: index LEVELS (mulai 0). levelSpawn: jumlah musuh sudah di-spawn.
 // levelBanner: tulisan besar transisi antar level.
@@ -45,21 +65,26 @@ let level = 0;
 let levelSpawn = 0;
 let levelBanner = null;
 
+// Batas wave level yang sedang diputar (dari DAFTAR_LEVEL).
+function waveMulaiLevel()   { const l = DAFTAR_LEVEL[levelPilihan] || {}; return l.mulaiWave || 0; }
+function waveSelesaiLevel() { const l = DAFTAR_LEVEL[levelPilihan] || {}; return l.selesaiWave || LEVELS.length; }
+function totalWaveLevel()   { return Math.max(1, waveSelesaiLevel() - waveMulaiLevel()); }
+
 function mutarBanner(teks, durasi) {
   levelBanner = { teks: teks, t: 0, life: durasi };
 }
 
 function tampilkanBannerLevel(lv) {
-  mutarBanner("WAVES " + (lv + 1), 1.6);
+  mutarBanner("WAVES " + (lv - waveMulaiLevel() + 1) + "/" + totalWaveLevel(), 1.6);
 }
 
-// Semua musuh level ini habis -> level berikutnya (atau menang).
+// Semua musuh level ini habis -> wave berikutnya (atau menang).
 function levelSelesai() {
   score += 50 + level * 10;
   player.hp = Math.min(player.maxHp, player.hp + 30);
   spawnParticles(player.x, player.y, "#ffd23f", 24);
 
-  if (level + 1 >= LEVELS.length) {
+  if (level + 1 >= waveSelesaiLevel()) {
     score += 100;
     sfxMenang();
     tampilkanMenang();

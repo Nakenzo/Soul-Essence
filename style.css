@@ -434,6 +434,37 @@ body[data-device="mobile"] {
     border-color: rgba(255, 255, 255, 0.55);
 }
 
+/* Knob joystick bidik (twin-stick) di dalam tombol serang: melayang saat
+   jempol menggeser arah tembakan, Kembali ke tengah saat dilepas/ini. */
+.serang-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--cs, 0.56) * 84px);
+    height: calc(var(--cs, 0.56) * 84px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+        rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.12) 65%);
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Mode AUTO AIM (kartu legend): joystick bidik dinonaktifkan — knob
+   disembunyikan, tombol serang berubah jadi tombol biasa berbinar emas. */
+#tombolSerang.mode-aim .serang-knob {
+    display: none;
+}
+#tombolSerang.mode-aim {
+    border-color: rgba(253, 224, 71, 0.9);
+    box-shadow: 0 0 16px rgba(253, 224, 71, 0.55);
+}
+#tombolSerang.mode-aim:active {
+    filter: brightness(1.4);
+    transform: translate(-50%, -50%) scale(0.94);
+}
+
 /* DASH & SKILL: lebih besar dan TERPISAH dari tombol serang —
    menempati kolom kiri (dash di atas, skill di bawah). */
 .tombol-dash {
@@ -677,6 +708,69 @@ body[data-device="mobile"] .bantuan-canvas {
 
 .info-karakter .info-lbl {
     color: #ffd23f;
+}
+
+/* ======================== */
+/*  LAYAR PILIH LEVEL       */
+/* ======================== */
+#layarLevel h2 {
+    color: #7dd3fc;
+    font-size: calc(var(--cs, 0.56) * 40px);
+    letter-spacing: 3px;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+/* Grid kartu level: tampil horizontal (wrap) bila ada beberapa level. */
+#layarLevel .tombol-karakter {
+    margin-top: calc(var(--cs, 0.56) * 22px);
+}
+
+.kartu-level {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--cs, 0.56) * 10px);
+    background: #222;
+    border: 2px solid #555;
+    border-left: 6px solid var(--warna-level, #4ade80);
+    border-radius: 6px;
+    color: #e6edf5;
+    cursor: pointer;
+    width: calc(var(--cs, 0.56) * 300px);
+    padding: calc(var(--cs, 0.56) * 12px) calc(var(--cs, 0.56) * 16px);
+    font-family: "Zen Dots", "Courier New", monospace;
+    transition: all 0.15s;
+}
+
+.kartu-level:hover {
+    border-color: var(--warna-level, #4ade80);
+    background: #2a2a2a;
+    transform: scale(1.05);
+}
+
+.kartu-level:active {
+    transform: scale(0.97);
+}
+
+.judul-level {
+    font-size: calc(var(--cs, 0.56) * 20px);
+    font-weight: bold;
+    color: var(--warna-level, #4ade80);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.nama-level {
+    font-size: calc(var(--cs, 0.56) * 13px);
+    color: #9aa7bb;
+    text-align: left;
+}
+
+/* Tombol kembali terpisah dari deretan kartu level. */
+#layarLevel .tombol-abu {
+    margin-top: calc(var(--cs, 0.56) * 14px);
 }
 
 /* ======================== */

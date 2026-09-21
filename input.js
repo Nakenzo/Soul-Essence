@@ -18,7 +18,14 @@ const JARI_R_MX = 60; // radius jempol dalam px layar
 let _joyId = null;
 let _joyBasis = null;
 let _aimId = null;
-let autoAim = false; // tombol SERANG: bidik otomatis musuh terdekat
+// Bidik twin-stick: kemiringan tombol SERANG = arah tembakan (mode HP).
+// aimDx/aimDy = 0 di tengah, ±1 di tepi. Dipakai di entities.js setara mouse
+// supaya seluruh aksi (tembak & sabit) mengikuti arah joystick kanan.
+let aimDx = 0, aimDy = 0;
+let _serangAktif = false;   // tombol serang sedang ditekan/di-drag
+let _serangId = null;
+let _serangBasis = null;    // koordinat klien pusat tombol saat ditekan
+const JARI_SERANG = 90;     // radius pergeseran jempol (px layar)
 let _btnSerang = false;
 let _btnSerangId = null;
 const joyBase = document.getElementById("joyBase");
@@ -70,10 +77,22 @@ window.addEventListener("keydown", (e) => {
       tampilkanPause();
     } else if (statusGame === "pause") {
       lanjutDariPause();
+    } else if (statusGame === "level") {
+      tampilkanJudul();
     } else if (statusGame === "select") {
       tampilkanJudul();
     }
     e.preventDefault();
+  }
+
+  // Layar pilih level: tombol 1/2/3... langsung pilih level.
+  if (k >= "1" && k <= "9" && statusGame === "level" && DAFTAR_LEVEL.length) {
+    const idx = Number(k) - 1;
+    if (idx >= 0 && idx < DAFTAR_LEVEL.length) {
+      levelPilihan = idx;
+      tampilkanPilih();
+      return;
+    }
   }
 
   if (k === "r") {
@@ -184,8 +203,15 @@ function lepasSentuh(e) {
     if (e.pointerId === _btnSerangId) {
       _btnSerang = false;
       _btnSerangId = null;
-      autoAim = false;
+      _serangAktif = false;
+      _serangBasis = null;
+      aimDx = 0;
+      aimDy = 0;
+      // Arah bidik kembali normal (ke posisi pointer jalan-jalan).
       if (_aimId === null) mouse.down = false;
+      // Kembalikan posisi knob ke tengah.
+      const kn = document.getElementById("serangKnob");
+      if (kn) kn.style.transform = "translate(-50%, -50%)";
     }
     return;
   }
@@ -210,15 +236,48 @@ function _geserJoy(e) {
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // ---------- Tombol aksi sentuh (mode HP) ----------
-// SERANG: auto-aim musuh terdekat selama ditekan (lihat update mouse.down).
+// SERANG = joystick BIDIK+TEMBAK (twin-stick): tekan & arahkan jempol untuk
+// menentukan arah tembakan; tetap ditekan = terus menembak ke arah itu.
+// Digeser ±90px menentukan sudut; arah dipakai di entities.js via aimDx/aimDy.
 const tombolSerang = document.getElementById("tombolSerang");
+// Kartu LEGEND AUTO AIM aktif? (dipakai mode tombol vs joystick).
+function punyaAutoAim() {
+  return !!(player && player.kartu && player.kartu["bidik"] > 0);
+}
 tombolSerang.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   if (_btnSerang) return;
   _btnSerang = true;
   _btnSerangId = e.pointerId;
-  autoAim = true;
+  _serangAktif = true;
   mouse.down = true;
+  // AUTO AIM: tombol serang jadi TOMBOL BIASA (bukan joystick bidik) —
+  // di sini knob disembunyikan, arah otomatis ditangani entities.js.
+  tombolSerang.classList.toggle("mode-aim", punyaAutoAim());
+  if (punyaAutoAim()) {
+    _serangAktif = false;
+    _serangBasis = null;
+    return;
+  }
+  // Basis koordinat klien = pusat tombol serang saat jempol mendarat.
+  const r = tombolSerang.getBoundingClientRect();
+  _serangBasis = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  try { tombolSerang.setPointerCapture(e.pointerId); } catch (err) {}
+});
+tombolSerang.addEventListener("pointermove", (e) => {
+  if (!_serangAktif || e.pointerId !== _btnSerangId || !_serangBasis) return;
+  // Vektor kemiringan dari pusat tombol → arah tembakan.
+  const lenX = e.clientX - _serangBasis.x;
+  const lenY = e.clientY - _serangBasis.y;
+  const len = Math.hypot(lenX, lenY);
+  aimDx = len > 0 ? (lenX / len) * Math.min(1, len / JARI_SERANG) : 0;
+  aimDy = len > 0 ? (lenY / len) * Math.min(1, len / JARI_SERANG) : 0;
+  // Gerakkan knob visual mengikuti jempol.
+  const kn = document.getElementById("serangKnob");
+  if (kn) {
+    const k = Math.min(1, len / JARI_SERANG);
+    kn.style.transform = "translate(calc(-50% + " + (lenX * k) + "px), calc(-50% + " + (lenY * k) + "px))";
+  }
 });
 document.getElementById("tombolDash").addEventListener("pointerdown", (e) => { e.preventDefault(); dashLari(); });
 document.getElementById("tombolSkill").addEventListener("pointerdown", (e) => { e.preventDefault(); castSpecial(); });

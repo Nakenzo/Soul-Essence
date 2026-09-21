@@ -57,7 +57,7 @@
             <div id="kontrolSentuh">
                 <div id="joyBase" class="joy-basis"><div id="joyKnob" class="joy-tombol"></div></div>
                 <div class="tombol-sentuh-grup">
-                    <button id="tombolSerang" class="tombol-sentuh tombol-serang" type="button"><canvas class="ikon-sentuh"></canvas></button>
+                    <button id="tombolSerang" class="tombol-sentuh tombol-serang" type="button"><canvas class="ikon-sentuh"></canvas><div id="serangKnob" class="serang-knob"></div></button>
                     <button id="tombolDash" class="tombol-sentuh tombol-dash" type="button"><canvas class="ikon-sentuh"></canvas></button>
                     <button id="tombolSkill" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas></button>
                 </div>
@@ -97,6 +97,13 @@
             <div id="layarJudul" class="overlay">
                 <h1 class="judul-besar">SOUL ESSENCE</h1>
                 <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
+            </div>
+
+            <!-- Layar Pilih Level -->
+            <div id="layarLevel" class="overlay hidden">
+                <h2 class="judul-pilih">PILIH LEVEL</h2>
+                <div id="daftarLevel" class="tombol-karakter"></div>
+                <button id="tombolKembaliJudul" class="tombol-abu">&#8592; Kembali</button>
             </div>
 
             <!-- Layar Pilih Karakter -->

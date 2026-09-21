@@ -70,11 +70,15 @@ const DASH_WAKTU = 0.18; // lama dash
 const DASH_SPEED = 1240; // kecepatan dash
 const DASH_INVULN = 0.3; // kebal sejenak setelah dash
 
+// Radius hitbox pemain (dunia). Dipakai untuk tabrakan DAN ukuran render sprite.
+const P_RADIUS = 14;
+
 // ---------- Setup arena ----------
 function resetArena({ skorBaru }) {
   player = {
     x: WORLD_W / 2,
     y: WORLD_H / 2,
+    r: P_RADIUS,
     hp: karakter ? karakter.hp : 100,
     maxHp: karakter ? karakter.hp : 100,
     speed: karakter ? karakter.kecepatan : 180,
@@ -132,10 +136,10 @@ function resetArena({ skorBaru }) {
   hurtVig = 0;
   deathPixels = [];
   soul = 0;
-  // Level baru selalu mulai dari LEVEL 1.
-  level = 0;
+  // Level baru selalu mulai dari wave awal level yang dipilih.
+  level = typeof levelPilihan === "number" ? waveMulaiLevel() : 0;
   levelSpawn = 0;
-  tampilkanBannerLevel(0);
+  tampilkanBannerLevel(level);
   if (skorBaru) {
     score = 0;
   }

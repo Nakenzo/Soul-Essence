@@ -10,13 +10,14 @@
 // cukup isi properti tipe/reach dll di config.js dan kartu sesuai
 // tipe (dekat: reach/halfArc, jarak: bullet) otomatis tersaring.
 //
-// SETIAP KARTU MEMILIKI TIER: common / rare / epic.
+// SETIAP KARTU MEMILIKI TIER: common / rare / epic / legend.
 // common  = warna background kartu seperti sekarang (kertas krem).
 // rare    = background kartu biru.
 // epic    = background kartu ungu.
+// legend  = background kartu kuning keemasan (paling langka).
 // Logo/ikon kartu TIDAK ikut berubah warna (hanya background).
 // Maksimal penumpukan sesuai tier:
-//   common x3, rare x2, epic x1.
+//   common x3, rare x2, epic x1, legendary x1.
 // Setelah maks stack tercapai, kartu itu tidak muncul lagi saat
 // in-game sampai game selesai/restart (resetArena mengosongkan player.kartu).
 
@@ -33,7 +34,10 @@ const TIER_DEF = {
   rare: { maks: 2, bobotKali: 0.65, garis: "#1d4ed8", aksen: "#164ea0", gem: "#4aa8ff",
     bg: { gelap: "#93b8ee", hover: "#b7d4f6" } },
   epic: { maks: 1, bobotKali: 0.35, garis: "#6d28d9", aksen: "#f59e0b", gem: "#c084fc",
-    bg: { gelap: "#c5adff", hover: "#dbc8ff" } }
+    bg: { gelap: "#c5adff", hover: "#dbc8ff" } },
+  // Legend: palet KUNING, paling langka — bobotKali terkecil, maks 1.
+  legend: { maks: 1, bobotKali: 0.18, garis: "#b8860b", aksen: "#fbbf24", gem: "#fde047",
+    bg: { gelap: "#fde68a", hover: "#fef3c7" } }
 };
 const MAKS_STACK = Object.keys(TIER_DEF).reduce((a, t) => { a[t] = TIER_DEF[t].maks; return a; }, {});
 // ============================================================
@@ -126,6 +130,14 @@ const KARTU_UPGRADE = [
     bobot: 15, warna: "#7dd3fc", ikon: "\u27B3", tier: "rare",
     cocok: punyaPanah,
     mult: { bSpeed: 1.16 }
+  },
+  // Kartu LEGEND: AUTO AIM. Bukan stat biasa — bendera (flag) yang mengubah
+  // cara bidik: di HP tombol serang jadi tombol biasa (tanpa joystick bidik,
+  // otomatis ke musuh terdekat), di desktop klik kiri = bidik otomatis ke
+  // musuh terdekat. Bobot kecil sekali karena "legend".
+  {
+    id: "bidik", nama: "AUTO AIM", ket: "Serang otomatis mengarah ke musuh terdekat",
+    bobot: 4, warna: "#fde047", ikon: "\u25CE", tier: "legend"
   }
 ];
 

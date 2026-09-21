@@ -8,9 +8,10 @@
 function gambarSenjata() {
   const img = tekstur[karakter.senjata];
   if (!img) return;
-  const skala = karakter.senjataSkala || karakter.skala;
-  const w = img.width * skala;
-  const h = img.height * skala;
+  // Normalisasi: target lebar senjata = ±2× hitbox pemain, tinggi ikut rasio.
+  // Senjata PNG kecil (40x64) atau besar (256x256) tetap tampil konsisten.
+  const skala = karakter.senjataSkala || karakter.skala || 1;
+  const { lebar: w, tinggi: h } = ukuranSprite(img, player.r * 3 * skala);
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
   // Jarak orbit dari pusat karakter
@@ -188,6 +189,138 @@ function bakeApi(f) {
   f.frames = frames;
 }
 
+// Campur warna hex dengan porsi putih (p>0) / hitam (p<0) → warna slime.
+function campurWarna(hex, p) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const m = (v) => Math.max(0, Math.min(255, Math.round(p >= 0 ? v + (255 - v) * p : v * (1 + p))));
+  return "rgb(" + m(r) + "," + m(g) + "," + m(b) + ")";
+}
+
+// Bake 6 frame animasi slime ke canvas offscreen per musuh (cache sekali).
+// Tiap frame = pose squash/jiggle berbeda; hasil-nya drawImage cepat tiap
+// frame layar. Titik asal (0,0) canvas = pusat musuh (e.x, e.y).
+function bakeSlimeFrames(e) {
+  if (e.slimeFrameData) return e.slimeFrameData;
+  const r = e.r;
+  const warna = e.warna || "#ff5060";
+  const lebar = Math.max(0.7, r * 2.1);
+  const ting = Math.max(0.7, r * 1.7);
+  const W = Math.ceil(lebar * 1.12 + 4);
+  const H = Math.ceil(ting + r * 0.9 + 4);
+  const JML = 6;
+  const frames = [];
+  for (let k = 0; k < JML; k++) {
+    const cs = document.createElement("canvas");
+    cs.width = W;
+    cs.height = H;
+    const g = cs.getContext("2d");
+    // Pose frame k: sudut fasa + phBase agar tiap musuh tidak serempak.
+    const ph = (k / JML) * Math.PI * 2 + e.phBase || 0;
+    const ox = W / 2;                    // e.x
+    const oy = H - r * 0.9 - 2;          // e.y (pusat musuh)
+    const squash = Math.sin(ph);
+    const jg = Math.sin(ph * 1.7) * 0.09;
+    const bob = Math.abs(Math.cos(ph * 0.9)) * r * 0.05;
+    const w = lebar * (1 + squash * 0.07);
+    const h = ting * (1 - squash * 0.07);
+    const yo = -bob;                     // naik-turun badan vs e.y
+    const dasar = oy + r * 0.55 + yo;
+    const atas = dasar - h;
+
+    // Bayangan di tanah.
+    g.fillStyle = "rgba(0, 0, 0, 0.28)";
+    g.beginPath();
+    g.ellipse(ox, oy + r * 0.72, w * 0.52, r * 0.16, 0, 0, Math.PI * 2);
+    g.fill();
+
+    // Badan jelly.
+    g.beginPath();
+    g.moveTo(ox - w / 2, dasar);
+    g.quadraticCurveTo(ox - w / 2 - w * 0.02, dasar - h * 0.42, ox - w * 0.30, atas + h * 0.06);
+    g.quadraticCurveTo(ox - w * 0.10, atas - h * 0.05, ox, atas);
+    g.quadraticCurveTo(ox + w * 0.10, atas - h * 0.05, ox + w * 0.30, atas + h * 0.06);
+    g.quadraticCurveTo(ox + w / 2 + w * 0.02, dasar - h * 0.42, ox + w / 2, dasar);
+    g.closePath();
+    const grd = g.createLinearGradient(0, atas, 0, dasar);
+    grd.addColorStop(0, campurWarna(warna, 0.35));
+    grd.addColorStop(0.55, warna);
+    grd.addColorStop(1, campurWarna(warna, -0.25));
+    g.fillStyle = grd;
+    g.fill();
+
+    // Lipatan bawah (2 gundukan) mengikuti fase.
+    g.strokeStyle = "rgba(0, 0, 0, 0.18)";
+    g.lineWidth = 2;
+    g.beginPath();
+    for (const s of [-1, 1]) {
+      const gx = ox + s * w * 0.30;
+      g.moveTo(gx, dasar - h * 0.14);
+      g.quadraticCurveTo(gx + s * r * 0.18, dasar - h * 0.07 + jg * r, gx + s * w * 0.16, dasar);
+    }
+    g.stroke();
+
+    // Cermin kilap di atas-kiri.
+    g.fillStyle = "rgba(255, 255, 255, 0.35)";
+    g.beginPath();
+    g.ellipse(ox - w * 0.18 + jg * r * 0.6, atas + h * 0.18, w * 0.13, h * 0.09, -0.5, 0, Math.PI * 2);
+    g.fill();
+
+    frames.push(cs);
+  }
+  const data = { frames: frames, ox: W / 2, oy: H - r * 0.9 - 2 };
+  e.slimeFrameData = data;
+  return data;
+}
+
+// Slime (musuh digambar prosedural, pakai warna tipe masing-masing).
+// 6 frame animasi sudah di-bake; di sini tinggal drawImage + mata dinamis
+// yang tetap menghadap pemain. Hitbox tetap e.r.
+function gambarSlime(e, tAnim) {
+  let data = e.slimeFrameData;
+  if (!data) {
+    e.phBase = e.phBase !== undefined ? e.phBase : Math.abs(e.x * 0.9 + e.y * 0.35) * 0.7;
+    data = bakeSlimeFrames(e);
+  }
+  const JML = data.frames.length;
+  const t = tAnim * 6 + (e.phBase || 0);
+  const i = Math.floor(t / (Math.PI * 2) * JML) % JML;
+  const fr = data.frames[i];
+  ctx.drawImage(fr, e.x - data.ox, e.y - data.oy);
+
+  // Pose saat ini (samakan dengan frame terpilih) untuk posisi mata.
+  const r = e.r, warna = e.warna || "#ff5060";
+  const lebar = Math.max(0.7, r * 2.1), ting = Math.max(0.7, r * 1.7);
+  const ph = (i / JML) * Math.PI * 2 + (e.phBase || 0);
+  const squash = Math.sin(ph);
+  const w = lebar * (1 + squash * 0.07);
+  const h = ting * (1 - squash * 0.07);
+  const bob = Math.abs(Math.cos(ph * 0.9)) * r * 0.05;
+  const dasar = e.y + r * 0.55 - bob;
+  const atas = dasar - h;
+
+  // Mata arah pemain.
+  const a = Math.atan2(player.y - e.y, player.x - e.x);
+  const ex = Math.cos(a) * r * 0.30, ey = Math.sin(a) * r * 0.30;
+  for (const s of [-1, 1]) {
+    const mx = e.x + s * w * 0.22;
+    const my = atas + h * 0.38;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(mx, my, r * 0.20, r * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#201822";
+    ctx.beginPath();
+    ctx.arc(mx + ex, my + ey, r * 0.10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath();
+    ctx.arc(mx + ex - r * 0.03, my + ey - r * 0.04, r * 0.035, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function draw() {
   _shakeX = 0;
   _shakeY = 0;
@@ -215,8 +348,8 @@ function draw() {
   // (Batas dunia = dinding batu di-bake di buatLatarCache: statis,
   // ikut bergeser bersama tanah, tidak berkedip saat kamera digeser.)
 
-  // Layar judul & pilih karakter: cukup latar + partikel dekoratif.
-  if (statusGame === "title" || statusGame === "select") {
+  // Layar judul, pilih level, & pilih karakter: cukup latar + partikel dekoratif.
+  if (statusGame === "title" || statusGame === "level" || statusGame === "select") {
     for (const p of bgPartikels) {
       ctx.fillStyle = "rgba(255, 210, 63, " + p.alpha + ")";
       ctx.fillRect(p.x, p.y, p.size, p.size);
@@ -505,34 +638,18 @@ function draw() {
   ctx.globalAlpha = 1;
 
   for (const e of enemies) {
-    // Sprite + animasi sesuai tipe: musuh/cepet/tank.
-    // Saat kena damage: gunakan hit frame PNG. Beku → idle. Bergerak → walk.
-    const tAnim = performance.now() / 1000;
-    let imgMusuh;
+    // Slime digambar prosedural dengan warna tipe (jiggle + lihat pemain).
+    // Hitbox tetap e.r, ukuran render mengikuti r agar konsisten.
+    gambarSlime(e, performance.now() / 1000);
+    const sw = e.r * 2.1, sh = e.r * 1.7;
+    // Flash overlay saat kena damage
     if (e.hitFlash > 0) {
-      imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
-    } else if (e.freeze > 0) {
-      imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci] || tekstur.musuh;
-    } else {
-      const phase = Math.abs(e.x * 3.1 + e.y * 1.7);
-      const idxF = Math.floor((tAnim + phase) * 6) % 2;
-      imgMusuh = tekstur[e.kunci + "-walk-" + idxF] || tekstur[e.kunci] || tekstur.musuh;
-    }
-    if (imgMusuh) {
-      // Normalisasi ukuran render berdasarkan idle frame (64x tinggi proporsional)
-      const refH = (e.kunci === "tank" ? 48 : 36);
-      const szW = 64 * (e.skala || 1);
-      const szH = refH * (e.skala || 1);
-      ctx.drawImage(imgMusuh, e.x - szW / 2, e.y - szH / 2, szW, szH);
-      // Flash overlay saat kena damage
-      if (e.hitFlash > 0) {
-        ctx.globalCompositeOperation = "screen";
-        ctx.globalAlpha = 0.55;
-        ctx.fillStyle = "#ff4040";
-        ctx.fillRect(e.x - szW / 2, e.y - szH / 2, szW, szH);
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = "source-over";
-      }
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = "#ff4040";
+      ctx.fillRect(e.x - sw / 2, e.y - sh / 2, sw, sh);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
     }
     ctx.fillStyle = "#000";
     ctx.fillRect(e.x - 16, e.y - 22, 32, 3);
@@ -1003,15 +1120,16 @@ function draw() {
       const imgA = tekstur[karakter.kunci + "-" + modeP + "-" + idxF]
         || tekstur[karakter.kunci + "-idle-" + idxF]
         || tekstur[karakter.kunci];
-      // Normalisasi ukuran render ke 64x64
-      const sz = 64 * karakter.skala;
-      ctx.drawImage(imgA, player.x - sz / 2, player.y - sz / 2, sz, sz);
+      // Normalisasi ukuran render: target lebar dari hitbox (player.r),
+      // tinggi menyesuaikan rasio aspek PNG. Resolusi file apa pun → tampil sama.
+      const { lebar: szWr, tinggi: szHr } = ukuranSprite(imgA, player.r * karakter.skala * 4.6);
+      ctx.drawImage(imgA, player.x - szWr / 2, player.y - szHr / 2, szWr, szHr);
       // Flash overlay saat kena damage
       if (player.hitFlash > 0) {
         ctx.globalCompositeOperation = "screen";
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = "#ff4040";
-        ctx.fillRect(player.x - sz / 2, player.y - sz / 2, sz, sz);
+        ctx.fillRect(player.x - szWr / 2, player.y - szHr / 2, szWr, szHr);
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = "source-over";
       }
@@ -1210,7 +1328,8 @@ function gambarKartuUpgrade() {
     gambarBundar(-r.w / 2 + 6, 6, r.w - 12, r.h - 12, 8);
     ctx.stroke();
 
-    // Ornamen tier: rare = belah ketupat biru + pita, epic = bintang emas + pita.
+    // Ornamen tier: rare = belah ketupat biru + pita, epic = bintang emas + pita,
+    // legend = pita + sinar gold + mahkota kecil (paling mencolok).
     if (kart.tier === "rare") {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1240,6 +1359,24 @@ function gambarKartuUpgrade() {
       ctx.font = Math.round(r.w * 0.045) + "px Zen Dots";
       ctx.globalAlpha = 0.6 * a;
       ctx.fillText("\u2726 \u2726 \u2726", 0, r.h * 0.43);
+      ctx.globalAlpha = a;
+    } else if (kart.tier === "legend") {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold " + Math.round(r.w * 0.1) + "px Zen Dots";
+      ctx.fillStyle = tAksen;
+      ctx.globalAlpha = 0.95 * a;
+      // Mahkota di dua sudut berlawanan (kartu remi).
+      ctx.fillText("\u265B", -r.w / 2 + r.w * 0.15, -r.h / 2 + r.w * 0.18);
+      ctx.fillText("\u265B", r.w / 2 - r.w * 0.15, r.h / 2 - r.w * 0.18);
+      // Pita emas di bawah + sulur sinar.
+      ctx.fillStyle = "rgba(180, 120, 12, 0.20)";
+      gambarBundar(-r.w * 0.36, r.h * 0.43, r.w * 0.72, r.h * 0.04, 5);
+      ctx.fill();
+      ctx.fillStyle = tAksen;
+      ctx.font = "bold " + Math.round(r.w * 0.05) + "px Zen Dots";
+      ctx.globalAlpha = 0.8 * a;
+      ctx.fillText("\u2726 \u265B \u2726", 0, r.h * 0.43);
       ctx.globalAlpha = a;
     }
 
@@ -2185,7 +2322,7 @@ function drawHUD() {
   }
   const sisa = Math.max(0, LEVELS[level].jumlah - (levelSpawn - enemies.length));
   ctx.fillStyle = "#ffd23f";
-  ctx.fillText("WAVES " + (level + 1) + "/" + LEVELS.length, infoX + infoPad, infoY + infoPad + infoLineH);
+  ctx.fillText("WAVES " + (level - waveMulaiLevel() + 1) + "/" + totalWaveLevel(), infoX + infoPad, infoY + infoPad + infoLineH);
   ctx.fillStyle = "#fff";
   ctx.fillText("MUSUH " + sisa, infoX + infoPad, infoY + infoPad + infoLineH * 2);
   ctx.textAlign = "left";

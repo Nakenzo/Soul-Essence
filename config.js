@@ -21,7 +21,7 @@ const KARAKTER = [
     senjataSkala: 1,
     hp: 100,
     kecepatan: 360,
-    attackRate: 0.18,
+    attackRate: 0.25,
     damage: 25,
     reach: 0,
     halfArc: 0,

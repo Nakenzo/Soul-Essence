@@ -3,6 +3,7 @@
 // Karakter terpilih dipakai sampai permainan berakhir (game over).
 // ============================================================
 const layarJudul = document.getElementById("layarJudul");
+const layarLevel = document.getElementById("layarLevel");
 const layarPilih = document.getElementById("layarPilih");
 const layarGameOver = document.getElementById("layarGameOver");
 const layarMenang = document.getElementById("layarMenang");
@@ -87,6 +88,7 @@ function aturTombolPause() {
 
 function sembunyiSemua() {
   layarJudul.classList.add("hidden");
+  layarLevel.classList.add("hidden");
   layarPilih.classList.add("hidden");
   layarGameOver.classList.add("hidden");
   layarPause.classList.add("hidden");
@@ -101,6 +103,16 @@ function tampilkanJudul() {
   score = 0;
   resetArena({ skorBaru: true });
   layarJudul.classList.remove("hidden");
+  aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
+}
+
+// ---------- Layar Pilih Level ----------
+function tampilkanLevel() {
+  sembunyiSemua();
+  statusGame = "level";
+  layarLevel.classList.remove("hidden");
+  buatPilihanLevel();
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
 }
@@ -193,14 +205,15 @@ function ulangDenganKarakter() {
 
 // ---------- Event tombol ----------
 function pasangTombol() {
-  document.getElementById("tombolPlay").addEventListener("click", tampilkanPilih);
+  document.getElementById("tombolPlay").addEventListener("click", tampilkanLevel);
+  document.getElementById("tombolKembaliJudul").addEventListener("click", tampilkanJudul);
   document.getElementById("tombolUlang").addEventListener("click", ulangDenganKarakter);
   // "Ganti karakter" langsung ke layar pemilihan karakter.
   document.getElementById("tombolMenu").addEventListener("click", tampilkanPilih);
   tombolPause.addEventListener("click", tampilkanPause);
   document.getElementById("tombolLanjut").addEventListener("click", lanjutDariPause);
   document.getElementById("tombolMenuPause").addEventListener("click", tampilkanPilih);
-  document.getElementById("tombolUlangMenang").addEventListener("click", tampilkanPilih);
+  document.getElementById("tombolUlangMenang").addEventListener("click", tampilkanLevel);
   document.getElementById("tombolMenuMenang").addEventListener("click", tampilkanJudul);
 
   // Bunyi klik di semua tombol UI (event bubbling juga menjangkau kartu karakter).
@@ -271,6 +284,37 @@ function buatPilihanKarakter() {
   });
   // Kalau pointer keluar dari seluruh grid kartu, info ikut disembunyikan.
   daftarKarakter.addEventListener("pointerleave", sembunyiInfoKarakter);
+}
+
+// ---------- Kartu level (untuk menu pemilihan level) ----------
+function buatPilihanLevel() {
+  const daftar = document.getElementById("daftarLevel");
+  if (!daftar) return;
+  daftar.innerHTML = "";
+
+  DAFTAR_LEVEL.forEach((lvl, idx) => {
+    const card = document.createElement("button");
+    card.className = "kartu-level";
+    card.style.setProperty("--warna-level", lvl.warna || "#4ade80");
+
+    const nama = document.createElement("div");
+    nama.className = "judul-level";
+    nama.textContent = lvl.nama || ("Level " + (idx + 1));
+
+    const tempat = document.createElement("div");
+    tempat.className = "nama-level";
+    tempat.textContent = lvl.judul || "";
+
+    card.appendChild(nama);
+    card.appendChild(tempat);
+
+    card.addEventListener("click", () => {
+      levelPilihan = idx;
+      tampilkanPilih();
+    });
+    card.addEventListener("pointerenter", () => sfxKlik && sfxKlik());
+    daftar.appendChild(card);
+  });
 }
 
 // Info status karakter pada layar pilih: tampil saat kartu di-hover.

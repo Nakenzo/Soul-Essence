@@ -288,7 +288,7 @@ function update(dt) {
   // Gerak per-sumbu + dinding PNG: bila satu sumbu terblokir, sumbu lain
   // tetap jalan → pemain MELUNCUR mengitari tembok (tidak pernah nyangkut).
   // Dinding = piksel hitam di assets/maps/*.png, dicek lewat tesLingkaran.
-  const pR = 14;
+  const pR = player.r >= 0 ? player.r : P_RADIUS;
   if (!tesLingkaran(player.x + mvx, player.y, pR)) player.x += mvx;
   if (!tesLingkaran(player.x, player.y + mvy, pR)) player.y += mvy;
   player.x = Math.max(10, Math.min(WORLD_W - 10, player.x));
@@ -326,20 +326,32 @@ function update(dt) {
   // dashCd = tampilan gabungan sisa waktu semua charge.
   player.dashCd = player.dashTimers.reduce((a, b) => a + b, 0);
 
-  // Mode HP + tombol SERANG: bidik otomatis ke musuh terdekat yang hidup.
-  if (autoAim) {
-    let bt = null, bd = Infinity;
+  // Mode HP: joystick SERANG (twin-stick) — arah tembakan mengikuti
+  // kemiringan joystick kanan (aimDx/aimDy dari input.js). Dipetakan ke
+  // mouse supaya seluruh aksi (tembak & sabit) memakai arah yang sama.
+  if (_serangAktif && (aimDx !== 0 || aimDy !== 0)) {
+    const jarakBidik = 400;
+    mouse.x = player.x + aimDx * jarakBidik;
+    mouse.y = player.y + aimDy * jarakBidik;
+    mouse.sx = mouse.x - kam.x;
+    mouse.sy = mouse.y - kam.y;
+  }
+
+  // Kartu LEGEND "AUTO AIM": selama tombol serang ditekan, bidik dipaksa ke
+  // musuh terdekat yang masih hidup — di mana pun pointer mengklik (desktop)
+  // atau tombol serang ditekan (HP, kini tombol biasa tanpa joystick bidik).
+  if (mouse.down && player.kartu && player.kartu["bidik"] > 0) {
+    let tgt = null, bd = Infinity;
     for (const en of enemies) {
       if (en.hp <= 0) continue;
       const dd = (en.x - player.x) * (en.x - player.x) + (en.y - player.y) * (en.y - player.y);
-      if (dd < bd) { bd = dd; bt = en; }
+      if (dd < bd) { bd = dd; tgt = en; }
     }
-    if (bt) {
-      mouse.x = bt.x;
-      mouse.y = bt.y;
-      // Layar (untuk klik/HTML + kartu upgrade) ikut disesuaikan.
-      mouse.sx = bt.x - kam.x;
-      mouse.sy = bt.y - kam.y;
+    if (tgt) {
+      mouse.x = tgt.x;
+      mouse.y = tgt.y;
+      mouse.sx = tgt.x - kam.x;
+      mouse.sy = tgt.y - kam.y;
     }
   }
 
