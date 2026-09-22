@@ -16,7 +16,7 @@ const SAVE_KUNCI = "soul-essence-progress";
 const SAVE_KUNCI_BAK = "soul-essence-progress-bak";
 const SAVE_SALT = 0x9e3779b9;   // seed XOR (jangan diubah sembarangan)
 const SAVE_SALT2 = 0x85ebca6b;  // seed checksum
-const SAVE_VERSI = 2;   // naik dari 1 (skor -> koin); v1 tetap dimigrasikan
+const SAVE_VERSI = 3;   // v2 (koin). v3: saldo koin + level karakter. v1/v2 dimigrasikan
 
 // ---------- Sandi kecil (XOR aliran simetris) ----------
 // Enkode & dekode memakai urutan kunci yang SAMA: kunci maju lewat CHAR
@@ -68,7 +68,9 @@ function progresBaru() {
   return {
     v: SAVE_VERSI,
     selesai: [],          // array indeks level yang sudah ditamatkan
-    koinTertinggi: 0,     // koin terbanyak yang pernah dikumpulkan
+    koinTertinggi: 0,     // koin terbanyak yang pernah dikumpulkan (rekor)
+    koinSaldo: 0,         // saldo koin (bisa dipakai naikkan level karakter)
+    levelKarakter: {},    // { kunci: level } tiap karakter
     t: Date.now()
   };
 }
@@ -85,7 +87,7 @@ function bacaProgres() {
       if (!box || typeof box !== "object") continue;
       if (box.sig !== saveChecksum(box.d)) continue; // dimanipulasi
       const d = box.d;
-      if (d && (d.v === SAVE_VERSI || d.v === 1)) { terbaik = d; break; }
+      if (d && (d.v === SAVE_VERSI || d.v === 1 || d.v === 2)) { terbaik = d; break; }
     } catch (err) { continue; }
   }
   // Normalisasi & clamp terhadap nilai liar.
@@ -99,6 +101,20 @@ function bacaProgres() {
     ? terbaik.koinTertinggi
     : terbaik.skorTertinggi;
   n.koinTertinggi = Number.isFinite(koin) ? Math.max(0, Math.floor(koin)) : 0;
+  // Saldo koin (v3 baru; v1/v2 mulai dari 0).
+  n.koinSaldo = Number.isFinite(terbaik.koinSaldo)
+    ? Math.max(0, Math.floor(terbaik.koinSaldo))
+    : 0;
+  // Level karakter (v3), per kunci -> tak perlu deny; clamp 0..KARAKTER_LEVEL_MAX.
+  n.levelKarakter = {};
+  if (terbaik.levelKarakter && typeof terbaik.levelKarakter === "object") {
+    for (const k in terbaik.levelKarakter) {
+      const lv = terbaik.levelKarakter[k];
+      if (Number.isInteger(lv) && lv >= 0) {
+        n.levelKarakter[k] = Math.min(lv, KARAKTER_LEVEL_MAX);
+      }
+    }
+  }
   return n;
 }
 
@@ -107,6 +123,8 @@ function saveTulis() {
     v: SAVE_VERSI,
     selesai: progres.selesai,
     koinTertinggi: progres.koinTertinggi,
+    koinSaldo: progres.koinSaldo,
+    levelKarakter: progres.levelKarakter,
     t: Date.now()
   };
   const box = { d: d, sig: saveChecksum(d) };
@@ -144,8 +162,60 @@ function catatKoinTertinggi(koin) {
   }
 }
 
+// Tambahkan koin hasil run ke saldo (dipakai untuk upgrade karakter).
+function tambahKoinSaldo(koin) {
+  if (Number.isFinite(koin) && koin > 0) {
+    progres.koinSaldo += Math.floor(koin);
+    saveTulis();
+  }
+}
+
 // Reset progres (pakai di konsol kalau mau mulai bersih).
 function resetProgres() {
   progres = progresBaru();
   saveTulis();
+}
+
+// ============================================================
+// LEVEL KARAKTER & SALDO KOIN
+// Koin (koinSaldo) dikumpulkan dari tiap run dan dipakai untuk
+// menaikkan level karakter. Level karakter menaikkan HP, ATTACK,
+// dan SPEED secara persentase dari stat dasar.
+// ============================================================
+const KARAKTER_LEVEL_MAX = 20;   // level maksimal karakter
+
+// Biaya naik level: 1000 untuk level pertama, makin tinggi makin mahal.
+function biayaNaikLevelKarakter(levelSekarang) {
+  if (levelSekarang >= KARAKTER_LEVEL_MAX) return Infinity;
+  return 1000 * (levelSekarang + 1);   // naik level 0->1 = 1000, 1->2 = 2000, dst.
+}
+
+// Level saat ini dari karakter (0 = baru, belum pernah dinaikkan).
+function levelKarakter(kunci) {
+  const lv = progres.levelKarakter[kunci];
+  return Number.isInteger(lv) ? Math.min(Math.max(lv, 0), KARAKTER_LEVEL_MAX) : 0;
+}
+
+// Bonus stat sesuai level (persentase kumulatif).
+// lv=0 -> 0% ; setiap level +5% HP, +5% ATTACK, +4% SPEED.
+function bonusStatKarakter(kunci) {
+  const lv = levelKarakter(kunci);
+  return {
+    hp: 1 + 0.05 * lv,
+    damage: 1 + 0.05 * lv,
+    kecepatan: 1 + 0.04 * lv,
+    lv: lv
+  };
+}
+
+// Naikkan level karakter bila saldo cukup; kembalikan boolean sukses.
+function naikkanLevelKarakter(kunci) {
+  const lv = levelKarakter(kunci);
+  if (lv >= KARAKTER_LEVEL_MAX) return false;
+  const biaya = biayaNaikLevelKarakter(lv);
+  if (progres.koinSaldo < biaya) return false;
+  progres.koinSaldo -= biaya;
+  progres.levelKarakter[kunci] = lv + 1;
+  saveTulis();
+  return true;
 }

@@ -80,13 +80,20 @@ let hazards = [];
 
 // ---------- Setup arena ----------
 function resetArena({ koinBaru }) {
+  // Stat karakter dinaikkan sesuai level (HP/ATTACK/SPEED kenaikan progresif).
+  const bon = karakter && typeof bonusStatKarakter === "function"
+    ? bonusStatKarakter(karakter.kunci)
+    : { hp: 1, damage: 1, kecepatan: 1 };
+  const stHP = karakter ? Math.round(karakter.hp * bon.hp) : 100;
+  const stDMG = karakter ? Math.round(karakter.damage * bon.damage) : 25;
+  const stSPD = karakter ? Math.round(karakter.kecepatan * bon.kecepatan) : 180;
   player = {
     x: WORLD_W / 2,
     y: WORLD_H / 2,
     r: P_RADIUS,
-    hp: karakter ? karakter.hp : 100,
-    maxHp: karakter ? karakter.hp : 100,
-    speed: karakter ? karakter.kecepatan : 180,
+    hp: stHP,
+    maxHp: stHP,
+    speed: stSPD,
     attackCd: 0,
     specialCd: 0,
     specialMax: karakter ? karakter.specialCd : 3,
@@ -112,8 +119,8 @@ function resetArena({ koinBaru }) {
   if (typeof perbaruiNotaKartu === "function") perbaruiNotaKartu();
   player.mult = { speed: 1, damage: 1, atk: 1, reach: 1, halfA: 1, bSpeed: 1, special: 1, status: 1, hpA: 0, regen: 0, jiwa: 1, dash: 0, crit: 0, armor: 0 };
   player.base = {
-    speed: karakter ? karakter.kecepatan : 180,
-    damage: karakter ? karakter.damage : 25,
+    speed: stSPD,
+    damage: stDMG,
     attackRate: karakter ? karakter.attackRate : 0.18,
     reach: karakter ? karakter.reach : 0,
     halfArc: karakter ? karakter.halfArc : 0,
@@ -122,7 +129,7 @@ function resetArena({ koinBaru }) {
     bekuDurasi: karakter ? karakter.bekuDurasi : 1,
     burnDurasi: 3,
     specialMax: karakter ? karakter.specialCd : 3,
-    maxHp: karakter ? karakter.hp : 100,
+    maxHp: stHP,
     bulletSpeed: 840,
     dashMax: (karakter && karakter.tipe === "jarak") ? 2 : 1
   };

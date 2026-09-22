@@ -539,6 +539,22 @@ function draw() {
   // Seluruh isi DUNIA digambar dalam koordinat dunia; kamera menggesernya.
   ctx.translate(-kam.x, -kam.y);
 
+  // Layar menu (judul, pilih level, pilih karakter): latar padang TIDAK
+  // digambar — cukup polos gelap + partikel dekoratif. Padang hanya saat bermain.
+  if (statusGame === "title" || statusGame === "level" || statusGame === "select") {
+    ctx.save();
+    ctx.translate(kam.x, kam.y);
+    ctx.fillStyle = "#0a0c19";
+    ctx.fillRect(-50, -50, ctx.canvas.width + 100, ctx.canvas.height + 100);
+    ctx.restore();
+    for (const p of bgPartikels) {
+      ctx.fillStyle = "rgba(255, 210, 63, " + p.alpha + ")";
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.restore();
+    return;
+  }
+
   gambarLatar();
 
   // Animasi lingkungan map (bayangan awan, daun, hembusan angin, kilau).
@@ -547,16 +563,6 @@ function draw() {
 
   // (Batas dunia = dinding batu di-bake di buatLatarCache: statis,
   // ikut bergeser bersama tanah, tidak berkedip saat kamera digeser.)
-
-  // Layar judul, pilih level, & pilih karakter: cukup latar + partikel dekoratif.
-  if (statusGame === "title" || statusGame === "level" || statusGame === "select") {
-    for (const p of bgPartikels) {
-      ctx.fillStyle = "rgba(255, 210, 63, " + p.alpha + ")";
-      ctx.fillRect(p.x, p.y, p.size, p.size);
-    }
-    ctx.restore();
-    return;
-  }
 
   // ---------- Rendering game (status "main" / "pause" / "over") ----------
   for (const r of rings) {

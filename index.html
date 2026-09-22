@@ -97,6 +97,36 @@
             <div id="layarJudul" class="overlay">
                 <h1 class="judul-besar">SOUL ESSENCE</h1>
                 <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
+                <button id="tombolKarakter" class="tombol-abu tombol-karakter-menu">&#9733; KARAKTER</button>
+                <div id="saldoJudul" class="teks-skor"></div>
+            </div>
+
+            <!-- Layar Upgrade Karakter -->
+            <div id="layarKarakter" class="overlay hidden">
+                <h2 class="judul-pilih" style="color:#ffd23f">TINGKATKAN KARAKTER</h2>
+                <div id="saldoKarakter" class="teks-skor saldo-pojok"></div>
+
+                <!-- 1. Deretan kartu karakter (geser ke samping bila bertambah) -->
+                <div id="daftarUpgrade" class="kar-geser"></div>
+
+                <!-- 2+3+4. Isi layar: balok skill (kiri) & balok stat besar (kanan) -->
+                <div class="kar-isi">
+                    <div class="kar-kiri">
+                        <div class="balok-skill">
+                            <h3>SKILL</h3>
+                            <div id="daftarSkill" class="daftar-upgrade"></div>
+                        </div>
+                        <div class="baris-naik">
+                            <button id="tombolNaikLevel" class="tombol-hijau">NAIK LEVEL</button>
+                            <div id="levelKarakterTampil" class="lvl-tampil">LV 0/20</div>
+                        </div>
+                    </div>
+                    <div class="kar-kanan">
+                        <h3>STAT KARAKTER</h3>
+                        <div id="statKarakterIsi"></div>
+                    </div>
+                </div>
+                <button id="tombolKembaliKarakter" class="tombol-abu">&#8592; Kembali</button>
             </div>
 
             <!-- Layar Pilih Level -->

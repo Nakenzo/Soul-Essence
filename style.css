@@ -602,6 +602,288 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: scale(0.97);
 }
 
+/* Tombol KARAKTER di bawah PLAY (layar judul).
+   Gaya hijau pekat agar terlihat sebagai aksi utama kedua. */
+.tombol-karakter-menu {
+    margin-top: calc(var(--cs, 0.56) * 10px);
+    background: #1f6fb2;
+    border: 2px solid #185a8f;
+    color: #fff;
+    font-size: calc(var(--cs, 0.56) * 20px);
+    padding: calc(var(--cs, 0.56) * 10px) calc(var(--cs, 0.56) * 36px);
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    font-weight: bold;
+    font-family: "Zen Dots", "Courier New", monospace;
+    transition: all 0.15s;
+}
+
+.tombol-karakter-menu:hover {
+    background: #2a84cc;
+    transform: scale(1.05);
+}
+
+.tombol-karakter-menu:active {
+    transform: scale(0.97);
+}
+
+/* ======================== */
+/*  LAYAR UPGRADE KARAKTER  */
+/* ======================== */
+#layarKarakter {
+    box-sizing: border-box;
+    justify-content: flex-start;
+    padding: 0 calc(var(--cs, 0.56) * 16px);
+    background: #0a0c19;
+}
+
+#layarKarakter .judul-pilih {
+    color: #ffd23f;
+    flex-shrink: 0;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Saldo koin di pojok kanan-atas, di luar alur tengah. */
+#layarKarakter .saldo-pojok {
+    position: absolute;
+    top: calc(var(--cs, 0.56) * 8px);
+    right: calc(var(--cs, 0.56) * 12px);
+    margin-top: 0;
+    color: #ffd23f;
+    font-size: calc(var(--cs, 0.56) * 14px);
+    white-space: nowrap;
+}
+
+/* Deretan kartu karakter di atas: geser ke samping bila bertambah. */
+.kar-geser {
+    display: flex;
+    gap: calc(var(--cs, 0.56) * 12px);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: center;
+    width: 100%;
+    padding: calc(var(--cs, 0.56) * 6px) 0;
+    scrollbar-width: thin;
+    flex-shrink: 0;
+}
+
+.kartu-up {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--cs, 0.56) * 4px);
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 6px;
+    color: #e6edf5;
+    cursor: pointer;
+    width: calc(var(--cs, 0.56) * 90px);
+    flex-shrink: 0;
+    padding: calc(var(--cs, 0.56) * 6px);
+    font-family: "Zen Dots", "Courier New", monospace;
+    transition: all 0.15s;
+}
+
+.kartu-up canvas {
+    image-rendering: pixelated;
+    border: none;
+    background: #181a2e;
+    width: calc(var(--cs, 0.56) * 50px);
+    height: calc(var(--cs, 0.56) * 50px);
+}
+
+.kartu-up:hover {
+    background: #2a2a2a;
+    transform: scale(1.05);
+}
+
+.kartu-up.terpilih {
+    border-color: #ffd23f;
+    background: #2a2a2a;
+    box-shadow: 0 0 10px rgba(255, 210, 63, 0.35);
+}
+
+.kartu-up .nama-karakter {
+    font-size: calc(var(--cs, 0.56) * 10px);
+    white-space: nowrap;
+}
+
+/* Isi layar: balok skill (kiri) + balok stat besar (kanan).
+   Keduanya diberi flex:1 agar memenuhi lebar & tinggi layar secara pas. */
+.kar-isi {
+    display: flex;
+    gap: calc(var(--cs, 0.56) * 14px);
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    padding: calc(var(--cs, 0.56) * 10px) 0;
+}
+
+.kar-kiri,
+.kar-kanan {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.kar-kiri {
+    gap: calc(var(--cs, 0.56) * 10px);
+}
+
+/* Balok skill bergaya KARTUMU (panjang, gelap, di dalam layar). */
+.balok-skill {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 17, 31, 0.92);
+    border: 1.5px solid #333;
+    border-radius: 6px;
+    padding: calc(var(--cs, 0.56) * 12px);
+    color: #c8d6ea;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 11px);
+    line-height: 1.5;
+}
+
+.balok-skill h3 {
+    color: #ffd23f;
+    font-size: calc(var(--cs, 0.56) * 14px);
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.balok-skill .kartu-note {
+    justify-content: flex-start;
+    gap: calc(var(--cs, 0.56) * 8px);
+}
+
+.balok-skill .kartu-note .nama-karakter {
+    font-size: calc(var(--cs, 0.56) * 11px);
+}
+
+.baris-naik {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 10px);
+    justify-content: center;
+}
+
+.tombol-naik {
+    font-size: calc(var(--cs, 0.56) * 14px);
+    padding: calc(var(--cs, 0.56) * 9px) calc(var(--cs, 0.56) * 14px);
+}
+
+.tombol-naik:disabled,
+.tombol-naik.terkunci {
+    background: #444;
+    border-color: #333;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.tombol-naik:disabled:hover,
+.tombol-naik.terkunci:hover {
+    background: #444;
+    transform: none;
+}
+
+/* Tampilan level karakter di samping tombol. */
+.lvl-tampil {
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 18px);
+    color: #ffd23f;
+    font-weight: bold;
+    padding: calc(var(--cs, 0.56) * 8px) calc(var(--cs, 0.56) * 14px);
+    background: #1a1d33;
+    border: 2px solid #ffd23f;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* Balok stat besar di kanan. */
+.kar-kanan {
+    background: rgba(15, 17, 31, 0.92);
+    border: 1.5px solid #333;
+    border-radius: 6px;
+    padding: calc(var(--cs, 0.56) * 12px);
+    color: #c8d6ea;
+    font-family: "Zen Dots", "Courier New", monospace;
+    font-size: calc(var(--cs, 0.56) * 12px);
+    line-height: 1.6;
+}
+
+.kar-kanan h3 {
+    color: #7dd3fc;
+    font-size: calc(var(--cs, 0.56) * 14px);
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.stat-baris {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(var(--cs, 0.56) * 5px) calc(var(--cs, 0.56) * 8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-lbl {
+    color: #9aa7bb;
+}
+
+.stat-val {
+    color: #ffd23f;
+    font-weight: bold;
+}
+
+#layarKarakter .tombol-abu {
+    margin-top: calc(var(--cs, 0.56) * 12px);
+}
+
+#layarKarakter .teks-skor {
+    margin-top: calc(var(--cs, 0.56) * 6px);
+    color: #ffd23f;
+}
+
+@media (max-width: 720px) {
+    .kar-isi {
+        flex-direction: column;
+        align-items: center;
+        flex: none;
+        overflow-y: auto;
+    }
+    .kar-kanan {
+        flex: none;
+        width: 100%;
+        max-width: calc(var(--cs, 0.56) * 340px);
+    }
+    .kar-kiri {
+        flex: none;
+        width: 100%;
+        max-width: calc(var(--cs, 0.56) * 340px);
+    }
+    .balok-skill {
+        min-height: calc(var(--cs, 0.56) * 180px);
+    }
+    .kar-geser {
+        max-width: 100%;
+    }
+}
+
 /* ======================== */
 /*  LAYAR PILIH KARAKTER    */
 /* ======================== */

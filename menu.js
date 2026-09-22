@@ -5,6 +5,7 @@
 const layarJudul = document.getElementById("layarJudul");
 const layarLevel = document.getElementById("layarLevel");
 const layarPilih = document.getElementById("layarPilih");
+const layarKarakter = document.getElementById("layarKarakter");
 const layarGameOver = document.getElementById("layarGameOver");
 const layarMenang = document.getElementById("layarMenang");
 const layarPause = document.getElementById("layarPause");
@@ -21,7 +22,7 @@ const layarDevice = document.getElementById("layarDevice");
 const layarPutar = document.getElementById("layarPutar");
 
 // Mode HP: minta fullscreen + kunci orientasi LANDSCAPE (di browser yang
-// mendukung). Gagal bukan masalah — layar "putar perangkat" yang jalan.
+// mendukung). Gagal bukan masalah ï¿½ layar "putar perangkat" yang jalan.
 function kunciLandscapeMobile() {
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen()
@@ -62,7 +63,7 @@ layarDevice.querySelectorAll("[data-device]").forEach((b) =>
   b.addEventListener("click", () => pilihDevice(b.dataset.device)));
 
 // Nota KARTUMU tampil saat permainan berjalan (main), pemilihan kartu
-// upgrade, jeda, dan game over/menang — APA PUN di dalam permainan. Cuma
+// upgrade, jeda, dan game over/menang ï¿½ APA PUN di dalam permainan. Cuma
 // layar pra-game (judul & pilih karakter) yang menyembunyikannya. Tujuannya:
 // sidebar dipesan di susunan flex SEPANJANG sesi bermain, jadi kanvas tidak
 // pernah bergeser saat pindah layar (mis. main ? pilih kartu).
@@ -90,6 +91,7 @@ function sembunyiSemua() {
   layarJudul.classList.add("hidden");
   layarLevel.classList.add("hidden");
   layarPilih.classList.add("hidden");
+  layarKarakter.classList.add("hidden");
   layarGameOver.classList.add("hidden");
   layarPause.classList.add("hidden");
   layarMenang.classList.add("hidden");
@@ -102,9 +104,178 @@ function tampilkanJudul() {
   karakter = null;
   koin = 0;
   resetArena({ koinBaru: true });
+  segarkanSaldoJudul();
   layarJudul.classList.remove("hidden");
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
+}
+
+// Tampilkan saldo koin di layar judul (rekomendasi pengeluaran: upgrade).
+function segarkanSaldoJudul() {
+  const el = document.getElementById("saldoJudul");
+  if (!el) return;
+  const saldo = typeof progres === "object" && progres ? progres.koinSaldo : 0;
+  el.textContent = saldo > 0 ? ("KOIN TERSIMPAN: " + saldo) : "";
+}
+
+// ---------- Layar Upgrade Karakter ----------
+// Karakter yang sedang diamati di layar upgrade.
+let karakterUpgrade = null;
+
+function tampilkanKarakter() {
+  sembunyiSemua();
+  statusGame = "title";
+  if (!karakterUpgrade) {
+    // Default karakter pertama.
+    karakterUpgrade = KARAKTER[0] ? KARAKTER[0].kunci : null;
+  }
+  layarKarakter.classList.remove("hidden");
+  buatPilihanUpgrade();
+  aturTombolPause();
+  if (typeof setMusik === "function") setMusik("lobby");
+}
+
+// ---------- Layar upgrade karakter ----------
+function segarkanSaldoKarakter() {
+  const el = document.getElementById("saldoKarakter");
+  if (!el) return;
+  const saldo = typeof progres === "object" && progres ? progres.koinSaldo : 0;
+  el.textContent = "KOIN KAMU: " + saldo;
+}
+
+function buatPilihanUpgrade() {
+  const daftar = document.getElementById("daftarUpgrade");
+  if (!daftar) return;
+  daftar.innerHTML = "";
+  segarkanSaldoKarakter();
+
+  // 1) Deretan kartu karakter (di atas) â€” geser horizontal bila banyak.
+  KARAKTER.forEach((kar) => {
+    const card = document.createElement("button");
+    card.className = "kartu-up karakter-up";
+    if (kar.kunci === karakterUpgrade) card.classList.add("terpilih");
+
+    // Avatar kecil.
+    const img = typeof tekstur !== "undefined" ? tekstur[kar.kunci] : null;
+    const cv = document.createElement("canvas");
+    cv.width = 56;
+    cv.height = 56;
+    const cx = cv.getContext("2d");
+    if (img && img.width) {
+      const s = 56 / Math.max(img.width, img.height);
+      cx.imageSmoothingEnabled = s < 1;
+      cx.drawImage(img, (56 - img.width * s) / 2, (56 - img.height * s) / 2, img.width * s, img.height * s);
+    } else {
+      cx.fillStyle = "#ff8844";
+      cx.fillRect(7, 7, 42, 42);
+    }
+    card.appendChild(cv);
+
+    const nama = document.createElement("div");
+    nama.className = "nama-karakter";
+    const lvl = typeof levelKarakter === "function" ? levelKarakter(kar.kunci) : 0;
+    nama.textContent = kar.nama + " LV" + lvl;
+    card.appendChild(nama);
+
+    card.addEventListener("click", () => {
+      karakterUpgrade = kar.kunci;
+      if (typeof sfxKlik === "function") sfxKlik();
+      buatPilihanUpgrade();
+    });
+    card.addEventListener("pointerenter", () => sfxKlik && sfxKlik());
+    daftar.appendChild(card);
+  });
+
+  // Karakter aktif.
+  const kar = KARAKTER.find((k) => k.kunci === karakterUpgrade) || KARAKTER[0];
+  if (!kar) return;
+
+  const lv = typeof levelKarakter === "function" ? levelKarakter(kar.kunci) : 0;
+  const bon = typeof bonusStatKarakter === "function" ? bonusStatKarakter(kar.kunci) : { hp: 1, damage: 1, kecepatan: 1, lv: 0 };
+  const hp = Math.round(kar.hp * bon.hp);
+  const dmg = Math.round(kar.damage * bon.damage);
+  const spd = Math.round(kar.kecepatan * bon.kecepatan);
+  const max = KARAKTER_LEVEL_MAX;
+  const biaya = typeof biayaNaikLevelKarakter === "function" ? biayaNaikLevelKarakter(lv) : Infinity;
+  const cukup = typeof progres === "object" && progres && progres.koinSaldo >= biaya;
+  const penuh = lv >= max;
+
+  // 2) Balok stat besar di kanan: ATK, HP, SPEED, CRIT RATE, CRIT DMG, TYPE, ELEMENT.
+  const statEl = document.getElementById("statKarakterIsi");
+  if (statEl) {
+    const tipe = kar.tipe === "jarak" ? "JARAK JAUH" : "JARAK DEKAT";
+    const stats = [
+      { lbl: "ATTACK", nilai: dmg },
+      { lbl: "HP", nilai: hp },
+      { lbl: "SPEED", nilai: spd },
+      { lbl: "CRIT RATE", nilai: "5%" },
+      { lbl: "CRIT DMG", nilai: "150%" },
+      { lbl: "TYPE", nilai: tipe },
+      { lbl: "ELEMENT", nilai: kar.element || "-" }
+    ];
+    statEl.innerHTML = "";
+    stats.forEach((s) => {
+      const baris = document.createElement("div");
+      baris.className = "stat-baris";
+      const lbl = document.createElement("span");
+      lbl.className = "stat-lbl";
+      lbl.textContent = s.lbl;
+      const val = document.createElement("span");
+      val.className = "stat-val";
+      val.textContent = s.nilai;
+      baris.appendChild(lbl);
+      baris.appendChild(val);
+      statEl.appendChild(baris);
+    });
+  }
+
+  // 3) Balok skill (kiri) â€” 5 skill (placeholder, detail dibahas nanti).
+  const skillEl = document.getElementById("daftarSkill");
+  if (skillEl) {
+    skillEl.innerHTML = "";
+    const namaSkill = [
+      "Serangan Dasar",
+      "Jurus Khas",
+      "Skill 3",
+      "Skill 4",
+      "Skill 5"
+    ];
+    namaSkill.forEach((nm, i) => {
+      const baris = document.createElement("div");
+      baris.className = "kartu-note";
+      const bulat = document.createElement("div");
+      bulat.className = "kartu-note-bulat";
+      bulat.style.background = "rgba(255,210,63,0.18)";
+      bulat.textContent = i + 1;
+      const teks = document.createElement("span");
+      teks.className = "nama-karakter";
+      teks.textContent = nm;
+      baris.appendChild(bulat);
+      baris.appendChild(teks);
+      skillEl.appendChild(baris);
+    });
+  }
+
+  // 4) Tombol upgrade + tampilan level karakter.
+  const btn = document.getElementById("tombolNaikLevel");
+  if (btn) {
+    if (penuh) {
+      btn.textContent = "LEVEL MAKS";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "NAIK LEVEL - " + biaya + " KOIN";
+      btn.disabled = !cukup;
+    }
+    btn.classList.toggle("terkunci", !cukup && !penuh);
+    btn.onclick = () => {
+      if (typeof naikkanLevelKarakter === "function" && naikkanLevelKarakter(kar.kunci)) {
+        if (typeof sfxKlik === "function") sfxKlik();
+        buatPilihanUpgrade();  // segarkan layar
+      } else if (typeof sfxKlik === "function") sfxKlik();
+    };
+  }
+  const lvlTampil = document.getElementById("levelKarakterTampil");
+  if (lvlTampil) lvlTampil.textContent = "LV " + lv + "/" + max;
 }
 
 // ---------- Layar Pilih Level ----------
@@ -136,6 +307,7 @@ function tampilkanGameOver() {
   judulAkhirEl.textContent = "GAME OVER";
   koinAkhirEl.textContent = "KOIN: " + koin;
   if (typeof catatKoinTertinggi === "function") catatKoinTertinggi(koin);
+  if (typeof tambahKoinSaldo === "function") tambahKoinSaldo(koin);
   layarGameOver.classList.remove("hidden");
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
@@ -148,6 +320,7 @@ function tampilkanMenang() {
   koinMenangEl.textContent = "KOIN: " + koin;
   // Progres: level ini ditamatkan (membuka level berikutnya) + simpan koin.
   if (typeof tandaiLevelSelesai === "function") tandaiLevelSelesai(levelPilihan, koin);
+  if (typeof tambahKoinSaldo === "function") tambahKoinSaldo(koin);
   const teksBaru = document.getElementById("teksLevelBaru");
   if (teksBaru) {
     const nextIdx = levelPilihan + 1;
@@ -218,6 +391,8 @@ function ulangDenganKarakter() {
 // ---------- Event tombol ----------
 function pasangTombol() {
   document.getElementById("tombolPlay").addEventListener("click", tampilkanLevel);
+  document.getElementById("tombolKarakter").addEventListener("click", tampilkanKarakter);
+  document.getElementById("tombolKembaliKarakter").addEventListener("click", tampilkanJudul);
   document.getElementById("tombolKembaliJudul").addEventListener("click", tampilkanJudul);
   document.getElementById("tombolUlang").addEventListener("click", ulangDenganKarakter);
   // "Ganti karakter" langsung ke layar pemilihan karakter.
