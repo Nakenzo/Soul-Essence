@@ -204,14 +204,39 @@ function buatPilihanUpgrade() {
   const statEl = document.getElementById("statKarakterIsi");
   if (statEl) {
     const tipe = kar.tipe === "jarak" ? "JARAK JAUH" : "JARAK DEKAT";
+    // Ikon SVG kecil untuk TYPE & ELEMENT.
+    const ikonPanah = '<svg class="ikon-stat" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>';
+    const ikonPedang = '<svg class="ikon-stat" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#c8d6ea" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 4.5L19.5 19.5"/><path d="M19.5 4.5L4.5 19.5"/><path d="M15.7 18.3l3-3"/><path d="M5.7 15.7l3 3"/></svg>';
+    const ikonApi = '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="24" height="24">' +
+      '<defs><linearGradient id="gradApi" x1="0" y1="1" x2="0" y2="0">' +
+      '<stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff9100"/><stop offset="100%" stop-color="#ffee58"/>' +
+      '</linearGradient></defs>' +
+      '<path fill="url(#gradApi)" d="M13.5 1.5c.3 2.8 1.9 4.2 3.4 6.1 1.4 1.8 2.6 3.7 2.6 6.4 0 4.1-3.2 7.5-7.5 7.5S4.5 18.1 4.5 14c0-2.4 1-4.3 2.4-6.1.5 1.3 1.3 2.1 2.4 2.5-.4-3.1.5-6.3 1.8-8.4.3 1.9 1 3.1 2 3.9.6-1.5.6-3.1.4-4.4z"/>' +
+      '<path fill="#ffd54f" opacity="0.9" d="M12.2 10.5c.6 1.5 2.4 2.6 2.4 5 0 1.9-1.3 3.4-3.1 3.4s-3.1-1.5-3.1-3.4c0-1.5.8-2.6 1.7-3.6.3.9.8 1.4 1.5 1.7-.2-1.2 0-2.3.6-3.1z"/>' +
+      '</svg>';
+    const ikonEs = '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#b3e5fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M20.2 7.2L3.8 16.8"/>' +
+      '<path d="M9.9 4.6L12 5.8l2.1-1.2"/>' +
+      '<path d="M9.9 19.4L12 18.2l2.1 1.2"/>' +
+      '<path d="M17.4 6.5v2.4l2.1 1.2"/>' +
+      '<path d="M6.6 6.5v2.4l-2.1 1.2"/>' +
+      '<path d="M17.4 17.5v-2.4l2.1-1.2"/>' +
+      '<path d="M6.6 17.5v-2.4l-2.1-1.2"/>' +
+      '</svg>';
+    const ikonElemen = (el) => {
+      const e = String(el || "").toLowerCase();
+      if (e === "api") return ikonApi;
+      if (e === "es") return ikonEs;
+      return "";
+    };
     const stats = [
       { lbl: "ATTACK", nilai: dmg },
       { lbl: "HP", nilai: hp },
       { lbl: "SPEED", nilai: spd },
       { lbl: "CRIT RATE", nilai: "5%" },
       { lbl: "CRIT DMG", nilai: "150%" },
-      { lbl: "TYPE", nilai: tipe },
-      { lbl: "ELEMENT", nilai: kar.element || "-" }
+      { lbl: "TYPE", nilai: tipe, ikon: kar.tipe === "jarak" ? ikonPanah : ikonPedang },
+      { lbl: "ELEMENT", nilai: kar.element || "-", ikon: ikonElemen(kar.element) }
     ];
     statEl.innerHTML = "";
     stats.forEach((s) => {
@@ -222,7 +247,15 @@ function buatPilihanUpgrade() {
       lbl.textContent = s.lbl;
       const val = document.createElement("span");
       val.className = "stat-val";
-      val.textContent = s.nilai;
+      if (s.ikon) {
+        const wadah = document.createElement("span");
+        wadah.className = "stat-val-ikon";
+        wadah.appendChild(document.createTextNode(s.nilai + " "));
+        wadah.innerHTML += s.ikon;
+        val.appendChild(wadah);
+      } else {
+        val.textContent = s.nilai;
+      }
       baris.appendChild(lbl);
       baris.appendChild(val);
       statEl.appendChild(baris);
@@ -233,9 +266,11 @@ function buatPilihanUpgrade() {
   const skillEl = document.getElementById("daftarSkill");
   if (skillEl) {
     skillEl.innerHTML = "";
+    // Skill utama per karakter (sama dengan skill bar ingame).
+    const namaSkillJurus = kar.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
     const namaSkill = [
-      "Serangan Dasar",
-      "Jurus Khas",
+      "BASE ATTACK",
+      namaSkillJurus,
       "Skill 3",
       "Skill 4",
       "Skill 5"

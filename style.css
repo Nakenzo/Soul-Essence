@@ -748,13 +748,13 @@ body[data-device="mobile"] .bantuan-canvas {
     padding: calc(var(--cs, 0.56) * 12px);
     color: #c8d6ea;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: calc(var(--cs, 0.56) * 11px);
+    font-size: calc(var(--cs, 0.56) * 14px);
     line-height: 1.5;
 }
 
 .balok-skill h3 {
     color: #ffd23f;
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 18px);
     letter-spacing: 2px;
     text-align: center;
     border-bottom: 1px solid #333;
@@ -762,13 +762,21 @@ body[data-device="mobile"] .bantuan-canvas {
     margin-bottom: 8px;
 }
 
+.balok-skill .daftar-upgrade {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
 .balok-skill .kartu-note {
     justify-content: flex-start;
-    gap: calc(var(--cs, 0.56) * 8px);
+    gap: calc(var(--cs, 0.56) * 10px);
 }
 
 .balok-skill .kartu-note .nama-karakter {
-    font-size: calc(var(--cs, 0.56) * 11px);
+    font-size: calc(var(--cs, 0.56) * 14px);
 }
 
 .baris-naik {
@@ -819,13 +827,13 @@ body[data-device="mobile"] .bantuan-canvas {
     padding: calc(var(--cs, 0.56) * 12px);
     color: #c8d6ea;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: calc(var(--cs, 0.56) * 12px);
+    font-size: calc(var(--cs, 0.56) * 15px);
     line-height: 1.6;
 }
 
 .kar-kanan h3 {
     color: #7dd3fc;
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 18px);
     letter-spacing: 2px;
     text-align: center;
     border-bottom: 1px solid #333;
@@ -833,16 +841,37 @@ body[data-device="mobile"] .bantuan-canvas {
     margin-bottom: 8px;
 }
 
+.kar-kanan #statKarakterIsi {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
 .stat-baris {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: calc(var(--cs, 0.56) * 5px) calc(var(--cs, 0.56) * 8px);
+    padding: calc(var(--cs, 0.56) * 7px) calc(var(--cs, 0.56) * 10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: calc(var(--cs, 0.56) * 15px);
 }
 
 .stat-lbl {
     color: #9aa7bb;
+}
+
+.stat-val-ikon {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 5px);
+    justify-content: flex-end;
+}
+
+.ikon-stat {
+    flex-shrink: 0;
+    display: block;
 }
 
 .stat-val {
