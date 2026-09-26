@@ -1,24 +1,13 @@
-// ============================================================
-// CORE - variabel global, canvas, utilitas dasar.
-// Dimuat paling pertama.
-// ============================================================
-
 const W = 1280;
 const H = 960;
-// Dunia / battlefield sebenarnya: lebih luas dari layar (W×H adalah area
-// TAMPILAN/HUD). Kamera mengikuti pemain — khas arena seperti Guardian
-// Tales / Pokemon: pemain bebas roaming, layar ikut bergeser.
+
 const WORLD_W = 2560;
 const WORLD_H = 1920;
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
 
-// Posisi kamera (pojok kiri-atas dunia yang terlihat di layar). Di-set
-// tiap frame oleh hitungKamera() (draw.js) dan dipakai input untuk
-// mengubah koordinat layar → dunia.
 let kam = { x: 0, y: 0 };
 
-// Geser kamera mengikuti pemain, dijepit ke batas dunia agar tidak keluar.
 function hitungKamera() {
   const px = player ? player.x : WORLD_W / 2;
   const py = player ? player.y : WORLD_H / 2;
@@ -28,15 +17,9 @@ function hitungKamera() {
   kam.y = cy;
 }
 
-// ---------- State ----------
-// statusGame: "title" (judul) | "select" (pilih karakter) | "main" (bermain)
-//             | "upgrade" (pilih kartu antar gelombang) | "pause" | "over" (game over)
 let karakter = null;
 let statusGame = "title";
-// Perangkat pemain: "desktop" (keyboard + mouse) atau "mobile" (layar sentuh).
-// Dipilih di layar awal sebelum masuk menu utama.
-// Perangkat yang dipakai (desktop/mobile); dibaca dari simpanan agar sejak
-// awal (mis. skala bake latar) sudah tahu target perangkat.
+
 let deviceTerpilih = (() => {
   try { return localStorage.getItem("soul-essence-device"); } catch (err) { return null; }
 })();
@@ -47,40 +30,45 @@ let deathPixels = [];
 let koin, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
 
-// Sistem ultimate: musuh menjatuhkan jiwa (partikel hijau) yang diserap
-// untuk mengisi SOUL METER. Penebusan dengan tombol R (lihat skills.js).
-const SOUL_MAX = 50;
-const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5, jamur: 4, serigala: 3, semak: 6 };
+let animMati = null;
+let zoomKamera = 1;
 
-// Durasi charge tiap panah raksasa ultimate Kenzro (detik).
+function aturFilterMati(g) {
+  const cvs = document.getElementById("game");
+  if (!cvs || !cvs.style) return;
+  if (!(g > 0.01)) {
+    cvs.style.filter = "";
+    return;
+  }
+  const gg = Math.min(1, g);
+  cvs.style.filter =
+    "grayscale(" + gg.toFixed(3) +
+    ") blur(" + (gg * 2.5).toFixed(2) + "px)" +
+    " brightness(" + (1 - gg * 0.25).toFixed(3) + ")";
+}
+
+const SOUL_MAX = 50;
+const DROP_SOUL = { biasa: 3, cepet: 2, tank: 5, jamur: 4, serigala: 3, semak: 6, bos: 40 };
+
 const ULT_CHARGE = 0.8;
 
-// Kobaran api pasif ultimate Vender: bertahan selama sisa suara api (8 detik)
-// dan membakar musuh yang menyentuhnya (burn sama seperti skill Vender).
 const API_ULTI_LIFE = 8;
 
-// Zona bekupasif ultimate Kenzro: area lurus yang membekukan musuh
-// selama zona masih ada (6 detik).
 const BEKU_ZONE_LIFE = 6;
 
-// Sistem dash/menghindar (klik kanan).
-const DASH_CD = 2; // cooldown per charge (detik)
-const DASH_WAKTU = 0.18; // lama dash
-// World 1280x960: kecepatan px/detik digandakan agar terasa sama.
-const DASH_SPEED = 1240; // kecepatan dash
-const DASH_INVULN = 0.3; // kebal sejenak setelah dash
+const DASH_CD = 2;
+const DASH_WAKTU = 0.18;
 
-// Radius hitbox pemain (dunia). Dipakai untuk tabrakan DAN ukuran render sprite.
+const DASH_SPEED = 1240;
+const DASH_INVULN = 0.3;
+
 const P_RADIUS = 14;
 
-// Proyektil & area racun musuh (hutan): hidup selama level berjalan.
-// enemyShots = bola spora/larutan ditembak jamur; hazards = duri racun semak.
 let enemyShots = [];
 let hazards = [];
 
-// ---------- Setup arena ----------
 function resetArena({ koinBaru }) {
-  // Stat karakter dinaikkan sesuai level (HP/ATTACK/SPEED kenaikan progresif).
+
   const bon = karakter && typeof bonusStatKarakter === "function"
     ? bonusStatKarakter(karakter.kunci)
     : { hp: 1, damage: 1, kecepatan: 1 };
@@ -98,11 +86,11 @@ function resetArena({ koinBaru }) {
     specialCd: 0,
     specialMax: karakter ? karakter.specialCd : 3,
     specialBuff: 0,
-    // Ultimate panah raksasa (Kenzro).
+
     ultBuff: false,
     ultArrows: 0,
     ultCd: 0,
-    // Dash/menghindar (klik kanan). Kenzro punya 2 charge, Vender 1.
+
     dashMax: karakter && karakter.tipe === "jarak" ? 2 : 1,
     dashStacks: karakter && karakter.tipe === "jarak" ? 2 : 1,
     dashTimers: [],
@@ -112,12 +100,14 @@ function resetArena({ koinBaru }) {
     invuln: 0,
     hitFlash: 0,
     attackAnimT: 0,
-    dir: -1
+    dir: -1,
+    dirY: 1,
+    domVertikal: false
   };
-  // Kartu upgrade (banyak gelombang): semua bonus di-reset tiap game baru.
-  player.kartu = {};                       // { idKartu: berapaKaliDiambil }
+
+  player.kartu = {};
   if (typeof perbaruiNotaKartu === "function") perbaruiNotaKartu();
-  player.mult = { speed: 1, damage: 1, atk: 1, reach: 1, halfA: 1, bSpeed: 1, special: 1, status: 1, hpA: 0, regen: 0, jiwa: 1, dash: 0, crit: 0, armor: 0 };
+  player.mult = { speed: 1, damage: 1, atk: 1, reach: 1, halfA: 1, bSpeed: 1, special: 1, status: 1, hpA: 0, regen: 0, jiwa: 1, dash: 0, crit: 0, armor: 0, koin: 1 };
   player.base = {
     speed: stSPD,
     damage: stDMG,
@@ -150,7 +140,8 @@ function resetArena({ koinBaru }) {
   hurtVig = 0;
   deathPixels = [];
   soul = 0;
-  // Level baru selalu mulai dari wave awal level yang dipilih.
+  bossIntro = null;
+
   level = typeof levelPilihan === "number" ? waveMulaiLevel() : 0;
   levelSpawn = 0;
   tampilkanBannerLevel(level);
@@ -160,43 +151,72 @@ function resetArena({ koinBaru }) {
   gameOver = false;
   spawnTimer = 0;
   shake = 0;
+
+  animMati = null;
+  zoomKamera = 1;
+  if (typeof aturFilterMati === "function") aturFilterMati(0);
   lastTime = performance.now();
-  // Animasi lingkungan map disetel ulang mengikuti arena yang baru.
+
   if (typeof ambBuat === "function") ambBuat();
 }
 
-// ---------- Background partikel dekoratif (layar judul/pilih) ----------
 let bgPartikels = [];
 
 function buatBgPartikel() {
   bgPartikels = [];
-  for (let i = 0; i < 45; i++) {
+
+  for (let i = 0; i < 55; i++) {
+    const es = Math.random() < 0.45;
     bgPartikels.push({
+      jenis: "titik",
       x: Math.random() * W,
       y: Math.random() * H,
       size: 2 + Math.random() * 2,
-      speed: 16 + Math.random() * 24,
-      alpha: 0.15 + Math.random() * 0.4
+      speed: 16 + Math.random() * 28,
+      alpha: 0.15 + Math.random() * 0.45,
+      warna: es ? "es" : "emas",
+      fase: Math.random() * Math.PI * 2
+    });
+  }
+
+  for (let i = 0; i < 7; i++) {
+    bgPartikels.push({
+      jenis: "orb",
+      x: Math.random() * W,
+      y: Math.random() * H,
+      size: 5 + Math.random() * 7,
+      speed: 6 + Math.random() * 10,
+      alpha: 0.2 + Math.random() * 0.25,
+      warna: Math.random() < 0.5 ? "es" : "emas",
+      fase: Math.random() * Math.PI * 2,
+      drift: (Math.random() - 0.5) * 14
     });
   }
 }
 
 function updateBgPartikel(dt) {
+  const t = performance.now() / 1000;
   for (const p of bgPartikels) {
     p.y -= p.speed * dt;
-    if (p.y < -5) {
-      p.y = H + 5;
+    if (p.jenis === "orb") {
+
+      p.x += Math.sin(t * 0.7 + p.fase) * p.drift * dt;
+      p.alpha = (0.2 + 0.12 * Math.sin(t * 1.4 + p.fase)) *
+        (p.warna === "es" ? 1 : 0.9);
+    }
+    if (p.y < -12) {
+      p.y = H + 12;
       p.x = Math.random() * W;
     }
+    if (p.x < -20) p.x = W + 10;
+    if (p.x > W + 20) p.x = -10;
   }
 }
 
-// ---------- Utilitas ----------
 function dist(ax, ay, bx, by) {
   return Math.hypot(ax - bx, ay - by);
 }
 
-// Jarak titik ke ruas garis (untuk deteksi tabrakan lintasan cepat).
 function segDist(sx, sy, ex, ey, px, py) {
   const dx = ex - sx, dy = ey - sy;
   const l2 = dx * dx + dy * dy;
@@ -223,7 +243,6 @@ function spawnParticles(x, y, color, n) {
   }
 }
 
-// Teks damage melayang: kuning = damage ke musuh, merah = ke karakter.
 function spawnDamage(x, y, teks, warna) {
   damages.push({
     x: x,
@@ -235,12 +254,10 @@ function spawnDamage(x, y, teks, warna) {
   });
 }
 
-// Flash layar penuh (efek ledakan ultimate, game over, dll).
 function addFlash(warna, alpha, dur) {
   flashes.push({ warna: warna, alpha: alpha, t: 0, life: dur });
 }
 
-// ---------- Efek Pixel Disintegration ----------
 const _pixelCache = new Map();
 function sampePixelDariSprite(img, skala) {
   try {

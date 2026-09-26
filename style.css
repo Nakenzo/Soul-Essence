@@ -1,5 +1,3 @@
-﻿/* Font pixel self-host: Zen Dots (teknologi futuristik, runcing) — file lokal
-   agar pasti tampil tanpa bergantung CDN (termasuk saat sudah di GitHub Pages). */
 @font-face {
     font-family: "Zen Dots";
     src: url("assets/fonts/ZenDots.woff2") format("woff2");
@@ -38,7 +36,6 @@ body {
     padding: 5px;
 }
 
-/* Catatan upgrade di luar area game (sebelah kiri) */
 .ruangan-utama {
     display: flex;
     align-items: stretch;
@@ -119,8 +116,7 @@ body {
     height: calc(var(--cs, 0.56) * 30px);
     border-radius: 50%;
     font-size: calc(var(--cs, 0.56) * 17px);
-    /* Logo putih tebal berlatar warna tier: garis tepi gelap + bayangan
-       bikin setiap ikon jelas terbedakan meski polos. */
+
     color: #fff;
     font-weight: 900;
     -webkit-text-stroke: 1.2px #0c0f1e;
@@ -128,7 +124,6 @@ body {
     flex-shrink: 0;
 }
 
-/* Lencana jumlah kartu yang ditumpuk (pojok kanan-atas logo). */
 .kartu-note-jml {
     position: absolute;
     top: -7px;
@@ -161,8 +156,6 @@ canvas {
     aspect-ratio: 4 / 3;
 }
 
-/* Mode HP: kanvas GAME memakai hampir seluruh layar. Hanya canvas#game —
-   jangan menimpa kanvas lain (ikon tombol sentuh, preview kartu karakter). */
 body[data-device="mobile"] canvas#game {
     width: min(100vw, calc(100dvh * 4 / 3));
     border: none;
@@ -177,8 +170,6 @@ body[data-device="mobile"] canvas#game {
     }
 }
 
-/* Sekaligus di mode HP: sembunyikan sidebar KARTUMU + rapikan pembungkus
-   supaya kanvas benar-benar lebar; latar menyatu dengan warna arena. */
 body[data-device="mobile"] .ruangan-utama {
     gap: 0;
     padding: 0;
@@ -189,9 +180,6 @@ body[data-device="mobile"] .kotak-game {
     gap: 0;
 }
 
-/* Mode HP: nota KARTUMU jadi OVERLAY di area letterbox kiri (tidak
-   memakan lebar kanvas, jadi game tetap full landscape) dan menunggu
-   keluar posisi alur flex. */
 body[data-device="mobile"] #notaKartu {
     position: fixed;
     top: 8px;
@@ -214,9 +202,6 @@ body[data-device="mobile"] {
     line-height: 0;
 }
 
-/* ======================== */
-/*  OVERLAY (semua layar)   */
-/* ======================== */
 .overlay {
     position: absolute;
     top: 0;
@@ -237,15 +222,11 @@ body[data-device="mobile"] {
     display: none;
 }
 
-/* Overlay pause: tembus pandang agar adegan beku tetap terlihat */
 .overlay-beku {
     background: rgba(10, 12, 25, 0.45);
     backdrop-filter: blur(0.5px);
 }
 
-/* ======================== */
-/*  LAYAR AWAL: pilih perangkat */
-/* ======================== */
 .layar-awal {
     position: absolute;
     inset: 0;
@@ -268,8 +249,6 @@ body[data-device="mobile"] {
     margin-bottom: 0.5%;
 }
 
-/* Judul & deskripsi layar pilih perangkat: teks cukup panjang, atur agar
-   wrap rapi dan tidak saling menumpuk. */
 #layarDevice h1 {
     font-size: calc(var(--cs, 0.56) * 30px);
     line-height: 1.25;
@@ -326,9 +305,6 @@ body[data-device="mobile"] {
     text-align: center;
 }
 
-/* ======================== */
-/*  LAYAR PUTAR PERANGKAT   */
-/* ======================== */
 .layar-putar {
     position: absolute;
     inset: 0;
@@ -346,9 +322,6 @@ body[data-device="mobile"] {
     display: flex;
 }
 
-/* ======================== */
-/*  KONTROL SENTUH (mode HP) */
-/* ======================== */
 #kontrolSentuh {
     position: absolute;
     inset: 0;
@@ -361,11 +334,9 @@ body[data-device="mobile"] {
     pointer-events: auto;
 }
 
-/* Joystick gerak: TETAP di pojok kiri bawah. Ukuran mengikuti skala kanvas
-   (--cs), bukan lebar layar, jadi proporsional dengan area game. */
 .joy-basis {
     position: absolute;
-    /* Menempel ke POJOK KIRI layar HP, tapi sedikit masuk (tidak mepet) */
+
     left: calc((100vw - var(--cw, 0px)) / -2 + 52px);
     bottom: 40px;
     width: calc(var(--cs, 0.56) * 190px);
@@ -389,8 +360,6 @@ body[data-device="mobile"] {
     pointer-events: none;
 }
 
-/* Kluster tombol aksi: menempel ke POJOK KANAN layar HP. Area sengaja
-   dibuat lebih luas agar tombol bisa tersebar tanpa bertumpukan. */
 .tombol-sentuh-grup {
     position: absolute;
     right: calc((100vw - var(--cw, 0px)) / -2 + 10px);
@@ -425,7 +394,6 @@ body[data-device="mobile"] {
     pointer-events: none;
 }
 
-/* SERANG: tombol paling besar, di pojok kanan-bawah */
 .tombol-serang {
     left: 56%;
     top: 68%;
@@ -434,8 +402,6 @@ body[data-device="mobile"] {
     border-color: rgba(255, 255, 255, 0.55);
 }
 
-/* Knob joystick bidik (twin-stick) di dalam tombol serang: melayang saat
-   jempol menggeser arah tembakan, Kembali ke tengah saat dilepas/ini. */
 .serang-knob {
     position: absolute;
     top: 50%;
@@ -451,8 +417,6 @@ body[data-device="mobile"] {
     z-index: 1;
 }
 
-/* Mode AUTO AIM (kartu legend): joystick bidik dinonaktifkan — knob
-   disembunyikan, tombol serang berubah jadi tombol biasa berbinar emas. */
 #tombolSerang.mode-aim .serang-knob {
     display: none;
 }
@@ -465,8 +429,6 @@ body[data-device="mobile"] {
     transform: translate(-50%, -50%) scale(0.94);
 }
 
-/* DASH & SKILL: lebih besar dan TERPISAH dari tombol serang —
-   menempati kolom kiri (dash di atas, skill di bawah). */
 .tombol-dash {
     left: 18%;
     top: 22%;
@@ -481,9 +443,6 @@ body[data-device="mobile"] {
     height: calc(var(--cs, 0.56) * 130px);
 }
 
-/* ULTIMATE = BAR SOUL METER itu sendiri (canvas) — overlay tepat di atasnya.
-   Ibar bar: kanvas SOUL METER bawah tengah (bx 33%, by 86.5%, lebar 34%,
-   tinggi 4.5%); overlay sengaja lebih besar sedikit biar mudah ditekan. */
 .tombol-ult {
     left: 31%;
     top: 84%;
@@ -514,7 +473,6 @@ body[data-device="mobile"] {
     transform: translate(-50%, -50%) scale(0.94);
 }
 
-/* Hanya tampil bila pemain memilih HP / TABLET */
 body[data-device="mobile"] #kontrolSentuh {
     display: block;
 }
@@ -523,14 +481,10 @@ body[data-device="mobile"] canvas {
     touch-action: none;
 }
 
-/* Di HP, petunjuk keyboard (WASD dll) tidak relevan */
 body[data-device="mobile"] .bantuan-canvas {
     display: none;
 }
 
-/* ======================== */
-/*  TOMBOL PAUSE (ingame)   */
-/* ======================== */
 .tombol-pause {
     position: absolute;
     top: 1.2%;
@@ -553,13 +507,14 @@ body[data-device="mobile"] .bantuan-canvas {
     border-color: #4ade80;
 }
 
+.grup-tombol .hidden {
+    display: none;
+}
+
 .tombol-pause.hidden {
     display: none;
 }
 
-/* ======================== */
-/*  LAYAR JUDUL             */
-/* ======================== */
 .judul-besar {
     color: #4ade80;
     font-size: calc(var(--cs, 0.56) * 52px);
@@ -570,6 +525,493 @@ body[data-device="mobile"] .bantuan-canvas {
     text-shadow: 2px 2px 0 #052e16;
 }
 
+#layarJudul {
+    background: linear-gradient(
+        180deg,
+        rgba(7, 9, 18, 0.55) 0%,
+        rgba(10, 12, 25, 0.35) 45%,
+        rgba(13, 18, 36, 0.6) 100%
+    );
+}
+
+#layarJudul .tepi-aksen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.dekor-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.dekor-bg .jalur-aura {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.8;
+    will-change: transform, opacity;
+    animation: goyangJalur 9s ease-in-out var(--delay, 0s) infinite alternate;
+}
+
+.dekor-bg .jalur-aura path {
+    fill: none;
+    stroke-linecap: butt;
+}
+
+.dekor-bg .jalur-aura .au-green {
+    stroke: rgba(180, 255, 215, 1);
+    stroke-width: 1.1;
+    stroke-dasharray: 26 300;
+    stroke-dashoffset: 326;
+    animation: alirJalur var(--dur, 14s) linear infinite;
+}
+
+.dekor-bg .jalur-aura .au-core {
+    stroke: rgba(255, 255, 255, 0.95);
+    stroke-width: 0.4;
+    stroke-dasharray: 10 316;
+    stroke-dashoffset: 326;
+    animation: alirJalur var(--dur, 14s) linear infinite;
+}
+
+@keyframes alirJalur {
+    from { stroke-dashoffset: 326; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes goyangJalur {
+    0% { transform: translate3d(-2%, -1%, 0) scale(1); opacity: 0.4; }
+    100% { transform: translate3d(2%, 1.5%, 0) scale(1.03); opacity: 0.65; }
+}
+
+.dekor-bg .star-fall {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: 240px;
+    height: 5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ffffff 0%, rgba(160, 255, 215, 0.95) 22%, rgba(74, 222, 128, 0.5) 55%, rgba(74, 222, 128, 0) 100%);
+    filter: drop-shadow(0 0 10px rgba(140, 255, 205, 0.9));
+    transform: rotate(132deg);
+    opacity: 0;
+    animation: lintasBintang var(--dur, 4.5s) linear var(--delay, 0s) infinite;
+}
+
+.dekor-bg .star-fall::before {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: -5px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, rgba(190, 255, 225, 0.9) 45%, rgba(74, 222, 128, 0) 70%);
+    filter: drop-shadow(0 0 8px rgba(180, 255, 220, 0.95));
+}
+
+@keyframes lintasBintang {
+    0% { opacity: 0; translate: 0 0; }
+    7% { opacity: 1; }
+    100% { opacity: 0; translate: var(--a, -240px) var(--b, 200px); }
+}
+
+#layarJudul .tepi {
+    position: absolute;
+    display: block;
+}
+
+#layarJudul .garis-atas,
+#layarJudul .garis-bawah {
+    left: 4%;
+    right: 4%;
+    height: max(1px, calc(var(--cs, 0.56) * 2px));
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(74, 222, 128, 0.55) 12%,
+        rgba(167, 243, 208, 0.25) 50%,
+        rgba(74, 222, 128, 0.55) 88%,
+        transparent 100%
+    );
+    animation: tepiPulse 4.5s ease-in-out infinite;
+}
+
+#layarJudul .garis-atas { top: 1.5%; }
+#layarJudul .garis-bawah { bottom: 1.5%; animation-delay: 1.2s; }
+
+#layarJudul .garis-kiri,
+#layarJudul .garis-kanan {
+    top: 8%;
+    bottom: 8%;
+    width: max(1px, calc(var(--cs, 0.56) * 2px));
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(74, 222, 128, 0.5) 14%,
+        rgba(167, 243, 208, 0.22) 50%,
+        rgba(74, 222, 128, 0.5) 86%,
+        transparent 100%
+    );
+    animation: tepiPulse 4.5s ease-in-out 0.6s infinite;
+}
+
+#layarJudul .garis-kiri { left: 1.5%; }
+#layarJudul .garis-kanan { right: 1.5%; animation-delay: 1.8s; }
+
+#layarJudul .sudut {
+    position: absolute;
+    width: calc(var(--cs, 0.56) * 18px);
+    height: calc(var(--cs, 0.56) * 18px);
+    border: max(1px, calc(var(--cs, 0.56) * 2px)) solid rgba(74, 222, 128, 0.65);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.35), inset 0 0 6px rgba(74, 222, 128, 0.15);
+    animation: sudutGlow 3.8s ease-in-out infinite;
+}
+
+#layarJudul .sudut::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--cs, 0.56) * 6px);
+    height: calc(var(--cs, 0.56) * 6px);
+    background: #a7f3d0;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.9);
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+#layarJudul .sudut-tl {
+    top: 2.2%;
+    left: 2.2%;
+    border-right: none;
+    border-bottom: none;
+    animation-delay: 0s;
+}
+#layarJudul .sudut-tr {
+    top: 2.2%;
+    right: 2.2%;
+    border-left: none;
+    border-bottom: none;
+    animation-delay: 0.5s;
+}
+#layarJudul .sudut-bl {
+    bottom: 2.2%;
+    left: 2.2%;
+    border-right: none;
+    border-top: none;
+    animation-delay: 1s;
+}
+#layarJudul .sudut-br {
+    bottom: 2.2%;
+    right: 2.2%;
+    border-left: none;
+    border-top: none;
+    animation-delay: 1.5s;
+}
+
+#layarJudul .denyut {
+    position: absolute;
+    pointer-events: none;
+}
+
+#layarJudul .denyut-t,
+#layarJudul .denyut-b {
+    left: 50%;
+    width: 28%;
+    height: calc(var(--cs, 0.56) * 40px);
+    transform: translateX(-50%);
+    background: radial-gradient(
+        ellipse at center,
+        rgba(74, 222, 128, 0.22) 0%,
+        rgba(74, 222, 128, 0.08) 45%,
+        transparent 70%
+    );
+    animation: tepiDenyut 5s ease-in-out infinite;
+}
+#layarJudul .denyut-t { top: -2%; }
+#layarJudul .denyut-b { bottom: -2%; animation-delay: 2.5s; }
+
+#layarJudul .denyut-l,
+#layarJudul .denyut-r {
+    top: 50%;
+    width: calc(var(--cs, 0.56) * 48px);
+    height: 32%;
+    transform: translateY(-50%);
+    background: radial-gradient(
+        ellipse at center,
+        rgba(74, 222, 128, 0.18) 0%,
+        rgba(74, 222, 128, 0.06) 45%,
+        transparent 70%
+    );
+    animation: tepiDenyut 5s ease-in-out 1.25s infinite;
+}
+#layarJudul .denyut-l { left: -2%; }
+#layarJudul .denyut-r { right: -2%; animation-delay: 3.75s; }
+
+@keyframes tepiPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.85; }
+}
+
+@keyframes sudutGlow {
+    0%, 100% {
+        opacity: 0.45;
+        box-shadow: 0 0 6px rgba(74, 222, 128, 0.25), inset 0 0 4px rgba(74, 222, 128, 0.1);
+    }
+    50% {
+        opacity: 0.95;
+        box-shadow: 0 0 14px rgba(74, 222, 128, 0.55), inset 0 0 10px rgba(74, 222, 128, 0.25);
+    }
+}
+
+@keyframes tepiDenyut {
+    0%, 100% { opacity: 0.35; transform: translateX(-50%) scale(0.92); }
+    50% { opacity: 0.8; transform: translateX(-50%) scale(1.05); }
+}
+
+#layarJudul .denyut-l,
+#layarJudul .denyut-r {
+    animation-name: tepiDenyutY;
+}
+
+@keyframes tepiDenyutY {
+    0%, 100% { opacity: 0.3; transform: translateY(-50%) scale(0.92); }
+    50% { opacity: 0.7; transform: translateY(-50%) scale(1.05); }
+}
+
+#layarJudul .judul-logo {
+    margin: 0 0 1.2% 0;
+    line-height: 0;
+    border: none;
+    background: none;
+    text-shadow: none;
+    font-size: 0;
+}
+
+#layarJudul .logo-stack {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    animation: logoFloat 3.6s ease-in-out infinite;
+}
+
+#layarJudul .logo-aura {
+    position: absolute;
+    left: -6%;
+    top: -28%;
+    width: 112%;
+    height: 156%;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: screen;
+    animation: auraBreath 2.6s ease-in-out infinite;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+#layarJudul .img-logo {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: calc(var(--cs, 0.56) * 860px);
+    max-width: 98vw;
+    height: auto;
+    filter: drop-shadow(0 3px 0 rgba(1, 12, 14, 0.85))
+        drop-shadow(0 0 10px rgba(74, 222, 128, 0.35));
+    animation: logoGlow 2.8s ease-in-out infinite;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+#layarJudul .sparkles {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: visible;
+}
+
+#layarJudul .kilat {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: calc(var(--cs, 0.56) * var(--kw, 18) * 1px);
+    height: calc(var(--cs, 0.56) * var(--kw, 18) * 1px);
+    transform: translate(-50%, -50%);
+    opacity: 0.25;
+    animation: kilatFlash 1.9s ease-in-out var(--d, 0s) infinite;
+    will-change: opacity, transform;
+}
+
+#layarJudul .kilat::before,
+#layarJudul .kilat::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, transparent, #d8ffe8 30%, #fff 50%, #d8ffe8 70%, transparent);
+    box-shadow: 0 0 6px rgba(140, 255, 170, 0.95), 0 0 14px rgba(74, 222, 128, 0.6);
+}
+
+#layarJudul .kilat::before {
+    width: 100%;
+    height: max(2px, calc(var(--cs, 0.56) * 2px));
+}
+
+#layarJudul .kilat::after {
+    width: max(2px, calc(var(--cs, 0.56) * 2px));
+    height: 100%;
+    background: linear-gradient(180deg, transparent, #d8ffe8 30%, #fff 50%, #d8ffe8 70%, transparent);
+}
+
+#layarJudul .kilat.sz8 { --kw: 28; }
+#layarJudul .kilat.sz7 { --kw: 24; }
+#layarJudul .kilat.sz6 { --kw: 20; }
+#layarJudul .kilat.sz5 { --kw: 16; }
+#layarJudul .kilat.sz4 { --kw: 13; }
+
+#layarJudul .kilat.debu {
+    --kw: 5;
+    animation-name: debuFlick;
+    animation-duration: 2.4s;
+}
+
+#layarJudul .kilat.debu::before,
+#layarJudul .kilat.debu::after {
+    box-shadow: 0 0 4px rgba(140, 255, 170, 0.8);
+}
+
+@keyframes kilatFlash {
+    0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(0.55); }
+    8% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    18% { opacity: 0.45; transform: translate(-50%, -50%) scale(0.85); }
+    28% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.05); }
+    45% { opacity: 0.2; transform: translate(-50%, -50%) scale(0.7); }
+    60% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    75% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.6); }
+}
+
+@keyframes debuFlick {
+    0%, 100% { opacity: 0.05; transform: translate(-50%, -50%) scale(0.4); }
+    12% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.15); }
+    30% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.55); }
+    50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    70% { opacity: 0.08; transform: translate(-50%, -50%) scale(0.45); }
+}
+
+@keyframes auraBreath {
+    0%, 100% { opacity: 0.32; transform: scale(0.96); }
+    50% { opacity: 0.78; transform: scale(1.05); }
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(var(--cs, 0.56) * -4px)); }
+}
+
+@keyframes logoGlow {
+    0%, 100% { filter: drop-shadow(0 3px 0 rgba(1, 12, 14, 0.85))
+        drop-shadow(0 0 8px rgba(74, 222, 128, 0.35)); }
+    50% { filter: drop-shadow(0 3px 0 rgba(1, 12, 14, 0.85))
+        drop-shadow(0 0 22px rgba(74, 222, 128, 0.75))
+        drop-shadow(0 0 40px rgba(134, 239, 172, 0.4)); }
+}
+
+#layarJudul .orn-line {
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    top: 52%;
+    height: max(1px, calc(var(--cs, 0.56) * 2px));
+    transform: translateY(-50%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(74, 222, 128, 0.75) 18%,
+        rgba(167, 243, 208, 0.95) 38%,
+        transparent 44%,
+        transparent 56%,
+        rgba(167, 243, 208, 0.95) 62%,
+        rgba(74, 222, 128, 0.75) 82%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.7;
+    animation: ornLinePulse 3.2s ease-in-out infinite;
+}
+
+#layarJudul .orn-line::before,
+#layarJudul .orn-line::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: max(6px, calc(var(--cs, 0.56) * 10px));
+    height: max(6px, calc(var(--cs, 0.56) * 10px));
+    background: #a7f3d0;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.9);
+    transform: translateY(-50%) rotate(45deg);
+    opacity: 0.85;
+}
+
+#layarJudul .orn-line::before { left: 8%; }
+#layarJudul .orn-line::after { right: 8%; }
+
+#layarJudul .orn-cross {
+    position: absolute;
+    left: 50%;
+    top: -18%;
+    bottom: -18%;
+    width: max(1px, calc(var(--cs, 0.56) * 2px));
+    transform: translateX(-50%);
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(74, 222, 128, 0.0) 12%,
+        rgba(167, 243, 208, 0.9) 28%,
+        transparent 42%,
+        transparent 58%,
+        rgba(167, 243, 208, 0.9) 72%,
+        rgba(74, 222, 128, 0.0) 88%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+    animation: ornLinePulse 3.2s ease-in-out 0.4s infinite;
+}
+
+#layarJudul .orn-cross::before,
+#layarJudul .orn-cross::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: max(8px, calc(var(--cs, 0.56) * 14px));
+    height: max(8px, calc(var(--cs, 0.56) * 14px));
+    background: #d8ffe8;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 1), 0 0 20px rgba(167, 243, 208, 0.7);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+#layarJudul .orn-cross::before { top: 6%; }
+#layarJudul .orn-cross::after { bottom: 6%; }
+
+@keyframes ornLinePulse {
+    0%, 100% { opacity: 0.3; filter: brightness(0.9); }
+    50% { opacity: 0.8; filter: brightness(1.4); }
+}
+
 .sub-judul {
     color: #b8c6d8;
     font-size: calc(var(--cs, 0.56) * 16px);
@@ -577,10 +1019,9 @@ body[data-device="mobile"] .bantuan-canvas {
     letter-spacing: 1px;
 }
 
-/* Tombol PLAY di layar judul */
 .tombol-play {
     margin-top: 2%;
-    background: #3aaa35;
+    background: linear-gradient(180deg, #3aaa35 0%, #2d8a28 100%);
     color: #fff;
     font-size: calc(var(--cs, 0.56) * 28px);
     padding: calc(var(--cs, 0.56) * 12px) calc(var(--cs, 0.56) * 50px);
@@ -591,19 +1032,56 @@ body[data-device="mobile"] .bantuan-canvas {
     font-weight: bold;
     font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+    animation: playGlow 2.2s ease-in-out infinite;
+    box-shadow: 0 0 14px rgba(58, 170, 53, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.tombol-play::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.22) 50%,
+        transparent 100%
+    );
+    transform: skewX(-20deg);
+    animation: playShine 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes playGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(58, 170, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+    50% { box-shadow: 0 0 22px rgba(69, 199, 62, 0.55),
+        0 0 40px rgba(69, 199, 62, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18); }
+}
+
+@keyframes playShine {
+    0%, 55% { left: -80%; }
+    85%, 100% { left: 130%; }
 }
 
 .tombol-play:hover {
-    background: #45c73e;
+    background: linear-gradient(180deg, #45c73e 0%, #3aaa35 100%);
     transform: scale(1.05);
+    animation-play-state: paused;
+    box-shadow: 0 0 26px rgba(69, 199, 62, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .tombol-play:active {
     transform: scale(0.97);
 }
 
-/* Tombol KARAKTER di bawah PLAY (layar judul).
-   Gaya hijau pekat agar terlihat sebagai aksi utama kedua. */
 .tombol-karakter-menu {
     margin-top: calc(var(--cs, 0.56) * 10px);
     background: #1f6fb2;
@@ -628,9 +1106,6 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: scale(0.97);
 }
 
-/* ======================== */
-/*  LAYAR UPGRADE KARAKTER  */
-/* ======================== */
 #layarKarakter {
     box-sizing: border-box;
     justify-content: flex-start;
@@ -640,23 +1115,22 @@ body[data-device="mobile"] .bantuan-canvas {
 
 #layarKarakter .judul-pilih {
     color: #ffd23f;
+    font-size: calc(var(--cs, 0.56) * 40px);
     flex-shrink: 0;
     margin: 0;
     line-height: 1.2;
 }
 
-/* Saldo koin di pojok kanan-atas, di luar alur tengah. */
 #layarKarakter .saldo-pojok {
     position: absolute;
     top: calc(var(--cs, 0.56) * 8px);
     right: calc(var(--cs, 0.56) * 12px);
     margin-top: 0;
     color: #ffd23f;
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 18px);
     white-space: nowrap;
 }
 
-/* Deretan kartu karakter di atas: geser ke samping bila bertambah. */
 .kar-geser {
     display: flex;
     gap: calc(var(--cs, 0.56) * 12px);
@@ -680,9 +1154,9 @@ body[data-device="mobile"] .bantuan-canvas {
     border-radius: 6px;
     color: #e6edf5;
     cursor: pointer;
-    width: calc(var(--cs, 0.56) * 90px);
+    width: calc(var(--cs, 0.56) * 118px);
     flex-shrink: 0;
-    padding: calc(var(--cs, 0.56) * 6px);
+    padding: calc(var(--cs, 0.56) * 8px);
     font-family: "Zen Dots", "Courier New", monospace;
     transition: all 0.15s;
 }
@@ -691,8 +1165,8 @@ body[data-device="mobile"] .bantuan-canvas {
     image-rendering: pixelated;
     border: none;
     background: #181a2e;
-    width: calc(var(--cs, 0.56) * 50px);
-    height: calc(var(--cs, 0.56) * 50px);
+    width: calc(var(--cs, 0.56) * 74px);
+    height: calc(var(--cs, 0.56) * 74px);
 }
 
 .kartu-up:hover {
@@ -707,12 +1181,10 @@ body[data-device="mobile"] .bantuan-canvas {
 }
 
 .kartu-up .nama-karakter {
-    font-size: calc(var(--cs, 0.56) * 10px);
+    font-size: calc(var(--cs, 0.56) * 17px);
     white-space: nowrap;
 }
 
-/* Isi layar: balok skill (kiri) + balok stat besar (kanan).
-   Keduanya diberi flex:1 agar memenuhi lebar & tinggi layar secara pas. */
 .kar-isi {
     display: flex;
     gap: calc(var(--cs, 0.56) * 14px);
@@ -736,7 +1208,6 @@ body[data-device="mobile"] .bantuan-canvas {
     gap: calc(var(--cs, 0.56) * 10px);
 }
 
-/* Balok skill bergaya KARTUMU (panjang, gelap, di dalam layar). */
 .balok-skill {
     flex: 1;
     min-height: 0;
@@ -748,13 +1219,13 @@ body[data-device="mobile"] .bantuan-canvas {
     padding: calc(var(--cs, 0.56) * 12px);
     color: #c8d6ea;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 16px);
     line-height: 1.5;
 }
 
 .balok-skill h3 {
     color: #ffd23f;
-    font-size: calc(var(--cs, 0.56) * 18px);
+    font-size: calc(var(--cs, 0.56) * 20px);
     letter-spacing: 2px;
     text-align: center;
     border-bottom: 1px solid #333;
@@ -775,8 +1246,23 @@ body[data-device="mobile"] .bantuan-canvas {
     gap: calc(var(--cs, 0.56) * 10px);
 }
 
+.balok-skill .kartu-note-bulat {
+    min-width: calc(var(--cs, 0.56) * 64px);
+    width: calc(var(--cs, 0.56) * 64px);
+    height: calc(var(--cs, 0.56) * 64px);
+}
+
+.balok-skill .kartu-note-bulat svg {
+    width: calc(var(--cs, 0.56) * 48px);
+    height: calc(var(--cs, 0.56) * 48px);
+}
+
 .balok-skill .kartu-note .nama-karakter {
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 16px);
+}
+
+.balok-skill .kartu-note.skill-terkunci .nama-karakter {
+    color: #8a93a5;
 }
 
 .baris-naik {
@@ -806,7 +1292,6 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: none;
 }
 
-/* Tampilan level karakter di samping tombol. */
 .lvl-tampil {
     font-family: "Zen Dots", "Courier New", monospace;
     font-size: calc(var(--cs, 0.56) * 18px);
@@ -819,7 +1304,6 @@ body[data-device="mobile"] .bantuan-canvas {
     white-space: nowrap;
 }
 
-/* Balok stat besar di kanan. */
 .kar-kanan {
     background: rgba(15, 17, 31, 0.92);
     border: 1.5px solid #333;
@@ -827,13 +1311,13 @@ body[data-device="mobile"] .bantuan-canvas {
     padding: calc(var(--cs, 0.56) * 12px);
     color: #c8d6ea;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: calc(var(--cs, 0.56) * 15px);
+    font-size: calc(var(--cs, 0.56) * 17px);
     line-height: 1.6;
 }
 
 .kar-kanan h3 {
     color: #7dd3fc;
-    font-size: calc(var(--cs, 0.56) * 18px);
+    font-size: calc(var(--cs, 0.56) * 20px);
     letter-spacing: 2px;
     text-align: center;
     border-bottom: 1px solid #333;
@@ -855,7 +1339,7 @@ body[data-device="mobile"] .bantuan-canvas {
     align-items: center;
     padding: calc(var(--cs, 0.56) * 7px) calc(var(--cs, 0.56) * 10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: calc(var(--cs, 0.56) * 15px);
+    font-size: calc(var(--cs, 0.56) * 17px);
 }
 
 .stat-lbl {
@@ -872,6 +1356,11 @@ body[data-device="mobile"] .bantuan-canvas {
 .ikon-stat {
     flex-shrink: 0;
     display: block;
+}
+
+.stat-val-ikon svg {
+    width: calc(var(--cs, 0.56) * 40px);
+    height: calc(var(--cs, 0.56) * 40px);
 }
 
 .stat-val {
@@ -913,9 +1402,6 @@ body[data-device="mobile"] .bantuan-canvas {
     }
 }
 
-/* ======================== */
-/*  LAYAR PILIH KARAKTER    */
-/* ======================== */
 #layarPilih h2 {
     color: #7dd3fc;
     font-size: calc(var(--cs, 0.56) * 40px);
@@ -938,7 +1424,6 @@ body[data-device="mobile"] .bantuan-canvas {
     padding: 0 1%;
 }
 
-/* Jarak lebih renggang antara judul PILIH KARAKTER dan deretan kartu. */
 #layarPilih .tombol-karakter {
     margin-top: calc(var(--cs, 0.56) * 22px);
 }
@@ -947,8 +1432,8 @@ body[data-device="mobile"] .bantuan-canvas {
     background: #222;
     border: 2px solid #555;
     color: #e6edf5;
-    padding: calc(var(--cs, 0.56) * 6px);
-    width: calc(var(--cs, 0.56) * 90px);
+    padding: calc(var(--cs, 0.56) * 8px);
+    width: calc(var(--cs, 0.56) * 118px);
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s;
@@ -962,8 +1447,8 @@ body[data-device="mobile"] .bantuan-canvas {
     border: none;
     background: #181a2e;
     image-rendering: pixelated;
-    width: calc(var(--cs, 0.56) * 50px);
-    height: calc(var(--cs, 0.56) * 50px);
+    width: calc(var(--cs, 0.56) * 74px);
+    height: calc(var(--cs, 0.56) * 74px);
 }
 
 .kartu-karakter:hover {
@@ -977,27 +1462,23 @@ body[data-device="mobile"] .bantuan-canvas {
 }
 
 .nama-karakter {
-    font-size: calc(var(--cs, 0.56) * 14px);
+    font-size: calc(var(--cs, 0.56) * 18px);
     font-weight: bold;
     margin-top: 4px;
 }
 
-/* Info status karakter (di bawah kartu) — tampil saat kartu di-hover.
-   AREA selalu dialokasikan (height tetap) dan hanya visibilitasnya yang
-   berubah, agar muncul/hilang panel TIDAK menggeser layout (mencegah
-   kedap-kedip saat pointer melintas). */
 .info-karakter {
     box-sizing: border-box;
-    height: calc(var(--cs, 0.56) * 150px);
-    width: calc(var(--cs, 0.56) * 260px);
+    height: calc(var(--cs, 0.56) * 180px);
+    width: calc(var(--cs, 0.56) * 300px);
     margin-top: calc(var(--cs, 0.56) * 10px);
     padding: calc(var(--cs, 0.56) * 10px) calc(var(--cs, 0.56) * 20px);
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.85);
     border: 1px solid #555;
     border-radius: 6px;
     color: #e6edf5;
     font-family: "Zen Dots", "Courier New", monospace;
-    font-size: calc(var(--cs, 0.56) * 15px);
+    font-size: calc(var(--cs, 0.56) * 17px);
     letter-spacing: 1px;
     text-align: left;
     display: flex;
@@ -1021,9 +1502,17 @@ body[data-device="mobile"] .bantuan-canvas {
     color: #ffd23f;
 }
 
-/* ======================== */
-/*  LAYAR PILIH LEVEL       */
-/* ======================== */
+.info-karakter .info-baris {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 6px);
+}
+
+.info-karakter .ikon-stat {
+    width: calc(var(--cs, 0.56) * 46px);
+    height: calc(var(--cs, 0.56) * 46px);
+}
+
 #layarLevel h2 {
     color: #7dd3fc;
     font-size: calc(var(--cs, 0.56) * 40px);
@@ -1032,7 +1521,6 @@ body[data-device="mobile"] .bantuan-canvas {
     white-space: nowrap;
 }
 
-/* Grid kartu level: tampil horizontal (wrap) bila ada beberapa level. */
 #layarLevel .tombol-karakter {
     margin-top: calc(var(--cs, 0.56) * 22px);
 }
@@ -1061,7 +1549,6 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: scale(1.05);
 }
 
-/* Level terkunci: suram, plus di-kelabui (opacity) & cursor tidak boleh. */
 .kartu-level.terkunci {
     border-left-color: #666;
     filter: grayscale(0.9) brightness(0.6);
@@ -1101,14 +1588,10 @@ body[data-device="mobile"] .bantuan-canvas {
     text-align: left;
 }
 
-/* Tombol kembali terpisah dari deretan kartu level. */
 #layarLevel .tombol-abu {
     margin-top: calc(var(--cs, 0.56) * 14px);
 }
 
-/* ======================== */
-/*  LAYAR GAME OVER         */
-/* ======================== */
 .judul-gameover {
     color: #ff4d4d;
     font-size: calc(var(--cs, 0.56) * 42px);
@@ -1168,9 +1651,55 @@ body[data-device="mobile"] .bantuan-canvas {
     transform: scale(0.97);
 }
 
-/* ======================== */
-/*  ATUR SUARA (menu Pause) */
-/* ======================== */
+@keyframes naikDariBawah {
+    0% {
+        transform: translateY(calc(var(--cs, 0.56) * 70px));
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes menangGlow {
+    0%,
+    100% {
+        text-shadow: 1.5px 1.5px 0 #7a5200, 0 0 calc(var(--cs, 0.56) * 10px) rgba(255, 210, 63, 0.35);
+    }
+    50% {
+        text-shadow: 1.5px 1.5px 0 #7a5200, 0 0 calc(var(--cs, 0.56) * 26px) rgba(255, 210, 63, 0.9);
+    }
+}
+
+#layarGameOver .judul-gameover,
+#layarGameOver .teks-skor,
+#layarGameOver .grup-tombol,
+#layarMenang .judul-gameover,
+#layarMenang .teks-skor,
+#layarMenang .grup-tombol {
+    opacity: 0;
+}
+
+#layarGameOver:not(.hidden) .judul-gameover,
+#layarMenang:not(.hidden) .judul-gameover {
+    animation: naikDariBawah 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0s both;
+}
+
+#layarGameOver:not(.hidden) .teks-skor,
+#layarMenang:not(.hidden) .teks-skor {
+    animation: naikDariBawah 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+#layarGameOver:not(.hidden) .grup-tombol,
+#layarMenang:not(.hidden) .grup-tombol {
+    animation: naikDariBawah 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+#layarMenang:not(.hidden) .judul-gameover {
+    animation: naikDariBawah 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0s both, menangGlow 1.8s ease-in-out 0.4s infinite;
+}
+
 .atur-suara {
     display: flex;
     flex-direction: column;
@@ -1211,9 +1740,6 @@ body[data-device="mobile"] .bantuan-canvas {
     font-size: calc(var(--cs, 0.56) * 11px);
 }
 
-/* ======================== */
-/*  BANTUAN (overlay kiri bawah canvas) */
-/* ======================== */
 .bantuan-canvas {
     position: absolute;
     bottom: 2%;

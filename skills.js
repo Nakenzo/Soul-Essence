@@ -1,11 +1,3 @@
-// ============================================================
-// SKILLS - jurus unik per karakter.
-// Dispatcher castSpecial memilih jurus sesuai karakter terpilih.
-// Kenzro (jarak) : buff anak panah pembeku selama buffDurasi detik.
-// Vender (dekat) : ledakan lingkaran di sekitar karakter.
-// ============================================================
-
-// Kenzro: panah yang ditembakkan selama buff akan membekukan musuh.
 function jurusKenzro() {
   player.specialBuff = player.buffDurasi || karakter.buffDurasi;
   sfxJurus();
@@ -14,7 +6,6 @@ function jurusKenzro() {
   rings.push({ x: player.x, y: player.y, r: 20, maxR: 180, life: 0.4, t: 0 });
 }
 
-// Vender: tebasan besar sekali — 75 damage, musuh yang bertahan ikut terbakar.
 function jurusVender() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   sfxTebasan();
@@ -37,30 +28,25 @@ function jurusVender() {
   spawnParticles(ox, oy, "#ff8c3f", 14);
 }
 
-// Dispatcher jurus: hanya bisa saat bermain & cooldown habis.
 function castSpecial() {
-  if (gameOver || karakter === null || statusGame !== "main" || player.specialCd > 0) return;
+  if (gameOver || animMati || karakter === null || statusGame !== "main" || player.specialCd > 0) return;
   player.specialCd = player.specialMax;
   if (karakter.tipe === "dekat") jurusVender();
   else jurusKenzro();
 }
 
-// ============== ULTIMATE ==============
-// Penebusan ultimate lewat tombol R (bar jiwa harus penuh). Langsung diluncurkan.
 function rilisUltimate() {
+  if (animMati || gameOver) return;
   if (soul < SOUL_MAX) return;
   soul = 0;
   lancarkanUltimate();
 }
 
-// Dispatcher peluncuran ultimate sesuai karakter.
 function lancarkanUltimate() {
   if (karakter.tipe === "dekat") jurusUltimateVender();
   else jurusUltimateKenzro();
 }
 
-// Kenzro: aura dingin menyala — 3 tembakan berikutnya jadi panah RAKSASA
-// (charge dulu, baru ditembakkan) yang membekukan musuh lama.
 function jurusUltimateKenzro() {
   player.ultBuff = true;
   player.ultArrows = 3;
@@ -72,7 +58,6 @@ function jurusUltimateKenzro() {
   shake = 0.4;
 }
 
-// Vender: sabit raksasa menebas SELURUH arena dalam satu putaran 360°.
 function jurusUltimateVender() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   sfxUltimateVender();
@@ -93,9 +78,6 @@ function jurusUltimateVender() {
   shake = 0.7;
   spawnParticles(player.x, player.y, "#ff8c3f", 30);
 
-  // KOBARAN API PASIF: sisa durasi suara api (8 detik) dimanfaatkan —
-  // area tebasan 360° berserak beberapa kobaran kecil yang MENETAP 8 dtk.
-  // Musuh yang menyentuh kobaran ikut terbakar (burn sama seperti skill Vender).
   const JUMLAH_API = 10;
   for (let i = 0; i < JUMLAH_API; i++) {
     const a = Math.random() * Math.PI * 2;

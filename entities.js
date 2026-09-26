@@ -1,15 +1,9 @@
-// ============================================================
-// ENTITIES - aksi pemain, musuh, dan update logika game.
-// ============================================================
-
-// ---------- Aksi pemain ----------
 function attack() {
   if (karakter.tipe === "dekat") {
     slashSwing();
     return;
   }
-  // Mode ultimate Kenzro: panah raksasa langsung meluncur, jeda charge
-  // berjalan SETELAH diluncurkan (seperti cooldown).
+
   if ((player.ultArrows || 0) > 0) {
     if (player.ultCd <= 0) {
       tembakPanahRaksasa(Math.atan2(mouse.y - player.y, mouse.x - player.x));
@@ -18,23 +12,21 @@ function attack() {
     return;
   }
   shoot();
-  // Aktifkan animasi serangan dasar (4 frame).
+
   player.attackAnimT = 0.25;
 }
 
-// Dash/menghindar: klik kanan, lari cepat + kebal sejenak.
-// Warna efek mengikuti karakter (Vender merah api, Kenzro biru es).
 function dashLari() {
-  if (statusGame !== "main" || !karakter) return;
+  if (statusGame !== "main" || !karakter || animMati) return;
   if (player.dashStacks <= 0) return;
   player.dashStacks--;
   sfxDash();
-  // Setiap penggunaan dash membuat cooldown MANDIRI 2 dtk (tumpuk tetap).
+
   player.dashTimers.push(DASH_CD);
   player.dashT = DASH_WAKTU;
   player.invuln = DASH_INVULN;
   const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
-  // Arah dash = arah gerak (joystick/keyboard). Kalau diam, ke arah pointer.
+
   const dx = gerakDx();
   const dy = gerakDy();
   player.dashAngle = (dx !== 0 || dy !== 0)
@@ -44,12 +36,10 @@ function dashLari() {
   rings.push({ x: player.x, y: player.y, r: 28, maxR: 120, life: 0.25, t: 0 });
 }
 
-// Lepas satu panah raksasa (langsung, tanpa menunggu charge).
 function tembakPanahRaksasa(ang) {
   const speed = 2500;
   sfxPanahRaksasa();
-  // Koridor beku pasif: es muncul PERLAHAN mengikuti posisi anak panah —
-  // area ter-render seiring panah melintas, lalu menetap selama beberapa detik.
+
   const nx = Math.cos(ang);
   const ny = Math.sin(ang);
   const px = -ny;
@@ -66,9 +56,9 @@ function tembakPanahRaksasa(ang) {
     ny: ny,
     px: px,
     py: py,
-    half: 60, // selebar lintasan hit panah (segDist + jangkauan di update).
+    half: 60,
     length: tExit + 60,
-    reveal: 80, // panjang koridor yang sudah tampak (ikut maju dengan panah)
+    reveal: 80,
     t: 0,
     life: BEKU_ZONE_LIFE,
     seed: Math.random() * 1000
@@ -102,7 +92,7 @@ function shoot() {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     life: 2.0,
-    // Panah yang ditembakkan saat buff aktif akan membekukan musuh.
+
     beku: player.specialBuff > 0
   });
   spawnParticles(player.x, player.y, "#ffd23f", 4);
@@ -111,19 +101,18 @@ function shoot() {
 function slashSwing() {
   if (player.attackCd > 0) return;
   player.attackCd = player.attackRate;
-  // Aktifkan animasi serangan dasar (4 frame).
+
   player.attackAnimT = 0.25;
   sfxSabet();
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.swing = player.swingDuration || karakter.swingDuration || 0.2;
-  // Efek tebasan muncul dari lokasi bilah sabit (titik orbit senjata),
-  // bukan dari pusat karakter.
+
   const ox = player.x + Math.cos(angle) * 70;
   const oy = player.y + Math.sin(angle) * 70;
   slashes.push({
     x: ox,
     y: oy,
-    // Terpusat ke arah pointer (bukan frame rotasi sabit).
+
     angle: angle,
     reach: player.reach || karakter.reach,
     halfArc: player.halfArc || karakter.halfArc,
@@ -134,60 +123,60 @@ function slashSwing() {
   spawnParticles(ox, oy, "#ffffff", 6);
 }
 
-// ---------- Musuh ----------
-// Cari TITIK SPAWN/HELIKOPTER AMAN di cincin sekitar pemain: di luar pandangan,
-// TIDAK di dalam dinding (piksel hitam), bukan menimpa musuh lain, dan dijauhi
-// tepi/pojok dunia (border 2px PNG = 32 unit + r + jarak aman). Dipakai saat
-// lahir (spawnEnemy) DAN saat musuh nyangkut dipindah (jam tangan anti-sangkut).
 function titikSpawnAman(r) {
-  // Musuh lahir di KELILING dunia: di luar barrier tepi (TEPI_BLOK_X/Y dari
-  // maps.js). Sisi dipilih acak, posisi acak sepanjang sisi itu.
   const kiri = BARRIER_KIRI + 60;
   const kanan = WORLD_W - BARRIER_KANAN - 60;
   const atas = BARRIER_ATAS + 60;
   const bawah = WORLD_H - BARRIER_BAWAH - 60;
-  for (let upaya = 0; upaya < 60; upaya++) {
+  const minJarak = 320;
+  const boleh = (x, y) => {
+    if (dist(x, y, player.x, player.y) < minJarak) return false;
+    if (tesLingkaran(x, y, r + 2)) return false;
+    for (const mm of enemies) {
+      const a2 = x - mm.x, b2 = y - mm.y;
+      const rr2 = r + mm.r + 6;
+      if (a2 * a2 + b2 * b2 < rr2 * rr2) return false;
+    }
+    return true;
+  };
+  for (let upaya = 0; upaya < 80; upaya++) {
     const sisi = Math.floor(Math.random() * 4);
     let x, y;
     if (sisi === 0) { x = kiri; y = atas + Math.random() * (bawah - atas); }
     else if (sisi === 1) { x = kanan; y = atas + Math.random() * (bawah - atas); }
     else if (sisi === 2) { x = kiri + Math.random() * (kanan - kiri); y = atas; }
     else { x = kiri + Math.random() * (kanan - kiri); y = bawah; }
-    if (tesLingkaran(x, y, r + 2)) continue;
-    let tabrakMusuh = false;
-    for (const mm of enemies) {
-      const a2 = x - mm.x, b2 = y - mm.y;
-      const rr2 = r + mm.r + 6;
-      if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrakMusuh = true; break; }
-    }
-    if (!tabrakMusuh) return { x, y };
+    if (boleh(x, y)) return { x, y };
   }
-  // Semua upaya kena tembok (arena sangat padat): rendahkan ke pusat dunia
-  // yang hampir pasti kosong — tapi tetap dicek agar tidak nyangkut.
-  for (let upaya = 0; upaya < 40; upaya++) {
-    let x = Math.max(46, Math.min(WORLD_W - 46, WORLD_W / 2 + (Math.random() - 0.5) * 240));
-    let y = Math.max(46, Math.min(WORLD_H - 46, WORLD_H / 2 + (Math.random() - 0.5) * 240));
-    if (tesLingkaran(x, y, r + 2)) continue;
-    let tabrakMusuh = false;
-    for (const mm of enemies) {
-      const a2 = x - mm.x, b2 = y - mm.y;
-      const rr2 = r + mm.r + 6;
-      if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrakMusuh = true; break; }
-    }
-    if (!tabrakMusuh) return { x, y };
+  for (let upaya = 0; upaya < 50; upaya++) {
+    const ang = Math.random() * Math.PI * 2;
+    const d = minJarak + 80 + Math.random() * 200;
+    const x = Math.max(46, Math.min(WORLD_W - 46, player.x + Math.cos(ang) * d));
+    const y = Math.max(46, Math.min(WORLD_H - 46, player.y + Math.sin(ang) * d));
+    if (boleh(x, y)) return { x, y };
   }
   return null;
 }
 
 function spawnEnemy() {
   const def = LEVELS[level];
-  const tipe = pilihTipeMusuh(def.campur);
+  let serigalaHidup = 0;
+  for (const mm of enemies) if (mm.tipe === "serigala") serigalaHidup += 1;
+  const tipe = serigalaHidup >= MAX_SERIGALA
+    ? pilihTipeTanpaSerigala(def.campur)
+    : pilihTipeMusuh(def.campur);
   const t = TIPE_MUSUH[tipe];
   const hp = Math.max(8, Math.round(def.hp * t.hpKali));
 
-  // Dunia luas: musuh lahir di KELILING dunia — di luar barrier tepi map.
   let p = titikSpawnAman(t.r);
-  if (!p) p = { x: WORLD_W / 2, y: WORLD_H / 2 };
+  if (!p) {
+    const ang = Math.random() * Math.PI * 2;
+    const d = 300 + Math.random() * 80;
+    p = {
+      x: Math.max(46, Math.min(WORLD_W - 46, player.x + Math.cos(ang) * d)),
+      y: Math.max(46, Math.min(WORLD_H - 46, player.y + Math.sin(ang) * d))
+    };
+  }
   let x = p.x, y = p.y;
 
   const kecepatanMin = def.kecepatan[0];
@@ -205,38 +194,130 @@ function spawnEnemy() {
     warna: t.warna,
     hitFlash: 0,
     freeze: 0,
-    // Ability monster hutan: interval tembak/lompat acak biar tidak serempak.
-    cd: 1.5 + Math.random() * 1.5,   // spora & duri (jamur/semak)
-    lungeBersiap: 0,                 // ancang-ancang serigala (telegraph)
-    lungeT: 0,                       // sprint serigala (0 = tidak melompat)
-    lungeCd: 0.5 + Math.random() * 1.5,
-    mundurT: 0                       // parry: terdorong mundur sesaat
+
+    cd: 1.5 + Math.random() * 1.5,
+    lahirT: tipe === "serigala" ? 1.4 : 0,
+    lungeBersiap: 0,
+    lungeT: 0,
+    lungeCd: 1.0 + Math.random() * 1.6,
+    mundurT: 0
   });
 }
 
-// PARRY serigala: saat serigala sedang menerkam/ancang-ancang lalu terkena
-// basic attack / skill, lompatannya langsung terhenti (tertangkis).
 function parrySerigala(e) {
   if (e.tipe !== "serigala") return;
   if (e.lungeT > 0 || e.lungeBersiap > 0) {
     e.lungeT = 0;
     e.lungeBersiap = 0;
-    e.lungeCd = 1.2 + Math.random() * 0.6; // sedikit jeda sebelum bisa menerkam lagi
-    e.mundurT = 0.3;                       // terdorong mundur sesaat (terselat)
+    e.lungeCd = 1.2 + Math.random() * 0.6;
+    e.mundurT = 0.3;
     spawnDamage(e.x, e.y - e.r - 56, "PARRY", "#fbbf24");
     spawnParticles(e.x, e.y, "#fbbf24", 8);
+  }
+}
+
+let bossIntro = null;
+
+function titikBossAman() {
+  const r = TIPE_MUSUH.bos.r;
+  for (let u = 0; u < 40; u++) {
+    const ang = Math.random() * Math.PI * 2;
+    const d = 400 + Math.random() * 70;
+    const x = player.x + Math.cos(ang) * d;
+    const y = player.y + Math.sin(ang) * d;
+    if (x < BARRIER_KIRI + r || x > WORLD_W - BARRIER_KANAN - r) continue;
+    if (y < BARRIER_ATAS + r || y > WORLD_H - BARRIER_BAWAH - r) continue;
+    if (tesLingkaran(x, y, r + 8)) continue;
+    let tabrak = false;
+    for (const mm of enemies) {
+      const a2 = x - mm.x, b2 = y - mm.y, rr2 = r + mm.r + 6;
+      if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrak = true; break; }
+    }
+    if (!tabrak) return { x, y };
+  }
+  return { x: WORLD_W / 2, y: WORLD_H / 2 };
+}
+
+function mulaiIntroBoss() {
+  const p = titikBossAman();
+  bossIntro = { x: p.x, y: p.y, t: 0, durasi: 1.5 };
+  spawnTimer = 999;
+  if (typeof sfxBoss === "function") sfxBoss();
+  spawnParticles(p.x, p.y, "#14532d", 46);
+  addFlash("rgba(20, 83, 45, 0.35)", 0.8, 0.5);
+  shake = 0.6;
+}
+
+function spawnBoss(x, y) {
+  const t = TIPE_MUSUH.bos;
+  const hp = Math.max(8, Math.round(LEVELS[level].hp * t.hpKali));
+  enemies.push({
+    x: x,
+    y: y,
+    tipe: "bos",
+    kunci: t.kunci,
+    bos: true,
+    hp: hp,
+    maxHp: hp,
+    speed: 150 * t.kecepatanKali,
+    r: t.r,
+    skala: t.skala,
+    warna: t.warna,
+    hitFlash: 0,
+    freeze: 0,
+    contactCd: 0,
+
+    lungeBersiap: 0,
+    lungeT: 0,
+    lungeCd: 1.2 + Math.random() * 0.8
+  });
+  levelSpawn = Math.max(levelSpawn, LEVELS[level].jumlah);
+  spawnTimer = LEVELS[level].jedaSpawn;
+  shake = 0.7;
+  addFlash("rgba(74, 222, 128, 0.4)", 1, 0.5);
+  rings.push({ x: x, y: y, r: 20, maxR: 200, life: 0.5, t: 0 });
+  spawnParticles(x, y, "#14532d", 50);
+  spawnParticles(x, y, "#4ade80", 26);
+}
+
+function bossSlam(e) {
+  shake = 0.9;
+  addFlash("rgba(20, 83, 45, 0.28)", 1, 0.35);
+  rings.push({ x: e.x, y: e.y, r: 24, maxR: e.r * 2.4, life: 0.45, t: 0 });
+  rings.push({ x: e.x, y: e.y, r: 12, maxR: e.r * 1.5, life: 0.3, t: 0 });
+  spawnParticles(e.x, e.y, "#365314", 40);
+  spawnParticles(e.x, e.y, "#4ade80", 18);
+  if (typeof sfxUltimate === "function") sfxUltimate();
+  if (player.invuln <= 0 && dist(e.x, e.y, player.x, player.y) < e.r * 2.3) {
+    const dmg = Math.round(40 * (1 - (player.armor || 0)));
+    player.hp -= dmg;
+    player.hitFlash = 0.2;
+    spawnDamage(player.x, player.y - 52, dmg, "#4ade80");
+    sfxPemainKena();
+    hurtVig = 1;
+    spawnParticles(player.x, player.y, "#4ade80", 12);
+    if (player.hp <= 0) prosesKematianPemain();
   }
 }
 
 function killEnemy(e) {
   const i = enemies.indexOf(e);
   if (i === -1) return;
-  koin += 10;
+
+  if (e.bos) {
+    shake = 1.2;
+    addFlash("rgba(74, 222, 128, 0.5)", 1, 0.6);
+    rings.push({ x: e.x, y: e.y, r: 20, maxR: 280, life: 0.7, t: 0 });
+    spawnParticles(e.x, e.y, "#4ade80", 55);
+    spawnParticles(e.x, e.y, "#14532d", 35);
+    if (typeof sfxBoss === "function") sfxBoss();
+  }
+  koin += Math.round(10 * (player.mult && player.mult.koin || 1));
   sfxMatMusuh();
-  // Efek pixel disintegration: spawn potongan sprite beterbangan
+
   const imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
   buatDeathPixels(e.x, e.y, imgMusuh, e.skala || 1);
-  // Jatuhkan jiwa: biasa 3, cepet 2, tank 5.
+
   const n = DROP_SOUL[e.tipe] || 3;
   for (let k = 0; k < n; k++) {
     const ang = Math.random() * Math.PI * 2;
@@ -255,29 +336,185 @@ function killEnemy(e) {
   enemies.splice(i, 1);
 }
 
-// ---------- Update ----------
+function serapanDarah(dmg) {
+  if (!player.kartu || !player.kartu.pencuriDarah || player.hp >= player.maxHp) return;
+  const heal = Math.max(1, Math.round(dmg * 0.08));
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+}
+
+function prosesKematianPemain() {
+  if (animMati || gameOver) return;
+  player.hp = 0;
+  const punyaNyawa = !!(player.kartu && player.kartu.nyawaKedua);
+  animMati = {
+    t: 0,
+    durasi: punyaNyawa ? 1.35 : 1.7,
+    nyawa: punyaNyawa,
+    revived: false,
+    kartuT: 0,
+    fasePulih: 0
+  };
+  player.invuln = 999;
+  spawnParticles(player.x, player.y, "#3aa0ff", 30);
+  shake = 0.6;
+  if (!punyaNyawa && typeof sfxGameOver === "function") sfxGameOver();
+}
+
+function reviveNyawaKedua() {
+  if (!player.kartu || !player.kartu.nyawaKedua) {
+
+    animMati.nyawa = false;
+    animMati.t = 0;
+    animMati.durasi = 1.7;
+    return;
+  }
+  delete player.kartu.nyawaKedua;
+  if (typeof perbaruiNotaKartu === "function") perbaruiNotaKartu();
+  player.hp = Math.max(1, Math.round(player.maxHp * 0.3));
+  player.invuln = 2;
+  player.hitFlash = 0.3;
+  spawnParticles(player.x, player.y, "#fde047", 30);
+  rings.push({ x: player.x, y: player.y, r: 28, maxR: 160, life: 0.5, t: 0 });
+  spawnDamage(player.x, player.y - 72, "NYAWA KEDUA", "#fde047");
+  if (typeof sfxLevel === "function") sfxLevel();
+  animMati.revived = true;
+  animMati.fasePulih = 0;
+}
+
+function easeOutCubic(x) { return 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3); }
+
+function updateAnimMati(dt) {
+  animMati.t += dt;
+  const t = animMati.t;
+
+  const zoomMax = animMati.nyawa && !animMati.revived ? 1.55 : 2.0;
+  const pZoom = easeOutCubic(t / 0.6);
+  if (!animMati.revived) {
+    zoomKamera = 1 + (zoomMax - 1) * pZoom;
+  }
+
+  if (!animMati.revived) {
+    const pFilt = Math.max(0, Math.min(1, (t - 0.35) / 0.65));
+    aturFilterMati(animMati.nyawa ? pFilt * 0.55 : pFilt);
+  }
+
+  if (animMati.nyawa && !animMati.revived) {
+    animMati.kartuT = Math.max(0, Math.min(1, (t - 0.2) / 0.75));
+    if (animMati.kartuT >= 1) reviveNyawaKedua();
+  }
+
+  if (animMati.revived) {
+    animMati.fasePulih += dt;
+    const p = easeOutCubic(animMati.fasePulih / 0.5);
+    zoomKamera = zoomMax - (zoomMax - 1) * p;
+    aturFilterMati((animMati.nyawa ? 0.55 : 1) * (1 - p));
+    if (animMati.fasePulih >= 0.5) {
+      animMati = null;
+      zoomKamera = 1;
+      aturFilterMati(0);
+    }
+    return;
+  }
+
+  if (!animMati.nyawa && t >= animMati.durasi) {
+    animMati = null;
+    gameOver = true;
+    spawnParticles(player.x, player.y, "#3aa0ff", 10);
+    addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
+    tampilkanGameOver();
+  }
+
+  if (animMati && animMati.nyawa && !animMati.revived && t >= animMati.durasi) {
+    animMati.nyawa = false;
+    animMati.t = 0;
+    animMati.durasi = 1.7;
+  }
+}
+
+function updateEfekMati(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.t += dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.t >= p.life) particles.splice(i, 1);
+  }
+  for (let i = deathPixels.length - 1; i >= 0; i--) {
+    const dp = deathPixels[i];
+    dp.t += dt;
+    dp.x += dp.vx * dt;
+    dp.y += dp.vy * dt;
+    dp.vy += dp.grav * dt;
+    dp.vx *= 0.98;
+    if (dp.t >= dp.life) deathPixels.splice(i, 1);
+  }
+  if (player) player.hitFlash = Math.max(0, (player.hitFlash || 0) - dt);
+  for (let i = flashes.length - 1; i >= 0; i--) {
+    flashes[i].t += dt;
+    if (flashes[i].t >= flashes[i].life) flashes.splice(i, 1);
+  }
+  hurtVig = Math.max(0, hurtVig - dt * 1.4);
+  for (let i = damages.length - 1; i >= 0; i--) {
+    const dm = damages[i];
+    dm.t += dt;
+    dm.y -= 60 * dt;
+    if (dm.t >= dm.life) damages.splice(i, 1);
+  }
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i];
+    r.t += dt;
+    r.r = 20 + (r.maxR - 20) * (r.t / r.life);
+    if (r.t >= r.life) rings.splice(i, 1);
+  }
+}
+
 function update(dt) {
-  // Layar judul / pilih karakter: hanya animasi partikel latar.
+
   if (statusGame === "title" || statusGame === "select") {
     updateBgPartikel(dt);
     return;
   }
 
+  if (animMati) {
+    updateAnimMati(dt);
+    updateEfekMati(dt);
+    return;
+  }
+
   if (gameOver || statusGame !== "main") return;
 
-  // Animasi lingkungan map (daun, angin, awan, kilau) jalan hanya saat main.
   updateAmbience(dt);
 
-  // Banner transisi level (dijeda saat bukan main).
   if (levelBanner) {
     levelBanner.t += dt;
     if (levelBanner.t >= levelBanner.life) levelBanner = null;
   }
 
+  if (bossIntro) {
+    bossIntro.t += dt;
+    if (Math.random() < 0.75) {
+      particles.push({
+        x: bossIntro.x + (Math.random() - 0.5) * 150,
+        y: bossIntro.y + (Math.random() - 0.5) * 120,
+        vx: (Math.random() - 0.5) * 70,
+        vy: -50 - Math.random() * 130,
+        life: 0.4 + Math.random() * 0.4,
+        t: 0,
+        size: 5 + Math.random() * 9,
+        color: Math.random() < 0.5 ? "#14532d" : "#4ade80"
+      });
+    }
+    if (bossIntro.t >= bossIntro.durasi) {
+      const bi = bossIntro;
+      bossIntro = null;
+      spawnBoss(bi.x, bi.y);
+    }
+  }
+
   let dx = 0, dy = 0;
   let mvx = 0, mvy = 0;
   if (player.dashT > 0) {
-    // Sedang dash: gerak cepat mengikuti arah, abaikan tombol gerak.
+
     player.dashT -= dt;
     mvx = Math.cos(player.dashAngle) * DASH_SPEED * dt;
     mvy = Math.sin(player.dashAngle) * DASH_SPEED * dt;
@@ -301,20 +538,25 @@ function update(dt) {
       const len = Math.hypot(dx, dy);
       mvx = (dx / len) * player.speed * dt;
       mvy = (dy / len) * player.speed * dt;
-      if (dx !== 0) player.dir = dx < 0 ? -1 : 1;
+
+      if (Math.abs(dy) > Math.abs(dx)) {
+        if (dy !== 0) {
+          player.dirY = dy < 0 ? -1 : 1;
+          player.domVertikal = true;
+        }
+      } else if (dx !== 0) {
+        player.dir = dx < 0 ? -1 : 1;
+        player.domVertikal = false;
+      }
     }
   }
 
-  // Gerak per-sumbu + dinding PNG: bila satu sumbu terblokir, sumbu lain
-  // tetap jalan → pemain MELUNCUR mengitari tembok (tidak pernah nyangkut).
-  // Dinding = piksel hitam di assets/maps/*.png, dicek lewat tesLingkaran.
   const pR = player.r >= 0 ? player.r : P_RADIUS;
   if (!tesLingkaran(player.x + mvx, player.y, pR)) player.x += mvx;
   if (!tesLingkaran(player.x, player.y + mvy, pR)) player.y += mvy;
   player.x = Math.max(10, Math.min(WORLD_W - 10, player.x));
   player.y = Math.max(10, Math.min(WORLD_H - 10, player.y));
 
-  // Untuk animasi: sedang bergerak (jalan/dash) atau diam (idle).
   player.gerak = player.dashT > 0 || dx !== 0 || dy !== 0;
 
   player.attackCd -= dt;
@@ -323,16 +565,12 @@ function update(dt) {
   player.specialBuff = Math.max(0, (player.specialBuff || 0) - dt);
   player.swing = Math.max(0, (player.swing || 0) - dt);
 
-  // UltCd (Kenzro): jeda/charge SETELAH panah raksasa meluncur.
   player.ultCd = Math.max(0, (player.ultCd || 0) - dt);
 
-  // Regenerasi HP dari kartu upgrade.
   if (player.regen > 0 && player.hp < player.maxHp) {
     player.hp = Math.min(player.maxHp, player.hp + player.regen * dt);
   }
 
-  // Dash: tiap charge ber-cooldown MANDIRI. Begitu satu selesai (2 dtk),
-  // dash langsung bisa dipakai walau timer lain masih berjalan.
   player.invuln = Math.max(0, (player.invuln || 0) - dt);
   if (player.dashTimers.length) {
     for (let i = player.dashTimers.length - 1; i >= 0; i--) {
@@ -343,12 +581,9 @@ function update(dt) {
       }
     }
   }
-  // dashCd = tampilan gabungan sisa waktu semua charge.
+
   player.dashCd = player.dashTimers.reduce((a, b) => a + b, 0);
 
-  // Mode HP: joystick SERANG (twin-stick) — arah tembakan mengikuti
-  // kemiringan joystick kanan (aimDx/aimDy dari input.js). Dipetakan ke
-  // mouse supaya seluruh aksi (tembak & sabit) memakai arah yang sama.
   if (_serangAktif && (aimDx !== 0 || aimDy !== 0)) {
     const jarakBidik = 400;
     mouse.x = player.x + aimDx * jarakBidik;
@@ -357,9 +592,6 @@ function update(dt) {
     mouse.sy = mouse.y - kam.y;
   }
 
-  // Kartu LEGEND "AUTO AIM": selama tombol serang ditekan, bidik dipaksa ke
-  // musuh terdekat yang masih hidup — di mana pun pointer mengklik (desktop)
-  // atau tombol serang ditekan (HP, kini tombol biasa tanpa joystick bidik).
   if (mouse.down && player.kartu && player.kartu["bidik"] > 0) {
     let tgt = null, bd = Infinity;
     for (const en of enemies) {
@@ -379,7 +611,6 @@ function update(dt) {
     attack();
   }
 
-  // Peluru
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.px = b.x;
@@ -391,12 +622,12 @@ function update(dt) {
       bullets.splice(i, 1);
       continue;
     }
-    // Panah raksasa: perluas koridor beku yang ter-render mengikuti jalurnya.
+
     if (b.raksasa && b.fz) {
       const prog = (b.x - b.fz.x0) * b.fz.nx + (b.y - b.fz.y0) * b.fz.ny + 120;
       if (prog > b.fz.reveal) b.fz.reveal = prog;
     }
-    // Panah beku biasa: sisakan pecahan es kecil (jejak singkat).
+
     if (b.beku && !b.raksasa && Math.random() < 0.6) {
       particles.push({
         x: b.x,
@@ -409,8 +640,7 @@ function update(dt) {
         color: "#bfe9ff"
       });
     }
-    // Ekor roket panah raksasa: tinggalkan partikel biru muda kecil yang
-    // mengambang di area (jalur koridor) yang dilewatinya.
+
     if (b.raksasa && Math.random() < 0.9) {
       particles.push({
         x: b.x + (Math.random() - 0.5) * 24,
@@ -425,14 +655,14 @@ function update(dt) {
     }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
-      // Hit raksasa: zona besar + cek lintasan (biar tak tembus antar frame).
+
       const hitR = b.raksasa ? e.r + 60 : e.r + 8;
       const hit = b.raksasa
         ? segDist(b.px, b.py, b.x, b.y, e.x, e.y) < hitR
         : dist(b.x, b.y, e.x, e.y) < hitR;
       if (hit) {
         if (b.raksasa) {
-          // Panah raksasa TIDAK hilang: menembus, tiap kena = ledakan es AoE.
+
           if (!b.hitSet) b.hitSet = new Set();
           const dmg = 100;
           const impuls = [];
@@ -452,6 +682,7 @@ function update(dt) {
             spawnParticles(e2.x, e2.y, "#7dd3fc", 10);
             spawnDamage(e2.x, e2.y - e2.r - 56, "BEKU 7D", "#7dd3fc");
             spawnDamage(e2.x, e2.y - e2.r - 16, dmg, "#ffd23f");
+            serapanDarah(dmg);
             if (e2.hp <= 0) killEnemy(e2);
           }
           rings.push({ x: e.x, y: e.y, r: 24, maxR: 180, life: 0.3, t: 0 });
@@ -474,6 +705,7 @@ function update(dt) {
           spawnDamage(e.x, e.y - e.r - 56, "BEKU", "#7dd3fc");
         }
         spawnDamage(e.x, e.y - e.r - 16, dmg, "#ffd23f");
+        serapanDarah(dmg);
         bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(e);
         break;
@@ -481,12 +713,10 @@ function update(dt) {
     }
   }
 
-  // Ayunan pedang
   for (let s = slashes.length - 1; s >= 0; s--) {
     const sl = slashes[s];
     sl.t += dt;
 
-    // Kobaran api singkat di KEDUA ujung tebasan besar (kosmetik).
     if (sl.skill) {
       const fullA = sl.halfArc * 2;
       const halfA = sl.life / 2;
@@ -534,8 +764,9 @@ function update(dt) {
         e.hp -= dmg;
         e.hitFlash = 0.1;
         spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
+        serapanDarah(dmg);
         parrySerigala(e);
-        // Tebasan besar: musuh yang selamat langsung terbakar 3 dtk.
+
         if (sl.skill && e.hp > 0) {
           e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
           spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
@@ -549,8 +780,6 @@ function update(dt) {
     if (sl.t >= sl.life) slashes.splice(s, 1);
   }
 
-  // Kobaran api pasif (ultimate Vender): memercik api agar terlihat hidup,
-  // membakar musuh yang menyentuhnya, lalu padam setelah 8 dtk.
   for (let i = fires.length - 1; i >= 0; i--) {
     const fl = fires[i];
     fl.t += dt;
@@ -568,7 +797,7 @@ function update(dt) {
         color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
       });
     }
-    // Sentuh → terbakar (burn SAMA seperti skill Vender: 3 dtk, tiap 0.25 dtk).
+
     for (const e of enemies) {
       if (!e.burn && dist(fl.x, fl.y, e.x, e.y) < fl.radius * 0.8 + e.r) {
         e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: 1 };
@@ -579,9 +808,6 @@ function update(dt) {
     if (fl.t >= fl.life) fires.splice(i, 1);
   }
 
-  // Koridor BEKU PASIF (ultimate Kenzro): area yang ter-render perlahan
-  // mengikuti anak panah. Musuh yang masuk bagian koridor yang sudah tampak
-  // membeku selama koridor masih ada.
   for (let i = freezes.length - 1; i >= 0; i--) {
     const fz = freezes[i];
     fz.t += dt;
@@ -605,13 +831,19 @@ function update(dt) {
     if (fz.t >= fz.life) freezes.splice(i, 1);
   }
 
-  // Musuh: spawn mengikuti definisi level sampai kuota terpenuhi.
   if (levelSpawn < LEVELS[level].jumlah) {
     spawnTimer -= dt;
-    if (spawnTimer <= 0) {
-      spawnEnemy();
-      levelSpawn += 1;
-      spawnTimer = LEVELS[level].jedaSpawn;
+    if (bossIntro) {
+
+    } else if (spawnTimer <= 0) {
+      if (LEVELS[level].bos) {
+
+        mulaiIntroBoss();
+      } else {
+        spawnEnemy();
+        levelSpawn += 1;
+        spawnTimer = LEVELS[level].jedaSpawn;
+      }
     }
   }
 
@@ -619,8 +851,8 @@ function update(dt) {
     const e = enemies[i];
     e.hitFlash = Math.max(0, e.hitFlash - dt);
     e.freeze = Math.max(0, (e.freeze || 0) - dt);
+    e.contactCd = Math.max(0, (e.contactCd || 0) - dt);
 
-    // Efek terbakar: -HP tiap 0.5 dtk selama durasi.
     if (e.burn) {
       e.burn.timer += dt;
       while (e.burn.timer >= e.burn.tick) {
@@ -641,26 +873,34 @@ function update(dt) {
     if (e.freeze <= 0) {
       const angle = Math.atan2(player.y - e.y, player.x - e.x);
       let spd = e.speed;
-      // SERIGALA (hutan): ancang-ancang dulu (telegraph), baru menerkam pelan.
+
+      if (player.kartu && player.kartu.freezeArea
+          && dist(e.x, e.y, player.x, player.y) < 120 + (player.kartu.freezeArea - 1) * 20) {
+        spd *= Math.max(0.25, Math.pow(0.7, player.kartu.freezeArea));
+      }
+
       if (e.tipe === "serigala") {
-        if (e.mundurT > 0) {
-          // Tertangkis (parry): terdorong menjauh dari pemain sejenak.
+        if (e.lahirT > 0) {
+          e.lahirT -= dt;
+          spd *= 0.55;
+        } else if (e.mundurT > 0) {
+
           e.mundurT -= dt;
           spd *= -1.4;
         } else if (e.lungeBersiap > 0) {
-          // Pose ancang: jalan pelan / menekuk sebelum lompat (biar tidak tiba-tiba).
+
           e.lungeBersiap -= dt;
           spd *= 0.3;
         } else if (e.lungeT > 0) {
-          // Menerkam: lebih pelan & panjang jalurnya supaya mudah dihindari.
+
           e.lungeT -= dt;
           spd *= 2.4;
         } else {
           e.lungeCd -= dt;
           if (e.lungeCd <= 0) {
             const jd = dist(e.x, e.y, player.x, player.y);
-            if (jd < 380) {
-              e.lungeBersiap = 0.5;  // ancang-ancang sebelum lompat
+            if (jd < 260) {
+              e.lungeBersiap = 0.5;
               e.lungeT = 0.5;
               e.lungeCd = 3.8 + Math.random() * 0.9;
             } else {
@@ -669,12 +909,40 @@ function update(dt) {
           }
         }
       }
+
+      if (e.tipe === "bos") {
+        const loncatHabis = e.lungeT > 0 && e.lungeT - dt <= 0;
+        if (e.lungeBersiap > 0) {
+          e.lungeBersiap -= dt;
+          spd *= 0.08;
+        } else if (e.lungeT > 0) {
+          e.lungeT -= dt;
+          spd *= 6.2;
+        } else {
+          e.lungeCd -= dt;
+          if (e.lungeCd <= 0) {
+            const jd = dist(e.x, e.y, player.x, player.y);
+            if (jd < 680) {
+              e.lungeBersiap = 0.7;
+              e.lungeT = 0.55;
+              e.lungeCd = 3.4 + Math.random() * 1.3;
+
+              spawnParticles(player.x, player.y, "#4ade80", 10);
+              rings.push({ x: player.x, y: player.y, r: 10, maxR: 46, life: 0.7, t: 0 });
+            } else {
+              e.lungeCd = 0.45;
+            }
+          }
+        }
+
+        if (loncatHabis) bossSlam(e);
+      }
       const mvx = Math.cos(angle) * spd * dt;
       const mvy = Math.sin(angle) * spd * dt;
-      // JAMUR (hutan): penyembur spora — jaga jarak aman, tembak dari jauh.
+
       if (e.tipe === "jamur") {
         const jd = dist(e.x, e.y, player.x, player.y);
-        // Mundur pelan bila pemain terlalu dekat.
+
         if (jd < 170) {
           e.x -= Math.cos(angle) * e.speed * 0.8 * dt;
           e.y -= Math.sin(angle) * e.speed * 0.8 * dt;
@@ -682,7 +950,7 @@ function update(dt) {
         e.cd -= dt;
         if (e.cd <= 0 && jd < 520) {
           e.cd = 2.4 + Math.random() * 1.2;
-          // Bola spora lambat yang bisa dihindari pemain.
+
           const sp = 150 + Math.random() * 60;
           enemyShots.push({
             x: e.x, y: e.y,
@@ -693,8 +961,7 @@ function update(dt) {
           spawnParticles(e.x, e.y, "#a3e635", 6);
         }
       }
-      // SEMAK (hutan): menanam area duri beracun di sekitar pemain.
-      // Cooldown 6-8 detik agar tidak terlalu sering mengeluarkan duri.
+
       if (e.tipe === "semak") {
         e.cd -= dt;
         if (e.cd <= 0) {
@@ -709,10 +976,7 @@ function update(dt) {
           }
         }
       }
-      // JAM TANGAN ANTI-SANGKUT: kalau musuh tidak bisa maju ke dua-duanya
-      // (terperangkap di kantong cekung dinding = bentuk U / pojok dalam),
-      // timpa posisi dengan titik aman di cincin sekitar pemain. Jadi musuh
-      // TIDAK PERNAH permanen macet — apa pun bentuk tembok di PNG kamu.
+
       const majuX = !tesLingkaran(e.x + mvx, e.y, e.r);
       const majuY = !tesLingkaran(e.x, e.y + mvy, e.r);
       e.sangkutT = (majuX || majuY) ? 0 : (e.sangkutT || 0) + dt;
@@ -728,34 +992,37 @@ function update(dt) {
       e.sangkutT = 0;
     }
 
-    if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0) {
-      const dmgMasuk = Math.round(20 * (1 - (player.armor || 0)));
+    if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0 && (e.bos ? e.contactCd <= 0 : true)) {
+      const dmgMasuk = e.bos
+        ? Math.round(45 * (1 - (player.armor || 0)))
+        : Math.round(20 * (1 - (player.armor || 0)));
       player.hp -= dmgMasuk;
       player.hitFlash = 0.15;
-      spawnDamage(player.x, player.y - 52, dmgMasuk, "#ff4d4d");
+      spawnDamage(player.x, player.y - 52, dmgMasuk, e.bos ? "#4ade80" : "#ff4d4d");
       sfxPemainKena();
       hurtVig = 0.9;
-      shake = 0.3;
-      enemies.splice(i, 1);
-      spawnParticles(player.x, player.y, "#3aa0ff", 10);
-      if (player.hp <= 0) {
-        player.hp = 0;
-        gameOver = true;
-        spawnParticles(player.x, player.y, "#3aa0ff", 30);
-        shake = 0.6;
-        sfxGameOver();
-        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
-        tampilkanGameOver();
+      shake = e.bos ? 0.6 : 0.3;
+      if (e.bos) e.contactCd = 0.6;
+
+      if (player.kartu && player.kartu.duriBalik) {
+        const reflek = Math.round(dmgMasuk * 0.15);
+        e.hp -= reflek;
+        spawnDamage(e.x, e.y - e.r - 40, reflek, "#fb7185");
+        spawnParticles(e.x, e.y, "#fb7185", 8);
+        if (e.hp <= 0) killEnemy(e);
+        else if (!e.bos) enemies.splice(i, 1);
+      } else if (!e.bos) {
+        enemies.splice(i, 1);
       }
+      spawnParticles(player.x, player.y, "#3aa0ff", 10);
+      if (player.hp <= 0) prosesKematianPemain();
     }
   }
 
-  // Level tuntas: kuota level sudah di-spawn dan tak ada musuh yang hidup.
   if (levelSpawn >= LEVELS[level].jumlah && enemies.length === 0) {
     levelSelesai();
   }
 
-  // Proyektil musuh (bola spora jamur): bergerak, menyerang pemain saat kena.
   for (let i = enemyShots.length - 1; i >= 0; i--) {
     const s = enemyShots[i];
     s.x += s.vx * dt;
@@ -774,21 +1041,10 @@ function update(dt) {
       hurtVig = 0.7;
       enemyShots.splice(i, 1);
       spawnParticles(player.x, player.y, "#a3e635", 10);
-      if (player.hp <= 0) {
-        player.hp = 0;
-        gameOver = true;
-        spawnParticles(player.x, player.y, "#3aa0ff", 30);
-        shake = 0.6;
-        sfxGameOver();
-        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
-        tampilkanGameOver();
-      }
+      if (player.hp <= 0) prosesKematianPemain();
     }
   }
 
-  // Area duri racun (semak): SAMA seperti efek burn — damage bertahap (1 per
-  // 0.25 detik) HANYA selama pemain masih berdiri di dalam area duri.
-  // Keluar area = efek berhenti (tidak menerus meracuni).
   let berdiriDuri = false;
   for (let i = hazards.length - 1; i >= 0; i--) {
     const hz = hazards[i];
@@ -813,15 +1069,7 @@ function update(dt) {
       spawnDamage(player.x, player.y - 52, 1, "#4ade80");
       sfxPemainKena();
       hurtVig = 0.25;
-      if (player.hp <= 0) {
-        player.hp = 0;
-        gameOver = true;
-        spawnParticles(player.x, player.y, "#3aa0ff", 30);
-        shake = 0.6;
-        sfxGameOver();
-        addFlash("rgba(160, 0, 40, 0.5)", 1, 0.6);
-        tampilkanGameOver();
-      }
+      if (player.hp <= 0) prosesKematianPemain();
     }
   } else {
     player.racunTick = 0;
@@ -835,7 +1083,6 @@ function update(dt) {
     if (p.t >= p.life) particles.splice(i, 1);
   }
 
-  // Update pixel disintegration effect
   for (let i = deathPixels.length - 1; i >= 0; i--) {
     const dp = deathPixels[i];
     dp.t += dt;
@@ -846,10 +1093,8 @@ function update(dt) {
     if (dp.t >= dp.life) deathPixels.splice(i, 1);
   }
 
-  // Update player hitFlash
   if (player) player.hitFlash = Math.max(0, (player.hitFlash || 0) - dt);
 
-  // Flash layar & vignette luka (memudar bersama waktu).
   for (let i = flashes.length - 1; i >= 0; i--) {
     flashes[i].t += dt;
     if (flashes[i].t >= flashes[i].life) flashes.splice(i, 1);
@@ -870,7 +1115,6 @@ function update(dt) {
     if (r.t >= r.life) rings.splice(i, 1);
   }
 
-  // Jiwa (soul): melayang, lalu tertarik & diserap pemain.
   for (let i = souls.length - 1; i >= 0; i--) {
     const s = souls[i];
     s.t += dt;

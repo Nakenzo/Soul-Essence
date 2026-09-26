@@ -1,7 +1,3 @@
-// ============================================================
-// MENU - alur layar: Judul -> Pilih Karakter -> Game -> Game Over.
-// Karakter terpilih dipakai sampai permainan berakhir (game over).
-// ============================================================
 const layarJudul = document.getElementById("layarJudul");
 const layarLevel = document.getElementById("layarLevel");
 const layarPilih = document.getElementById("layarPilih");
@@ -15,14 +11,9 @@ const koinAkhirEl = document.getElementById("skorAkhir");
 const koinMenangEl = document.getElementById("skorMenang");
 const judulAkhirEl = document.getElementById("judulAkhir");
 
-// ---------- Layar awal: pilih perangkat ----------
-// Browser memblokir audio sebelum interaksi pertama, jadi klik perangkat
-// dipakai sekaligus untuk membuka AudioContext (musik lobby mulai).
 const layarDevice = document.getElementById("layarDevice");
 const layarPutar = document.getElementById("layarPutar");
 
-// Mode HP: minta fullscreen + kunci orientasi LANDSCAPE (di browser yang
-// mendukung). Gagal bukan masalah � layar "putar perangkat" yang jalan.
 function kunciLandscapeMobile() {
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen()
@@ -35,7 +26,6 @@ function kunciLandscapeMobile() {
   }
 }
 
-// Kalau HP diputar portrait, tampilkan ajakan kembali ke landscape.
 function cekOrientasi() {
   if (deviceTerpilih !== "mobile") return;
   if (!layarPutar) return;
@@ -51,9 +41,13 @@ function pilihDevice(dev) {
   document.body.dataset.device = dev;
   try { localStorage.setItem("soul-essence-device", dev); } catch (err) {}
   bukaAudio();
-  // Bg latar dibake sesuai skala perangkat ? bangun ulang bila skala berubah.
+
   if (typeof latarSkala === "function" && latarSkala() !== latarSkalaTerpakai) latarCache = null;
   layarDevice.classList.add("hidden");
+
+  if (statusGame === "title" && layarJudul && layarJudul.classList.contains("hidden")) {
+    layarJudul.classList.remove("hidden");
+  }
   if (dev === "mobile") {
     kunciLandscapeMobile();
     cekOrientasi();
@@ -62,11 +56,6 @@ function pilihDevice(dev) {
 layarDevice.querySelectorAll("[data-device]").forEach((b) =>
   b.addEventListener("click", () => pilihDevice(b.dataset.device)));
 
-// Nota KARTUMU tampil saat permainan berjalan (main), pemilihan kartu
-// upgrade, jeda, dan game over/menang � APA PUN di dalam permainan. Cuma
-// layar pra-game (judul & pilih karakter) yang menyembunyikannya. Tujuannya:
-// sidebar dipesan di susunan flex SEPANJANG sesi bermain, jadi kanvas tidak
-// pernah bergeser saat pindah layar (mis. main ? pilih kartu).
 let _statusNotaTerakhir = null;
 function aturNotaKartu() {
   if (_statusNotaTerakhir === statusGame) return;
@@ -78,7 +67,6 @@ function aturNotaKartu() {
   nota.classList.toggle("tampil", tampil);
 }
 
-// Tombol pause (II) hanya tampil saat permainan berjalan.
 function aturTombolPause() {
   if (statusGame === "main") {
     tombolPause.classList.remove("hidden");
@@ -95,22 +83,39 @@ function sembunyiSemua() {
   layarGameOver.classList.add("hidden");
   layarPause.classList.add("hidden");
   layarMenang.classList.add("hidden");
+  if (typeof hentikanKonfeti === "function") hentikanKonfeti();
+
+  if (!animMati && statusGame !== "main") {
+    zoomKamera = 1;
+    aturFilterMati(0);
+  }
 }
 
-// ---------- Layar Judul (tombol PLAY) ----------
 function tampilkanJudul() {
-  sembunyiSemua();
+
   statusGame = "title";
   karakter = null;
   koin = 0;
-  resetArena({ koinBaru: true });
-  segarkanSaldoJudul();
+  try {
+    sembunyiSemua();
+  } catch (err) {
+    errorBanner = err && err.message ? err.message : String(err);
+  }
   layarJudul.classList.remove("hidden");
-  aturTombolPause();
-  if (typeof setMusik === "function") setMusik("lobby");
+  try {
+    resetArena({ koinBaru: true });
+    segarkanSaldoJudul();
+    aturTombolPause();
+    if (typeof setMusik === "function") setMusik("lobby");
+  } catch (err) {
+    errorBanner = err && err.message ? err.message : String(err);
+    if (err && err.stack) {
+      const st = err.stack.split("\n");
+      if (st[1]) errorBanner += " — " + st[1].trim();
+    }
+  }
 }
 
-// Tampilkan saldo koin di layar judul (rekomendasi pengeluaran: upgrade).
 function segarkanSaldoJudul() {
   const el = document.getElementById("saldoJudul");
   if (!el) return;
@@ -118,15 +123,45 @@ function segarkanSaldoJudul() {
   el.textContent = saldo > 0 ? ("KOIN TERSIMPAN: " + saldo) : "";
 }
 
-// ---------- Layar Upgrade Karakter ----------
-// Karakter yang sedang diamati di layar upgrade.
+function ikonTipeSVG(kar) {
+  if (kar && kar.tipe === "jarak") {
+    return '<svg class="ikon-stat" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>';
+  }
+  return '<svg class="ikon-stat" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#c8d6ea" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 4.5L19.5 19.5"/><path d="M19.5 4.5L4.5 19.5"/><path d="M15.7 18.3l3-3"/><path d="M5.7 15.7l3 3"/></svg>';
+}
+
+function ikonElemenSVG(el) {
+  const e = String(el || "").toLowerCase();
+  if (e === "api") {
+    return '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="46" height="46">' +
+      '<defs><linearGradient id="gradApi" x1="0" y1="1" x2="0" y2="0">' +
+      '<stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff9100"/><stop offset="100%" stop-color="#ffee58"/>' +
+      '</linearGradient></defs>' +
+      '<path fill="url(#gradApi)" d="M13.5 1.5c.3 2.8 1.9 4.2 3.4 6.1 1.4 1.8 2.6 3.7 2.6 6.4 0 4.1-3.2 7.5-7.5 7.5S4.5 18.1 4.5 14c0-2.4 1-4.3 2.4-6.1.5 1.3 1.3 2.1 2.4 2.5-.4-3.1.5-6.3 1.8-8.4.3 1.9 1 3.1 2 3.9.6-1.5.6-3.1.4-4.4z"/>' +
+      '<path fill="#ffd54f" opacity="0.9" d="M12.2 10.5c.6 1.5 2.4 2.6 2.4 5 0 1.9-1.3 3.4-3.1 3.4s-3.1-1.5-3.1-3.4c0-1.5.8-2.6 1.7-3.6.3.9.8 1.4 1.5 1.7-.2-1.2 0-2.3.6-3.1z"/>' +
+      '</svg>';
+  }
+  if (e === "es") {
+    return '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#b3e5fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M20.2 7.2L3.8 16.8"/>' +
+      '<path d="M9.9 4.6L12 5.8l2.1-1.2"/>' +
+      '<path d="M9.9 19.4L12 18.2l2.1 1.2"/>' +
+      '<path d="M17.4 6.5v2.4l2.1 1.2"/>' +
+      '<path d="M6.6 6.5v2.4l-2.1 1.2"/>' +
+      '<path d="M17.4 17.5v-2.4l2.1-1.2"/>' +
+      '<path d="M6.6 17.5v-2.4l-2.1-1.2"/>' +
+      '</svg>';
+  }
+  return "";
+}
+
 let karakterUpgrade = null;
 
 function tampilkanKarakter() {
   sembunyiSemua();
   statusGame = "title";
   if (!karakterUpgrade) {
-    // Default karakter pertama.
+
     karakterUpgrade = KARAKTER[0] ? KARAKTER[0].kunci : null;
   }
   layarKarakter.classList.remove("hidden");
@@ -135,7 +170,6 @@ function tampilkanKarakter() {
   if (typeof setMusik === "function") setMusik("lobby");
 }
 
-// ---------- Layar upgrade karakter ----------
 function segarkanSaldoKarakter() {
   const el = document.getElementById("saldoKarakter");
   if (!el) return;
@@ -149,13 +183,11 @@ function buatPilihanUpgrade() {
   daftar.innerHTML = "";
   segarkanSaldoKarakter();
 
-  // 1) Deretan kartu karakter (di atas) — geser horizontal bila banyak.
   KARAKTER.forEach((kar) => {
     const card = document.createElement("button");
     card.className = "kartu-up karakter-up";
     if (kar.kunci === karakterUpgrade) card.classList.add("terpilih");
 
-    // Avatar kecil.
     const img = typeof tekstur !== "undefined" ? tekstur[kar.kunci] : null;
     const cv = document.createElement("canvas");
     cv.width = 56;
@@ -186,7 +218,6 @@ function buatPilihanUpgrade() {
     daftar.appendChild(card);
   });
 
-  // Karakter aktif.
   const kar = KARAKTER.find((k) => k.kunci === karakterUpgrade) || KARAKTER[0];
   if (!kar) return;
 
@@ -200,43 +231,17 @@ function buatPilihanUpgrade() {
   const cukup = typeof progres === "object" && progres && progres.koinSaldo >= biaya;
   const penuh = lv >= max;
 
-  // 2) Balok stat besar di kanan: ATK, HP, SPEED, CRIT RATE, CRIT DMG, TYPE, ELEMENT.
   const statEl = document.getElementById("statKarakterIsi");
   if (statEl) {
     const tipe = kar.tipe === "jarak" ? "JARAK JAUH" : "JARAK DEKAT";
-    // Ikon SVG kecil untuk TYPE & ELEMENT.
-    const ikonPanah = '<svg class="ikon-stat" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>';
-    const ikonPedang = '<svg class="ikon-stat" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#c8d6ea" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 4.5L19.5 19.5"/><path d="M19.5 4.5L4.5 19.5"/><path d="M15.7 18.3l3-3"/><path d="M5.7 15.7l3 3"/></svg>';
-    const ikonApi = '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="24" height="24">' +
-      '<defs><linearGradient id="gradApi" x1="0" y1="1" x2="0" y2="0">' +
-      '<stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff9100"/><stop offset="100%" stop-color="#ffee58"/>' +
-      '</linearGradient></defs>' +
-      '<path fill="url(#gradApi)" d="M13.5 1.5c.3 2.8 1.9 4.2 3.4 6.1 1.4 1.8 2.6 3.7 2.6 6.4 0 4.1-3.2 7.5-7.5 7.5S4.5 18.1 4.5 14c0-2.4 1-4.3 2.4-6.1.5 1.3 1.3 2.1 2.4 2.5-.4-3.1.5-6.3 1.8-8.4.3 1.9 1 3.1 2 3.9.6-1.5.6-3.1.4-4.4z"/>' +
-      '<path fill="#ffd54f" opacity="0.9" d="M12.2 10.5c.6 1.5 2.4 2.6 2.4 5 0 1.9-1.3 3.4-3.1 3.4s-3.1-1.5-3.1-3.4c0-1.5.8-2.6 1.7-3.6.3.9.8 1.4 1.5 1.7-.2-1.2 0-2.3.6-3.1z"/>' +
-      '</svg>';
-    const ikonEs = '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#b3e5fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M20.2 7.2L3.8 16.8"/>' +
-      '<path d="M9.9 4.6L12 5.8l2.1-1.2"/>' +
-      '<path d="M9.9 19.4L12 18.2l2.1 1.2"/>' +
-      '<path d="M17.4 6.5v2.4l2.1 1.2"/>' +
-      '<path d="M6.6 6.5v2.4l-2.1 1.2"/>' +
-      '<path d="M17.4 17.5v-2.4l2.1-1.2"/>' +
-      '<path d="M6.6 17.5v-2.4l-2.1-1.2"/>' +
-      '</svg>';
-    const ikonElemen = (el) => {
-      const e = String(el || "").toLowerCase();
-      if (e === "api") return ikonApi;
-      if (e === "es") return ikonEs;
-      return "";
-    };
     const stats = [
       { lbl: "ATTACK", nilai: dmg },
       { lbl: "HP", nilai: hp },
       { lbl: "SPEED", nilai: spd },
       { lbl: "CRIT RATE", nilai: "5%" },
       { lbl: "CRIT DMG", nilai: "150%" },
-      { lbl: "TYPE", nilai: tipe, ikon: kar.tipe === "jarak" ? ikonPanah : ikonPedang },
-      { lbl: "ELEMENT", nilai: kar.element || "-", ikon: ikonElemen(kar.element) }
+      { lbl: "TYPE", nilai: tipe, ikon: ikonTipeSVG(kar) },
+      { lbl: "ELEMENT", nilai: kar.element || "-", ikon: ikonElemenSVG(kar.element) }
     ];
     statEl.innerHTML = "";
     stats.forEach((s) => {
@@ -262,12 +267,12 @@ function buatPilihanUpgrade() {
     });
   }
 
-  // 3) Balok skill (kiri) — 5 skill (placeholder, detail dibahas nanti).
   const skillEl = document.getElementById("daftarSkill");
   if (skillEl) {
     skillEl.innerHTML = "";
-    // Skill utama per karakter (sama dengan skill bar ingame).
-    const namaSkillJurus = kar.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
+
+    const jarak = kar.tipe === "jarak";
+    const namaSkillJurus = jarak ? "FROSTBITE" : "HEATWAVE";
     const namaSkill = [
       "BASE ATTACK",
       namaSkillJurus,
@@ -275,13 +280,49 @@ function buatPilihanUpgrade() {
       "Skill 4",
       "Skill 5"
     ];
+
+    const aksen = kar.warnaDash || (jarak ? "#7dd3fc" : "#ff4d4d");
+    const svg = (isi) =>
+      '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke-linecap="round" stroke-linejoin="round">' + isi + '</svg>';
+
+    const ikonSkill = jarak ? [
+
+      svg('<path d="M5 19L16 8" stroke="' + aksen + '" stroke-width="2.2"/>' +
+        '<path d="M13 5l6 6" stroke="' + aksen + '" stroke-width="2.2"/>' +
+        '<path d="M15 5h4v4" stroke="' + aksen + '" stroke-width="2.2"/>' +
+        '<path d="M5 19l1.5-3.5L10 17z" fill="' + aksen + '"/>'),
+
+      svg('<path d="M3 16a9 9 0 0 1 18 0" stroke="#b3e5fc" stroke-width="2.4"/>' +
+        '<path d="M6 16a6 6 0 0 1 12 0" stroke="' + aksen + '" stroke-width="1.8"/>' +
+        '<path d="M9 16a3 3 0 0 1 6 0" stroke="#e1f5fe" stroke-width="1.4"/>' +
+        '<path d="M8 18v2.5M12 18.5v2.5M16 18v2.5" stroke="#b3e5fc" stroke-width="1.4"/>'),
+      svg('<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" stroke="' + aksen + '" stroke-width="1.8"/>'),
+      svg('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" stroke="' + aksen + '" stroke-width="1.8"/>'),
+      svg('<path d="M13 2L5 14h6l-1 8 8-12h-6z" stroke="' + aksen + '" stroke-width="1.8"/>')
+    ] : [
+
+      svg('<path d="M4 18C8 14 14 8 20 4" stroke="' + aksen + '" stroke-width="2.4"/>' +
+        '<path d="M4 18l.5-3M4 18l3-.5" stroke="' + aksen + '" stroke-width="1.6"/>'),
+
+      svg('<path d="M3 17a9 9 0 0 1 18 0" stroke="#ff3d00" stroke-width="2.6"/>' +
+        '<path d="M6 17a6 6 0 0 1 12 0" stroke="#ff9100" stroke-width="1.8"/>' +
+        '<path d="M9 17a3 3 0 0 1 6 0" stroke="#ffee58" stroke-width="1.4"/>'),
+      svg('<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" stroke="' + aksen + '" stroke-width="1.8"/>'),
+      svg('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" stroke="' + aksen + '" stroke-width="1.8"/>'),
+      svg('<path d="M13 2L5 14h6l-1 8 8-12h-6z" stroke="' + aksen + '" stroke-width="1.8"/>')
+    ];
+
+    const ikonTerkunci = svg('<rect x="5" y="10" width="14" height="10" rx="2" stroke="#8a93a5" stroke-width="1.8"/>' +
+      '<path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#8a93a5" stroke-width="1.8"/>' +
+      '<circle cx="12" cy="15" r="1.4" fill="#8a93a5"/>');
     namaSkill.forEach((nm, i) => {
       const baris = document.createElement("div");
       baris.className = "kartu-note";
+      if (i >= 2) baris.classList.add("skill-terkunci");
       const bulat = document.createElement("div");
       bulat.className = "kartu-note-bulat";
-      bulat.style.background = "rgba(255,210,63,0.18)";
-      bulat.textContent = i + 1;
+      bulat.style.background = i >= 2 ? "rgba(138,147,165,0.15)" : aksen + "2b";
+      bulat.innerHTML = i >= 2 ? ikonTerkunci : ikonSkill[i];
       const teks = document.createElement("span");
       teks.className = "nama-karakter";
       teks.textContent = nm;
@@ -291,7 +332,6 @@ function buatPilihanUpgrade() {
     });
   }
 
-  // 4) Tombol upgrade + tampilan level karakter.
   const btn = document.getElementById("tombolNaikLevel");
   if (btn) {
     if (penuh) {
@@ -301,11 +341,14 @@ function buatPilihanUpgrade() {
       btn.textContent = "NAIK LEVEL - " + biaya + " KOIN";
       btn.disabled = !cukup;
     }
+
+    btn.classList.toggle("tombol-hijau", cukup && !penuh);
+    btn.classList.toggle("tombol-abu", !cukup || penuh);
     btn.classList.toggle("terkunci", !cukup && !penuh);
     btn.onclick = () => {
       if (typeof naikkanLevelKarakter === "function" && naikkanLevelKarakter(kar.kunci)) {
         if (typeof sfxKlik === "function") sfxKlik();
-        buatPilihanUpgrade();  // segarkan layar
+        buatPilihanUpgrade();
       } else if (typeof sfxKlik === "function") sfxKlik();
     };
   }
@@ -313,7 +356,6 @@ function buatPilihanUpgrade() {
   if (lvlTampil) lvlTampil.textContent = "LV " + lv + "/" + max;
 }
 
-// ---------- Layar Pilih Level ----------
 function tampilkanLevel() {
   sembunyiSemua();
   statusGame = "level";
@@ -323,11 +365,10 @@ function tampilkanLevel() {
   if (typeof setMusik === "function") setMusik("lobby");
 }
 
-// ---------- Layar Pilih Karakter ----------
 function tampilkanPilih() {
   sembunyiSemua();
   statusGame = "select";
-  // Audio mungkin masih tersuspensi kalau datang dari layar jeda.
+
   sinkronSfxTerjeda();
   layarPilih.classList.remove("hidden");
   buatPilihanKarakter();
@@ -335,7 +376,6 @@ function tampilkanPilih() {
   if (typeof setMusik === "function") setMusik("lobby");
 }
 
-// ---------- Layar Game Over ----------
 function tampilkanGameOver() {
   sembunyiSemua();
   statusGame = "over";
@@ -348,29 +388,31 @@ function tampilkanGameOver() {
   if (typeof setMusik === "function") setMusik("lobby");
 }
 
-// ---------- Layar Menang (selesai semua level) ----------
 function tampilkanMenang() {
   sembunyiSemua();
   statusGame = "over";
   koinMenangEl.textContent = "KOIN: " + koin;
-  // Progres: level ini ditamatkan (membuka level berikutnya) + simpan koin.
+
   if (typeof tandaiLevelSelesai === "function") tandaiLevelSelesai(levelPilihan, koin);
   if (typeof tambahKoinSaldo === "function") tambahKoinSaldo(koin);
   const teksBaru = document.getElementById("teksLevelBaru");
+  const tombolNext = document.getElementById("tombolLevelBerikut");
+  const nextIdx = levelPilihan + 1;
+  const adaLevelBaru = DAFTAR_LEVEL[nextIdx]
+    && (typeof apakahLevelTerbuka !== "function" || apakahLevelTerbuka(nextIdx));
   if (teksBaru) {
-    const nextIdx = levelPilihan + 1;
-    const adaLevelBaru = DAFTAR_LEVEL[nextIdx]
-      && (typeof apakahLevelTerbuka !== "function" || apakahLevelTerbuka(nextIdx));
     teksBaru.textContent = adaLevelBaru
       ? ("LEVEL BARU TERBUKA: " + (DAFTAR_LEVEL[nextIdx].nama || ("Level " + (nextIdx + 1))))
       : "";
   }
+
+  if (tombolNext) tombolNext.classList.toggle("hidden", !adaLevelBaru);
   layarMenang.classList.remove("hidden");
+  if (typeof mulaiKonfeti === "function") mulaiKonfeti(90, 3.5);
   aturTombolPause();
   if (typeof setMusik === "function") setMusik("lobby");
 }
 
-// ---------- Jeda (bekukan semua data: skor, HP, posisi) ----------
 function segarkanUISuara() {
   const set = (slId, nilId, v) => {
     const sl = document.getElementById(slId);
@@ -384,7 +426,7 @@ function segarkanUISuara() {
 }
 
 function tampilkanPause() {
-  if (statusGame !== "main") return;
+  if (statusGame !== "main" || animMati) return;
   statusGame = "pause";
   sinkronSfxTerjeda();
   segarkanUISuara();
@@ -400,7 +442,6 @@ function lanjutDariPause() {
   aturTombolPause();
 }
 
-// ---------- Mulai bermain (dari layar pilih) ----------
 function mulaiGameBaru() {
   sfxResume();
   resetArena({ koinBaru: true });
@@ -412,7 +453,6 @@ function mulaiGameBaru() {
   if (typeof setMusik === "function") setMusik("game");
 }
 
-// ---------- Game over: ulang dengan karakter SAMA ----------
 function ulangDenganKarakter() {
   resetArena({ koinBaru: true });
   statusGame = "main";
@@ -423,28 +463,33 @@ function ulangDenganKarakter() {
   if (typeof setMusik === "function") setMusik("game");
 }
 
-// ---------- Event tombol ----------
 function pasangTombol() {
   document.getElementById("tombolPlay").addEventListener("click", tampilkanLevel);
   document.getElementById("tombolKarakter").addEventListener("click", tampilkanKarakter);
   document.getElementById("tombolKembaliKarakter").addEventListener("click", tampilkanJudul);
   document.getElementById("tombolKembaliJudul").addEventListener("click", tampilkanJudul);
   document.getElementById("tombolUlang").addEventListener("click", ulangDenganKarakter);
-  // "Ganti karakter" langsung ke layar pemilihan karakter.
+
   document.getElementById("tombolMenu").addEventListener("click", tampilkanPilih);
   tombolPause.addEventListener("click", tampilkanPause);
   document.getElementById("tombolLanjut").addEventListener("click", lanjutDariPause);
   document.getElementById("tombolMenuPause").addEventListener("click", tampilkanPilih);
+  document.getElementById("tombolJudulPause").addEventListener("click", tampilkanJudul);
+  document.getElementById("tombolJudul").addEventListener("click", tampilkanJudul);
+  document.getElementById("tombolLevelBerikut").addEventListener("click", () => {
+    const nextIdx = levelPilihan + 1;
+    if (!DAFTAR_LEVEL[nextIdx]) return;
+    levelPilihan = nextIdx;
+    tampilkanPilih();
+  });
   document.getElementById("tombolUlangMenang").addEventListener("click", tampilkanLevel);
   document.getElementById("tombolMenuMenang").addEventListener("click", tampilkanJudul);
 
-  // Bunyi klik di semua tombol UI (event bubbling juga menjangkau kartu karakter).
   document.querySelectorAll(".tombol-play, .tombol-hijau, .tombol-abu, .tombol-pause")
     .forEach((el) => el.addEventListener("click", sfxKlik));
-  // Kartu karakter dibuat dinamis, bunyi klik lewat container via bubbling.
+
   daftarKarakter.addEventListener("click", sfxKlik);
 
-  // Slider volume di menu PAUSE (ke fungsi aturVolume* dari audio.js).
   const pasangSlider = (slId, nilId, fn) => {
     const sl = document.getElementById(slId);
     if (!sl) return;
@@ -461,7 +506,6 @@ function pasangTombol() {
   }
 }
 
-// ---------- Kartu karakter (minimalis: kotak kecil) ----------
 function buatPilihanKarakter() {
   daftarKarakter.innerHTML = "";
 
@@ -478,7 +522,7 @@ function buatPilihanKarakter() {
       const s = 56 / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
-      // Perkecil → smoothing agar kartu tidak tampak pecah.
+
       c.imageSmoothingEnabled = s < 1;
       c.drawImage(img, (56 - w) / 2, (56 - h) / 2, w, h);
     } else {
@@ -497,18 +541,15 @@ function buatPilihanKarakter() {
       mulaiGameBaru();
     });
 
-    // Hover: tampilkan info status karakter di bawah kartu; sembunyikan lagi
-    // saat pointer keluar dari kartu.
     card.addEventListener("pointerenter", () => tampilInfoKarakter(kar));
     card.addEventListener("pointerleave", sembunyiInfoKarakter);
 
     daftarKarakter.appendChild(card);
   });
-  // Kalau pointer keluar dari seluruh grid kartu, info ikut disembunyikan.
+
   daftarKarakter.addEventListener("pointerleave", sembunyiInfoKarakter);
 }
 
-// ---------- Kartu level (untuk menu pemilihan level) ----------
 function buatPilihanLevel() {
   const daftar = document.getElementById("daftarLevel");
   if (!daftar) return;
@@ -519,7 +560,6 @@ function buatPilihanLevel() {
     card.className = "kartu-level";
     card.style.setProperty("--warna-level", lvl.warna || "#4ade80");
 
-    // Level yang belum dibuka tampil terkunci dan tak bisa diklik.
     const terbuka = typeof apakahLevelTerbuka === "function"
       ? apakahLevelTerbuka(idx)
       : idx === 0;
@@ -552,18 +592,17 @@ function buatPilihanLevel() {
   });
 }
 
-// Info status karakter pada layar pilih: tampil saat kartu di-hover.
 function tampilInfoKarakter(kar) {
   const info = document.getElementById("infoKarakter");
   if (!info) return;
-  const tipe = kar.tipe === "jarak" ? "JARAK JAUH" : "JARAK DEKAT";
   info.innerHTML = "";
   const parts = [
     { lbl: "HP", nilai: kar.hp },
-    { lbl: "TIPE", nilai: tipe },
-    { lbl: "ELEMEN", nilai: kar.element || "-" }
+
+    { lbl: "TIPE", ikon: ikonTipeSVG(kar) },
+    { lbl: "ELEMEN", ikon: ikonElemenSVG(kar.element) }
   ];
-  // Setiap stat ditulis berjejer KEBawah (satu baris per stat).
+
   parts.forEach((p) => {
     const baris = document.createElement("div");
     baris.className = "info-baris";
@@ -571,7 +610,12 @@ function tampilInfoKarakter(kar) {
     lbl.className = "info-lbl";
     lbl.textContent = p.lbl + ": ";
     const val = document.createElement("span");
-    val.textContent = p.nilai;
+    val.className = "info-val";
+    if (p.ikon) {
+      val.innerHTML = p.ikon;
+    } else {
+      val.textContent = p.nilai;
+    }
     baris.appendChild(lbl);
     baris.appendChild(val);
     info.appendChild(baris);

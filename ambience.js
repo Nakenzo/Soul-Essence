@@ -1,13 +1,3 @@
-// ============================================================
-// AMBIENCE — animasi lingkungan map PNG (koordinat DUNIA, ikut kamera).
-//   1. HEMBUSAN ANGIN — garis putih tebal melintas.
-//   2. GUGURAN DAUN   — daun GUGUR warna oranye/kuning/coklat (kontras
-//      hijau rumput) jatuh diayun angin.
-//   3. POLEN          — titik terang melayang lambat.
-//   4. BAYANGAN AWAN  — bayangan lembut meluncur di atas lapangan.
-//   5. KILAU CAHAYA   — bintik putih muncul-hilang (kilau embun).
-// ============================================================
-
 let ambElapsed = 0;
 let ambWind = 0.5;
 let ambGust = -1;
@@ -25,14 +15,12 @@ function ambKualitas() {
   return deviceTerpilih === "mobile" ? 0.55 : 1;
 }
 
-// ---- Bake sprite daun ----
-// Daun hijau dengan outline hitam biar terlihat di atas rumput.
 function ambBakeDaun(warna) {
   const c = document.createElement("canvas");
   c.width = 32;
   c.height = 24;
   const g = c.getContext("2d");
-  // Outline hitam (lebih tebal).
+
   g.beginPath();
   g.moveTo(30, 1);
   g.quadraticCurveTo(3, 0, 1, 12);
@@ -42,7 +30,7 @@ function ambBakeDaun(warna) {
   g.strokeStyle = "#000";
   g.lineWidth = 3;
   g.stroke();
-  // Isi daun hijau.
+
   g.beginPath();
   g.moveTo(30, 3);
   g.quadraticCurveTo(5, 2, 3, 12);
@@ -51,7 +39,7 @@ function ambBakeDaun(warna) {
   g.closePath();
   g.fillStyle = warna;
   g.fill();
-  // Ulat tengah tipis.
+
   g.strokeStyle = "rgba(0,0,0,0.3)";
   g.lineWidth = 1.5;
   g.beginPath();
@@ -61,7 +49,6 @@ function ambBakeDaun(warna) {
   return c;
 }
 
-// Bake sprite bayangan awan.
 function ambBakeAwan() {
   const c = document.createElement("canvas");
   c.width = 256;
@@ -76,13 +63,12 @@ function ambBakeAwan() {
   return c;
 }
 
-// ---- Init ----
 function ambBuat() {
   const q = ambKualitas();
   ambElapsed = 0;
   ambGust = Math.random() * 3;
   ambDelayCahaya = 0.3;
-  // Daun: hijau seperti pepohonan, dengan outline hitam biar terlihat.
+
   ambDaunSprites = [
     ambBakeDaun("#6dbf4a"),
     ambBakeDaun("#4a9c2f"),
@@ -110,13 +96,11 @@ function ambBuat() {
   for (let i = 0; i < Math.round(8 * q); i++) ambLahirSpeck();
 }
 
-// ---- Spawn helpers ----
-
 function ambLahirDaun() {
   ambLeaves.push({
     x: kam.x + Math.random() * W,
     y: kam.y - 30 - Math.random() * 50,
-    s: 0.8 + Math.random() * 1.2, // pixel-sized kecil
+    s: 0.8 + Math.random() * 1.2,
     phase: Math.random() * Math.PI * 2,
     spin: (Math.random() * 2 - 1) * 3,
     rot: Math.random() * Math.PI * 2,
@@ -136,13 +120,12 @@ function ambLahirSpeck() {
   });
 }
 
-// Hembusan angin: garis putih muncul di posisi acak layar, jarang.
 function ambLahirHembusan() {
-  // 1-2 garis per hembusan, posisi acak di layar.
+
   const n = 1 + Math.floor(Math.random() * 2);
   const x0 = kam.x + Math.random() * W;
   const y0 = kam.y + Math.random() * H;
-  const sudut = (Math.random() - 0.5) * 0.6; // sedikit miring
+  const sudut = (Math.random() - 0.5) * 0.6;
   for (let i = 0; i < n; i++) {
     ambStreaks.push({
       x: x0,
@@ -166,7 +149,6 @@ function ambLahirCahaya() {
   });
 }
 
-// ---- Update ----
 function updateAmbience(dt) {
   ambElapsed += dt;
   ambWind = 0.5 + 0.45 * Math.sin(ambElapsed * 0.7);
@@ -183,8 +165,6 @@ function updateAmbience(dt) {
   const nSpeck = Math.round(8 * q);
   if (ambSpecks.length < nSpeck) ambLahirSpeck();
 
-  // Hembusan angin: jarang, tidak bertumpuk.
-  // Tunggu hembusan sebelumnya habis sebelum spawn baru.
   if (ambStreaks.length === 0 && Math.random() < dt * (0.4 + angin * 0.5)) ambLahirHembusan();
 
   ambDelayCahaya -= dt;
@@ -237,13 +217,10 @@ function updateAmbience(dt) {
   }
 }
 
-// ---- Gambar ----
-// Dipanggil dari draw() dengan ctx sudah translate(-kam) (koordinat dunia).
 function gambarAmbience() {
   if (!(statusGame === "main" || statusGame === "upgrade" ||
     statusGame === "pause" || statusGame === "over")) return;
 
-  // Bayangan awan.
   if (ambCloudSprite) {
     for (const a of ambClouds) {
       ctx.globalAlpha = 1;
@@ -252,7 +229,6 @@ function gambarAmbience() {
     ctx.globalAlpha = 1;
   }
 
-  // Hembusan angin — garis putih tebal dengan sudut.
   for (const s of ambStreaks) {
     const k = Math.sin(Math.min(1, s.t / s.life) * Math.PI);
     ctx.strokeStyle = "rgba(255,255,255," + (0.35 * k).toFixed(3) + ")";
@@ -263,7 +239,6 @@ function gambarAmbience() {
     ctx.stroke();
   }
 
-  // Polen/serbuk melayang — titik terang.
   for (const p of ambSpecks) {
     const a = Math.min(1, p.t / 0.3) * Math.min(1, (p.life - p.t) / 0.5);
     ctx.fillStyle = "rgba(255,250,210," + (0.8 * a).toFixed(3) + ")";
@@ -272,7 +247,6 @@ function gambarAmbience() {
     ctx.fill();
   }
 
-  // Daun gugur — putar & gambar sprite.
   for (const d of ambLeaves) {
     const sk = d.s / 4;
     ctx.save();
@@ -282,14 +256,13 @@ function gambarAmbience() {
     ctx.restore();
   }
 
-  // Kilau cahaya — bintik putih bersinar.
   for (const c of ambSparks) {
     const k = Math.sin(Math.PI * Math.min(1, c.t / c.life));
     ctx.fillStyle = "rgba(255,255,230," + (0.9 * k).toFixed(3) + ")";
     ctx.beginPath();
     ctx.arc(c.x, c.y, c.s, 0, Math.PI * 2);
     ctx.fill();
-    // Silang kecil.
+
     ctx.strokeStyle = "rgba(255,255,240," + (0.5 * k).toFixed(3) + ")";
     ctx.lineWidth = 1;
     ctx.beginPath();

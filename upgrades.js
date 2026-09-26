@@ -1,33 +1,3 @@
-// ============================================================
-// UPGRADES - kartu upgrade antar gelombang.
-// Selesai 1 wave -> jeda -> tampil 3 kartu, pilih 1.
-// Bonus "terukur" (10-15% per kartu) & dibatasi (cap) agar
-// karakter tidak langsung kuat hanya dengan 1 kartu.
-// Semua bonus hilang otomatis saat resetArena (game baru).
-//
-// Tiap kartu punya filter `cocok(karakter)` -> kartu yang tidak
-// relevan untuk karakter itu tidak ikut diundi. Untuk karakter baru,
-// cukup isi properti tipe/reach dll di config.js dan kartu sesuai
-// tipe (dekat: reach/halfArc, jarak: bullet) otomatis tersaring.
-//
-// SETIAP KARTU MEMILIKI TIER: common / rare / epic / legend.
-// common  = warna background kartu seperti sekarang (kertas krem).
-// rare    = background kartu biru.
-// epic    = background kartu ungu.
-// legend  = background kartu kuning keemasan (paling langka).
-// Logo/ikon kartu TIDAK ikut berubah warna (hanya background).
-// Maksimal penumpukan sesuai tier:
-//   common x3, rare x2, epic x1, legendary x1.
-// Setelah maks stack tercapai, kartu itu tidak muncul lagi saat
-// in-game sampai game selesai/restart (resetArena mengosongkan player.kartu).
-
-// ===== KONFIGURASI TIER =====
-// Tambah tier baru (mis. legendary) cukup daftarkan satu baris di sini --
-// warna flat kartu (bg/garis/aksen, tanpa gradasi), maks stack, peluang
-// muncul, dan warna "gem" untuk penanda tier di panel KARTUMU (sidebar).
-//   bg.gelap/hover = warna dasar kartu | garis = bingkai | aksen = ornamen
-//   gem = warna berlian penanda tier di panel samping
-//   maks = max penumpukan (stack) | bobotKali = pengali peluang muncul
 const TIER_DEF = {
   common: { maks: 3, bobotKali: 1.0, garis: "#59492f", aksen: "#9a7b3c", gem: "#f3e5c0",
     bg: { gelap: "#f3ecd9", hover: "#fbf7ea" } },
@@ -35,21 +5,16 @@ const TIER_DEF = {
     bg: { gelap: "#93b8ee", hover: "#b7d4f6" } },
   epic: { maks: 1, bobotKali: 0.35, garis: "#6d28d9", aksen: "#f59e0b", gem: "#c084fc",
     bg: { gelap: "#c5adff", hover: "#dbc8ff" } },
-  // Legend: palet KUNING, paling langka — bobotKali terkecil, maks 1.
+
   legend: { maks: 1, bobotKali: 0.18, garis: "#b8860b", aksen: "#fbbf24", gem: "#fde047",
     bg: { gelap: "#fde68a", hover: "#fef3c7" } }
 };
 const MAKS_STACK = Object.keys(TIER_DEF).reduce((a, t) => { a[t] = TIER_DEF[t].maks; return a; }, {});
-// ============================================================
 
-// Sinyal kemampuan umum sebagai pegangan penyaringan kartu.
-// Dipakai di cucok kartu agar karakter baru mudah ikut tipe yang ada.
 function cekTipe(k, tipe) { return k.tipe === tipe; }
 function punyaTebasan(k) { return cekTipe(k, "dekat") || (k.reach || 0) > 0; }
 function punyaPanah(k) { return cekTipe(k, "jarak"); }
 
-// Daftar kartu yang tersedia. bobot = makin besar makin sering muncul.
-// multiplikatif ter-compound; kartu ber-additif true dijumlah bertahap.
 const KARTU_UPGRADE = [
   {
     id: "laju", nama: "LARI CEPAT", ket: "+10% kecepatan gerak",
@@ -111,7 +76,7 @@ const KARTU_UPGRADE = [
     bobot: 8, warna: "#facc15", ikon: "\u2620", tier: "epic",
     mult: { jiwa: 2 }
   },
-  // Khusus TIPE DEKAT (tebasan): jangkauan & sudut ayunan.
+
   {
     id: "jangkau", nama: "JANGKAUAN", ket: "+12% jangkauan tebasan",
     bobot: 15, warna: "#fb923c", ikon: "\u2194", tier: "common",
@@ -124,37 +89,58 @@ const KARTU_UPGRADE = [
     cocok: punyaTebasan,
     mult: { halfA: 1.14 }
   },
-  // Khusus TIPE JARAK (panah): kecepatan peluru.
+
   {
     id: "panah", nama: "PANAH KENCANG", ket: "+16% kecepatan panah",
     bobot: 15, warna: "#7dd3fc", ikon: "\u27B3", tier: "rare",
     cocok: punyaPanah,
     mult: { bSpeed: 1.16 }
   },
-  // Kartu LEGEND: AUTO AIM. Bukan stat biasa — bendera (flag) yang mengubah
-  // cara bidik: di HP tombol serang jadi tombol biasa (tanpa joystick bidik,
-  // otomatis ke musuh terdekat), di desktop klik kiri = bidik otomatis ke
-  // musuh terdekat. Bobot kecil sekali karena "legend".
+
   {
     id: "bidik", nama: "AUTO AIM", ket: "Serang otomatis mengarah ke musuh terdekat",
     bobot: 4, warna: "#fde047", ikon: "\u25CE", tier: "legend"
+  },
+
+  {
+    id: "darahKetiga", nama: "DARAH KETIGA", ket: "+15 HP setiap selesai wave",
+    bobot: 14, warna: "#f472b6", ikon: "\u2665", tier: "epic"
+  },
+
+  {
+    id: "freezeArea", nama: "FREEZE AREA", ket: "Musuh dekat 120px melambat 30%",
+    bobot: 12, warna: "#7dd3fc", ikon: "\u2744", tier: "epic"
+  },
+
+  {
+    id: "koinBonus", nama: "KOIN BONUS", ket: "+15% koin per kill",
+    bobot: 15, warna: "#fbbf24", ikon: "\u25CE", tier: "rare",
+    mult: { koin: 1.15 }
+  },
+
+  {
+    id: "duriBalik", nama: "DURI BALIK", ket: "15% damage balik ke penyerang",
+    bobot: 12, warna: "#fb7185", ikon: "\u21A9", tier: "rare",
+    cocok: punyaTebasan
+  },
+
+  {
+    id: "pencuriDarah", nama: "PENCURI DARAH", ket: "8% damage diserap jadi HP",
+    bobot: 5, warna: "#ef4444", ikon: "\u2666", tier: "legend"
+  },
+
+  {
+    id: "nyawaKedua", nama: "NYAWA KEDUA", ket: "Hidup sekali (30% HP), kartu hilang",
+    bobot: 5, warna: "#fde047", ikon: "\u271A", tier: "legend"
   }
 ];
 
-// Tiga kartu yang sedang ditawarkan (id). Lokasi & ukuran kartu dibagi
-// antara draw.js (render) dan input.js (klik) via rectKartuUpgrade.
 let pilihanKartu = null;
-let kartuMulaiPada = 0; // performance.now() saat kartu tampil (animasi masuk).
+let kartuMulaiPada = 0;
 let kartuHover = -1;
 
-// Batas atas (cap) agar stacking tidak membabi buta.
-const CAP_KARTU = { speed: 1.7, damage: 2.2, atk: 0.45, reach: 1.6, halfA: 1.5, bSpeed: 1.6, special: 0.5, status: 2.0, hpA: 150, regen: 3, dash: 3, jiwa: 3, crit: 0.6, armor: 0.6 };
+const CAP_KARTU = { speed: 1.7, damage: 2.2, atk: 0.45, reach: 1.6, halfA: 1.5, bSpeed: 1.6, special: 0.5, status: 2.0, hpA: 150, regen: 3, dash: 3, jiwa: 3, crit: 0.6, armor: 0.6, koin: 1.5 };
 
-// Ambil n kartu unik, pilih oleh bobot. Kartu yang tak cocok karakter
-// (mis. durasi beku untuk Vender) tidak dimasukkan ke dalam undian.
-// Kartu yang sudah mencapai maks stack tier-nya tidak ditawarkan lagi
-// (common x3, rare x2, epic x1). Peluang muncul dikalikan faktor tier
-// (bobotKali) supaya rare lebih jarang daripada common dan epic paling jarang.
 function buatPilihanKartu(n) {
   const pool = KARTU_UPGRADE.filter((k) => {
     const maks = (TIER_DEF[k.tier || "common"] || TIER_DEF.common).maks;
@@ -167,7 +153,7 @@ function buatPilihanKartu(n) {
   const hasil = [];
   const sisa = pool.slice();
   for (let i = 0; i < n; i++) {
-    // Berat tiap kartu = bobot dasar x pengali tier.
+
     const berat = sisa.map((k) => {
       const t = TIER_DEF[k.tier || "common"] || TIER_DEF.common;
       return k.bobot * (t.bobotKali || 1);
@@ -184,15 +170,13 @@ function buatPilihanKartu(n) {
   return hasil;
 }
 
-// Rekalkulasi stat player dari base (karakter) dikali pengali kartu + cap.
-// Dipanggil saat resetArena dan setiap kartu dipilih.
 function hitungStatKartu() {
   const b = player.base, m = player.mult;
   const cap = (v, min, max) => Math.max(min, Math.min(max, v));
   player.speed = Math.round(b.speed * m.speed);
   player.damage = Math.round(b.damage * m.damage);
   player.attackRate = Math.max(0.06, b.attackRate * m.atk);
-  // Tipe dekat: jangkauan & sudut ayunan. Tipe jarak: kecepatan panah.
+
   player.reach = Math.round(b.reach * m.reach);
   player.halfArc = b.halfArc * m.halfA;
   player.swingDuration = b.swingDuration;
@@ -207,17 +191,16 @@ function hitungStatKartu() {
   player.jiwaKali = m.jiwa;
   player.dashMax = b.dashMax + m.dash;
   if (player.dashStacks < player.dashMax) player.dashStacks = player.dashMax;
-  // Kritis & perisai (kartu umum, berlaku semua karakter).
+
   player.crit = m.crit;
   player.armor = m.armor;
 }
 
-// Buka layar pilih kartu (dipanggil levelSelesai). Game membeku sejenak.
 function mulaiKartuUpgrade() {
   statusGame = "upgrade";
-  levelBanner = null; // hapus banner "WAVES N" agar tidak bertumpuk dengan kartu.
+  levelBanner = null;
   pilihanKartu = buatPilihanKartu(3);
-  // Semua kartu sudah 3x diambil -> lewati layar pilih, langsung lanjut wave.
+
   if (!pilihanKartu.length) {
     lanjutKartuKeLevel();
     return;
@@ -225,27 +208,26 @@ function mulaiKartuUpgrade() {
   kartuMulaiPada = performance.now();
   kartuHover = -1;
   if (typeof sfxLevel === "function") sfxLevel();
-  // Jeda SFX saat pemilihan kartu (dilanjutkan saat game berjalan lagi).
+
   if (typeof sinkronSfxTerjeda === "function") sinkronSfxTerjeda();
 }
 
-// Pemain memilih kartu ke-i (0..2). Terapkan lalu lanjut ke wave berikutnya.
 function pilihKartuUpgrade(i) {
   if (!pilihanKartu || statusGame !== "upgrade") return;
-  if (performance.now() - kartuMulaiPada < 250) return; // "jeda sebentar".
+  if (performance.now() - kartuMulaiPada < 250) return;
   const id = pilihanKartu[i];
   if (!id) return;
   const kart = KARTU_UPGRADE.find((k) => k.id === id);
   if (!kart) return;
   player.kartu[id] = (player.kartu[id] || 0) + 1;
   if (kart.additif) {
-    // Kartu penambah (HP max, regen, charge dash): nilai dijumlah bertahap.
+
     for (const key in kart.mult) {
       const nx = player.mult[key] + kart.mult[key];
       player.mult[key] = CAP_KARTU[key] !== undefined ? Math.min(CAP_KARTU[key], nx) : nx;
     }
   } else {
-    // Kartu pengali (kecepatan, damage, dll): dikalikan, dengan cap.
+
     for (const key in kart.mult) {
       const cur = player.mult[key] + kart.mult[key] - 1;
       player.mult[key] = CAP_KARTU[key] !== undefined
@@ -256,7 +238,7 @@ function pilihKartuUpgrade(i) {
     }
   }
   hitungStatKartu();
-  if (kart.mult.hpA) {
+  if (kart.mult && kart.mult.hpA) {
     player.hp = Math.min(player.maxHp, player.hp + kart.mult.hpA);
   }
   if (typeof spawnParticles === "function") spawnParticles(player.x, player.y - 40, kart.warna, 18);
@@ -265,7 +247,6 @@ function pilihKartuUpgrade(i) {
   lanjutKartuKeLevel();
 }
 
-// Setelah kartu dipilih: lanjut ke level berikutnya.
 function lanjutKartuKeLevel() {
   statusGame = "main";
   pilihanKartu = null;
@@ -276,7 +257,6 @@ function lanjutKartuKeLevel() {
   if (typeof tampilkanBannerLevel === "function") tampilkanBannerLevel(level);
 }
 
-// Geometri kartu ke-i (dibagi draw.js & input.js agar klik pas dengan gambar).
 function rectKartuUpgrade(i) {
   const jml = 3;
   const gap = Math.round(W * 0.025);
@@ -288,7 +268,6 @@ function rectKartuUpgrade(i) {
   return { x: Math.round(x0 + (cw + gap) * i), y: y, w: cw, h: ch };
 }
 
-// Kartu mana yang diklik (koordinat canvas). -1 = tidak ada.
 function kartuIndexDariKlik(mx, my) {
   if (!pilihanKartu) return -1;
   for (let i = 0; i < pilihanKartu.length; i++) {
@@ -298,9 +277,6 @@ function kartuIndexDariKlik(mx, my) {
   return -1;
 }
 
-// Panel di samping kiri *di luar area game*: daftar kartu/upgrade yang
-// sudah diambil. Dibangun ulang dari player.kartu tiap kali berubah
-// (dipanggil dari pilihKartuUpgrade dan resetArena).
 function perbaruiNotaKartu() {
   const isi = document.getElementById("notaKartuIsi");
   if (!isi) return;
@@ -311,8 +287,7 @@ function perbaruiNotaKartu() {
   for (const id in kartu) {
     const k = KARTU_UPGRADE.find((c) => c.id === id);
     if (!k) continue;
-    // Penanda tier di panel samping: berlian kecil berwarna tier + garis
-    // kiri senada, di sebelah kiri logo (ikon) kartu.
+
     const tierDef = TIER_DEF[k.tier || "common"] || TIER_DEF.common;
     const warnaTier = tierDef.gem || "#f3e5c0";
     const baris = document.createElement("div");
@@ -326,11 +301,11 @@ function perbaruiNotaKartu() {
     bulat.className = "kartu-note-bulat";
     bulat.style.background = k.warna;
     bulat.textContent = k.ikon;
-    // Lencana jumlah di pojok logo: menampilkan berapa kartu yang ditumpuk.
+
     const jml = document.createElement("span");
     jml.className = "kartu-note-jml";
     jml.textContent = kartu[id];
-    // Nama tersimpan sebagai tooltip (hover/ketuk tahan) agar panel tetap ringkas.
+
     baris.title = k.nama;
     baris.appendChild(gem);
     bulat.appendChild(jml);

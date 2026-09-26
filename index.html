@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soul Essence</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Dots&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    <link rel="icon" type="image/png" href="assets/ui/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/ui/icon-192.png">
 </head>
 <body>
-    <!-- Catatan upgrade di luar area game (sebelah kiri) -->
+
     <div class="ruangan-utama">
         <aside id="notaKartu">
             <h3>KARTUMU</h3>
@@ -22,8 +23,6 @@
             <div class="posisi-game">
             <canvas id="game" width="1280" height="960"></canvas>
 
-            <!-- Layar awal: pilih perangkat. Klik juga sekaligus mengaktifkan
-                 audio (browser melarang suara sebelum interaksi pertama). -->
             <div id="layarDevice" class="layar-awal">
                 <h1 class="judul-besar">Apa perangkat yang kau gunakan</h1>
                 <p class="sub-judul">Ini penting untuk penyesuaian HUD/UI</p>
@@ -34,13 +33,11 @@
                 <p class="keterangan-device">Tersimpan di perangkat ini &middot; suara aktif setelah klik</p>
             </div>
 
-            <!-- Ajakan putar perangkat (mode HP dalam posisi portrait) -->
             <div id="layarPutar" class="layar-putar">
                 <h1 class="judul-besar">PUTAR PERANGKAT</h1>
                 <p class="sub-judul">Miringkan HP / tablet ke posisi LANDSCAPE agar nyaman dimainkan</p>
             </div>
 
-            <!-- Help text (kiri bawah canvas) -->
             <div class="bantuan-canvas">
                 <p><b>WASD / Panah</b> Gerak</p>
                 <p><b>Klik Kiri</b> Serang</p>
@@ -50,10 +47,8 @@
                 <p><b>Esc</b> Jeda</p>
             </div>
 
-            <!-- Tombol Pause (hanya saat bermain) -->
             <button id="tombolPause" class="tombol-pause hidden" title="Jeda (Esc)">&#10073;&#10073;</button>
 
-            <!-- Kontrol sentuh (mode HP): joystick kiri + tombol aksi kanan -->
             <div id="kontrolSentuh">
                 <div id="joyBase" class="joy-basis"><div id="joyKnob" class="joy-tombol"></div></div>
                 <div class="tombol-sentuh-grup">
@@ -61,12 +56,10 @@
                     <button id="tombolDash" class="tombol-sentuh tombol-dash" type="button"><canvas class="ikon-sentuh"></canvas></button>
                     <button id="tombolSkill" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas></button>
                 </div>
-                <!-- ULTIMATE = bar SOUL METER itu sendiri (di canvas):
-                     ditekan saat meter penuh untuk melancarkan ultimate. -->
+
                 <button id="tombolUlt" class="tombol-sentuh tombol-ult" type="button"></button>
             </div>
 
-            <!-- Layar Pause -->
             <div id="layarPause" class="overlay overlay-beku hidden">
                 <h2>PAUSE</h2>
                 <p class="sub-judul">Permainan dijeda</p>
@@ -90,26 +83,115 @@
                 <div class="grup-tombol">
                     <button id="tombolLanjut" class="tombol-hijau">&#9654; Lanjut</button>
                     <button id="tombolMenuPause" class="tombol-abu">&#8635; Ganti Karakter</button>
+                    <button id="tombolJudulPause" class="tombol-abu">&#8962; Menu Utama</button>
                 </div>
             </div>
 
-            <!-- Layar Judul (seperti Minecraft) -->
             <div id="layarJudul" class="overlay">
-                <h1 class="judul-besar">SOUL ESSENCE</h1>
+                <div id="dekorJudul" class="dekor-bg" aria-hidden="true">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:60%;height:26%;left:20%;top:10%;--dur:15s;--delay:0s">
+                        <path class="au-green" d="M -15 72 C 22 20, 78 92, 115 45" />
+                        <path class="au-core" d="M -15 72 C 22 20, 78 92, 115 45" />
+                    </svg>
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:68%;height:32%;left:16%;top:26%;--dur:19s;--delay:-7s">
+                        <path class="au-green" d="M -15 30 C 35 70, 68 8, 115 52" />
+                        <path class="au-core" d="M -15 30 C 35 70, 68 8, 115 52" />
+                    </svg>
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:48%;height:22%;left:26%;top:44%;--dur:17s;--delay:-4s">
+                        <path class="au-green" d="M 5 55 C 35 15, 70 90, 95 35" />
+                        <path class="au-core" d="M 5 55 C 35 15, 70 90, 95 35" />
+                    </svg>
+                    <i class="star-fall" style="--x:12%;--y:10%;--a:-190px;--b:155px;--dur:6.4s;--delay:0s"></i>
+                    <i class="star-fall" style="--x:24%;--y:34%;--a:-160px;--b:130px;--dur:6.2s;--delay:4.8s"></i>
+                    <i class="star-fall" style="--x:40%;--y:16%;--a:-230px;--b:190px;--dur:6.8s;--delay:2.2s"></i>
+                    <i class="star-fall" style="--x:55%;--y:40%;--a:-245px;--b:200px;--dur:6.6s;--delay:5.6s"></i>
+                    <i class="star-fall" style="--x:70%;--y:12%;--a:-225px;--b:185px;--dur:6.5s;--delay:1.1s"></i>
+                    <i class="star-fall" style="--x:86%;--y:42%;--a:-175px;--b:145px;--dur:6.3s;--delay:3.4s"></i>
+                    <i class="star-fall" style="--x:94%;--y:20%;--a:-150px;--b:125px;--dur:6.1s;--delay:6.8s"></i>
+                    <i class="star-fall" style="--x:30%;--y:62%;--a:-170px;--b:140px;--dur:6.5s;--delay:2.9s"></i>
+                    <i class="star-fall" style="--x:58%;--y:70%;--a:-180px;--b:150px;--dur:6.7s;--delay:4.3s"></i>
+                    <i class="star-fall" style="--x:88%;--y:78%;--a:-155px;--b:130px;--dur:6.2s;--delay:1.9s"></i>
+                </div>
+                <div class="tepi-aksen" aria-hidden="true">
+                    <i class="tepi garis-atas"></i>
+                    <i class="tepi garis-bawah"></i>
+                    <i class="tepi garis-kiri"></i>
+                    <i class="tepi garis-kanan"></i>
+                    <i class="sudut sudut-tl"></i>
+                    <i class="sudut sudut-tr"></i>
+                    <i class="sudut sudut-bl"></i>
+                    <i class="sudut sudut-br"></i>
+                    <i class="denyut denyut-t"></i>
+                    <i class="denyut denyut-b"></i>
+                    <i class="denyut denyut-l"></i>
+                    <i class="denyut denyut-r"></i>
+                </div>
+                <h1 class="judul-logo">
+                    <span class="logo-stack">
+                        <img src="assets/ui/logo-aura.png" alt="" class="logo-aura" draggable="false" aria-hidden="true">
+                        <i class="orn-line" aria-hidden="true"></i>
+                        <i class="orn-cross" aria-hidden="true"></i>
+                        <img src="assets/ui/logo-kamu.png" alt="SOUL ESSENCE" class="img-logo" draggable="false">
+                        <span class="sparkles" aria-hidden="true">
+                            <i class="kilat sz7" style="--x:15%;--y:47.6%;--d:0s"></i>
+                            <i class="kilat sz7" style="--x:49.4%;--y:47.7%;--d:0.4s"></i>
+                            <i class="kilat sz7" style="--x:86.5%;--y:54%;--d:0.8s"></i>
+                            <i class="kilat sz6" style="--x:19.5%;--y:54.2%;--d:0.25s"></i>
+                            <i class="kilat sz6" style="--x:17.3%;--y:66.7%;--d:0.6s"></i>
+                            <i class="kilat sz6" style="--x:59%;--y:60.1%;--d:1s"></i>
+                            <i class="kilat sz6" style="--x:81.8%;--y:60.5%;--d:0.5s"></i>
+                            <i class="kilat sz6" style="--x:67.9%;--y:60.4%;--d:1.35s"></i>
+                            <i class="kilat sz6" style="--x:50%;--y:18%;--d:1.7s"></i>
+                            <i class="kilat sz5" style="--x:12%;--y:42%;--d:0.9s"></i>
+                            <i class="kilat sz5" style="--x:51.9%;--y:47.7%;--d:1.2s"></i>
+                            <i class="kilat sz5" style="--x:38.4%;--y:54.1%;--d:0.35s"></i>
+                            <i class="kilat sz5" style="--x:31%;--y:54.1%;--d:1.55s"></i>
+                            <i class="kilat sz5" style="--x:49.3%;--y:60.5%;--d:0.7s"></i>
+                            <i class="kilat sz5" style="--x:7%;--y:36%;--d:1.45s"></i>
+                            <i class="kilat sz5" style="--x:93%;--y:40%;--d:0.15s"></i>
+                            <i class="kilat sz5" style="--x:25%;--y:22%;--d:1.85s"></i>
+                            <i class="kilat sz5" style="--x:75%;--y:24%;--d:1.05s"></i>
+                            <i class="kilat sz5" style="--x:22%;--y:82%;--d:0.55s"></i>
+                            <i class="kilat sz5" style="--x:78%;--y:84%;--d:1.6s"></i>
+                            <i class="kilat sz5" style="--x:50%;--y:88%;--d:1.3s"></i>
+                            <i class="kilat debu" style="--x:4.5%;--y:28%;--d:0.2s"></i>
+                            <i class="kilat debu" style="--x:95.5%;--y:30%;--d:0.85s"></i>
+                            <i class="kilat debu" style="--x:6%;--y:78%;--d:1.5s"></i>
+                            <i class="kilat debu" style="--x:94%;--y:80%;--d:0.45s"></i>
+                            <i class="kilat debu" style="--x:15%;--y:16%;--d:1.15s"></i>
+                            <i class="kilat debu" style="--x:85%;--y:16%;--d:0.65s"></i>
+                            <i class="kilat debu" style="--x:33%;--y:92%;--d:1.35s"></i>
+                            <i class="kilat debu" style="--x:67%;--y:92%;--d:1.05s"></i>
+                            <i class="kilat debu" style="--x:48%;--y:12%;--d:1.75s"></i>
+                            <i class="kilat debu" style="--x:52%;--y:94%;--d:0.1s"></i>
+                        </span>
+                    </span>
+                </h1>
                 <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
                 <button id="tombolKarakter" class="tombol-abu tombol-karakter-menu">&#9733; KARAKTER</button>
-                <div id="saldoJudul" class="teks-skor"></div>
+                <div id="saldoJudul" class="teks-skor" hidden></div>
             </div>
 
-            <!-- Layar Upgrade Karakter -->
             <div id="layarKarakter" class="overlay hidden">
+                <div class="dekor-bg" aria-hidden="true">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:16s;--delay:0s">
+                        <path class="au-green" d="M -20 25 C 20 -12, 75 60, 120 18" />
+                        <path class="au-core" d="M -20 25 C 20 -12, 75 60, 120 18" />
+                    </svg>
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:20s;--delay:-8s">
+                        <path class="au-green" d="M -20 92 C 25 55, 80 112, 122 60" />
+                        <path class="au-core" d="M -20 92 C 25 55, 80 112, 122 60" />
+                    </svg>
+                    <i class="star-fall" style="--x:16%;--y:14%;--a:-190px;--b:155px;--dur:6.4s;--delay:0s"></i>
+                    <i class="star-fall" style="--x:48%;--y:34%;--a:-230px;--b:190px;--dur:6.6s;--delay:2.8s"></i>
+                    <i class="star-fall" style="--x:78%;--y:20%;--a:-210px;--b:175px;--dur:6.2s;--delay:1.4s"></i>
+                    <i class="star-fall" style="--x:88%;--y:72%;--a:-165px;--b:135px;--dur:6.5s;--delay:4.2s"></i>
+                </div>
                 <h2 class="judul-pilih" style="color:#ffd23f">TINGKATKAN KARAKTER</h2>
                 <div id="saldoKarakter" class="teks-skor saldo-pojok"></div>
 
-                <!-- 1. Deretan kartu karakter (geser ke samping bila bertambah) -->
                 <div id="daftarUpgrade" class="kar-geser"></div>
 
-                <!-- 2+3+4. Isi layar: balok skill (kiri) & balok stat besar (kanan) -->
                 <div class="kar-isi">
                     <div class="kar-kiri">
                         <div class="balok-skill">
@@ -117,7 +199,7 @@
                             <div id="daftarSkill" class="daftar-upgrade"></div>
                         </div>
                         <div class="baris-naik">
-                            <button id="tombolNaikLevel" class="tombol-hijau">NAIK LEVEL</button>
+                            <button id="tombolNaikLevel" class="tombol-abu">NAIK LEVEL</button>
                             <div id="levelKarakterTampil" class="lvl-tampil">LV 0/20</div>
                         </div>
                     </div>
@@ -129,36 +211,62 @@
                 <button id="tombolKembaliKarakter" class="tombol-abu">&#8592; Kembali</button>
             </div>
 
-            <!-- Layar Pilih Level -->
             <div id="layarLevel" class="overlay hidden">
+                <div class="dekor-bg" aria-hidden="true">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:15s;--delay:0s">
+                        <path class="au-green" d="M 120 24 C 82 -6, 40 60, -20 28" />
+                        <path class="au-core" d="M 120 24 C 82 -6, 40 60, -20 28" />
+                    </svg>
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:21s;--delay:-9s">
+                        <path class="au-green" d="M -20 70 C 28 100, 75 30, 122 78" />
+                        <path class="au-core" d="M -20 70 C 28 100, 75 30, 122 78" />
+                    </svg>
+                    <i class="star-fall" style="--x:20%;--y:16%;--a:-190px;--b:155px;--dur:6.3s;--delay:0s"></i>
+                    <i class="star-fall" style="--x:50%;--y:36%;--a:-230px;--b:190px;--dur:6.7s;--delay:2.6s"></i>
+                    <i class="star-fall" style="--x:80%;--y:22%;--a:-210px;--b:175px;--dur:6.2s;--delay:1.5s"></i>
+                    <i class="star-fall" style="--x:90%;--y:74%;--a:-170px;--b:140px;--dur:6.5s;--delay:4.3s"></i>
+                </div>
                 <h2 class="judul-pilih">PILIH LEVEL</h2>
                 <div id="daftarLevel" class="tombol-karakter"></div>
                 <button id="tombolKembaliJudul" class="tombol-abu">&#8592; Kembali</button>
             </div>
 
-            <!-- Layar Pilih Karakter -->
             <div id="layarPilih" class="overlay hidden">
+                <div class="dekor-bg" aria-hidden="true">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:16s;--delay:0s">
+                        <path class="au-green" d="M -20 36 C 22 4, 78 84, 120 32" />
+                        <path class="au-core" d="M -20 36 C 22 4, 78 84, 120 32" />
+                    </svg>
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="--dur:20s;--delay:-8s">
+                        <path class="au-green" d="M 120 96 C 80 65, 32 22, -20 84" />
+                        <path class="au-core" d="M 120 96 C 80 65, 32 22, -20 84" />
+                    </svg>
+                    <i class="star-fall" style="--x:18%;--y:16%;--a:-185px;--b:150px;--dur:6.4s;--delay:0s"></i>
+                    <i class="star-fall" style="--x:46%;--y:38%;--a:-235px;--b:195px;--dur:6.7s;--delay:2.7s"></i>
+                    <i class="star-fall" style="--x:76%;--y:24%;--a:-205px;--b:170px;--dur:6.2s;--delay:1.4s"></i>
+                    <i class="star-fall" style="--x:88%;--y:74%;--a:-165px;--b:135px;--dur:6.5s;--delay:4.1s"></i>
+                </div>
                 <h2>PILIH KARAKTER</h2>
                 <div id="daftarKarakter" class="tombol-karakter"></div>
                 <div id="infoKarakter" class="info-karakter hidden"></div>
             </div>
 
-            <!-- Layar Game Over -->
             <div id="layarGameOver" class="overlay hidden">
                 <h2 id="judulAkhir" class="judul-gameover">GAME OVER</h2>
                 <p id="skorAkhir" class="teks-skor">KOIN: 0</p>
                 <div class="grup-tombol">
                     <button id="tombolUlang" class="tombol-hijau">&#9654; Main Lagi</button>
                     <button id="tombolMenu" class="tombol-abu">&#8635; Ganti Karakter</button>
+                    <button id="tombolJudul" class="tombol-abu">&#8962; Menu Utama</button>
                 </div>
             </div>
 
-            <!-- Layar Menang (semua level selesai) -->
             <div id="layarMenang" class="overlay hidden">
                 <h2 class="judul-gameover" style="color:#ffd23f">KAMU MENANG!</h2>
                 <p id="skorMenang" class="teks-skor">KOIN: 0</p>
                 <p id="teksLevelBaru" class="teks-skor" style="color:#a3e635"></p>
                 <div class="grup-tombol">
+                    <button id="tombolLevelBerikut" class="tombol-hijau">&#9654; Level Berikutnya</button>
                     <button id="tombolUlangMenang" class="tombol-hijau">&#9654; Main Lagi</button>
                     <button id="tombolMenuMenang" class="tombol-abu">&#8592; Menu Utama</button>
                 </div>
@@ -183,5 +291,12 @@
     <script src="draw.js"></script>
     <script src="ambience.js"></script>
     <script src="main.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("sw.js").catch(() => {});
+            });
+        }
+    </script>
 </body>
 </html>
