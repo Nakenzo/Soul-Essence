@@ -148,15 +148,20 @@ let _sfxVol = {};
 
 function muatSfxLokal(kunci, src, vol) {
   _sfxVol[kunci] = vol != null ? vol : 1;
+  const daftar = Array.isArray(src) ? src.slice() : [src];
   return new Promise((resolve) => {
-    const a = new Audio();
-    a.preload = "auto";
-    a.volume = _sfxVol[kunci];
-    const ok = () => { _sfxFiles[kunci] = a; resolve(true); };
-    const gagal = () => resolve(false);
-    a.addEventListener("canplaythrough", ok, { once: true });
-    a.addEventListener("error", gagal, { once: true });
-    a.src = src;
+    const coba = (i) => {
+      if (i >= daftar.length) return resolve(false);
+      const a = new Audio();
+      a.preload = "auto";
+      a.volume = _sfxVol[kunci];
+      const ok = () => { _sfxFiles[kunci] = a; resolve(true); };
+      const gagal = () => coba(i + 1);
+      a.addEventListener("canplaythrough", ok, { once: true });
+      a.addEventListener("error", gagal, { once: true });
+      a.src = daftar[i];
+    };
+    coba(0);
   });
 }
 
@@ -380,6 +385,7 @@ function sfxMenang() {
 }
 
 function sfxGameOver() {
+  if (sfxFile("gameover")) return;
   [400, 340, 280, 190].forEach((f, i) =>
     sfxTone({ freq: f, dur: 0.3, type: "sawtooth", vol: 0.16, delay: i * 0.2 }));
 }

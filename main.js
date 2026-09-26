@@ -107,7 +107,8 @@ function mulai() {
     { kunci: "panah", src: "assets/sfx/kenzro/panah.wav", vol: 0.9 },
     { kunci: "beku", src: "assets/sfx/kenzro/beku.mp3", vol: 0.7 },
     { kunci: "dash", src: "assets/sfx/common/dash.wav" },
-    { kunci: "menang", src: "assets/sfx/menang.wav", vol: 0.9 },
+    { kunci: "menang", src: ["assets/sfx/menang.mp3", "assets/sfx/menang.wav"], vol: 0.9 },
+    { kunci: "gameover", src: ["assets/sfx/gameover.mp3", "assets/sfx/gameover.wav"], vol: 0.9 },
     { kunci: "panah-raksasa", src: "assets/sfx/kenzro/panah-raksasa.mp3" }
   ];
 
