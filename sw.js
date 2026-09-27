@@ -1,4 +1,7 @@
-const CACHE_NAME = "soul-essence-v1";
+// WAJIB naikkan nomornya setiap rilis. Service worker memakai cache-first
+// tanpa revalidasi, jadi tanpa bump ini pemain tetap dilayani file versi lama
+// selamanya (symptom: asset atau JS terbaru tidak pernah muncul).
+const CACHE_NAME = "soul-essence-v2";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -8,6 +11,7 @@ const ASSETS_TO_CACHE = [
   "./save.js",
   "./audio.js",
   "./config.js",
+  "./bosses.js",
   "./maps.js",
   "./texture.js",
   "./menu.js",
@@ -25,6 +29,8 @@ const ASSETS_TO_CACHE = [
   "./assets/weapons/panah.png",
   "./assets/weapons/pedang.png",
   "./assets/maps/padang.png",
+  "./assets/sfx/gameover.mp3",
+  "./assets/sfx/menang.mp3",
   "./assets/ui/icon-192.png",
   "./assets/ui/icon-512.png",
   "./assets/ui/icon.png"
