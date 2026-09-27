@@ -205,6 +205,21 @@ function spawnEnemy() {
 }
 
 function parrySerigala(e) {
+  if (e.bos) {
+    // Parry bos hanya saat recovery — bukan saat telegraph/attack.
+    if (!e.bosParah || e.bosKematian) return;
+    e.bosParah = false;
+    e.state = "stagger";
+    e.stateT = 0;
+    e.aksi = null;
+    e.bomJalan = null;
+    e.tarikT = 0;
+    spawnDamage(e.x, e.y - e.r - 56, "PARRY", "#fbbf24");
+    spawnParticles(e.x, e.y, "#fbbf24", 14);
+    rings.push({ x: e.x, y: e.y, r: 12, maxR: e.r * 1.6, life: 0.35, t: 0 });
+    if (typeof sfxBeku === "function") sfxBeku();
+    return;
+  }
   if (e.tipe !== "serigala") return;
   if (e.lungeT > 0 || e.lungeBersiap > 0) {
     e.lungeT = 0;
@@ -218,8 +233,7 @@ function parrySerigala(e) {
 
 let bossIntro = null;
 
-function titikBossAman() {
-  const r = TIPE_MUSUH.bos.r;
+function titikBossAman(r) {
   for (let u = 0; u < 40; u++) {
     const ang = Math.random() * Math.PI * 2;
     const d = 400 + Math.random() * 70;
@@ -230,6 +244,7 @@ function titikBossAman() {
     if (tesLingkaran(x, y, r + 8)) continue;
     let tabrak = false;
     for (const mm of enemies) {
+      if (mm.bosKematian) continue;
       const a2 = x - mm.x, b2 = y - mm.y, rr2 = r + mm.r + 6;
       if (a2 * a2 + b2 * b2 < rr2 * rr2) { tabrak = true; break; }
     }
@@ -238,66 +253,520 @@ function titikBossAman() {
   return { x: WORLD_W / 2, y: WORLD_H / 2 };
 }
 
+function defBosLevel() {
+  const w = LEVELS[level] || {};
+  return definisiBos(w.bos) || BOSS_DEF["raja-slime"];
+}
+
 function mulaiIntroBoss() {
-  const p = titikBossAman();
-  bossIntro = { x: p.x, y: p.y, t: 0, durasi: 1.5 };
+  const def = defBosLevel();
+  const p = titikBossAman(def.r);
+  bossIntro = { x: p.x, y: p.y, t: 0, durasi: 1.5, def: def };
   spawnTimer = 999;
   if (typeof sfxBoss === "function") sfxBoss();
-  spawnParticles(p.x, p.y, "#14532d", 46);
+  spawnParticles(p.x, p.y, def.warna, 46);
   addFlash("rgba(20, 83, 45, 0.35)", 0.8, 0.5);
   shake = 0.6;
 }
 
-function spawnBoss(x, y) {
-  const t = TIPE_MUSUH.bos;
-  const hp = Math.max(8, Math.round(LEVELS[level].hp * t.hpKali));
+function spawnBoss(x, y, def) {
+  def = def || defBosLevel();
+  const hp = hpBos(def);
   enemies.push({
     x: x,
     y: y,
     tipe: "bos",
-    kunci: t.kunci,
+    kunci: def.renderer || "slime",
     bos: true,
+    bosDef: def,
+    namaBos: def.nama,
     hp: hp,
     maxHp: hp,
-    speed: 150 * t.kecepatanKali,
-    r: t.r,
-    skala: t.skala,
-    warna: t.warna,
+    speed: def.kecepatan,
+    r: def.r,
+    skala: def.skala,
+    warna: def.warna,
     hitFlash: 0,
     freeze: 0,
     contactCd: 0,
+    sangkutT: 0,
 
-    lungeBersiap: 0,
-    lungeT: 0,
-    lungeCd: 1.2 + Math.random() * 0.8
+    fase: 0,
+    state: "idle",
+    stateT: 0,
+    aksi: null,
+    angSerang: 0,
+    telegrafDur: 0,
+    comboSisa: 0,
+    serangCd: def.jedaSerang,
+    vulnKali: 1,
+    bosParah: false,
+    minionDipanggil: 0,
+    barrageTahap: 0,
+    barrageT: 0,
+    tarikT: 0,
+    bomJalan: null,
+    bosKematian: false
   });
   levelSpawn = Math.max(levelSpawn, LEVELS[level].jumlah);
   spawnTimer = LEVELS[level].jedaSpawn;
   shake = 0.7;
   addFlash("rgba(74, 222, 128, 0.4)", 1, 0.5);
   rings.push({ x: x, y: y, r: 20, maxR: 200, life: 0.5, t: 0 });
-  spawnParticles(x, y, "#14532d", 50);
+  spawnParticles(x, y, def.warna, 50);
   spawnParticles(x, y, "#4ade80", 26);
 }
 
-function bossSlam(e) {
+function bossSlam(e, fase) {
+  const radius = e.r * fase.radiusSlam;
   shake = 0.9;
-  addFlash("rgba(20, 83, 45, 0.28)", 1, 0.35);
-  rings.push({ x: e.x, y: e.y, r: 24, maxR: e.r * 2.4, life: 0.45, t: 0 });
-  rings.push({ x: e.x, y: e.y, r: 12, maxR: e.r * 1.5, life: 0.3, t: 0 });
+  addFlash(warnaRGBA(fase.warnaBar, 0.28), 1, 0.35);
+  rings.push({ x: e.x, y: e.y, r: 24, maxR: radius, life: 0.45, t: 0 });
+  rings.push({ x: e.x, y: e.y, r: 12, maxR: radius * 0.65, life: 0.3, t: 0 });
   spawnParticles(e.x, e.y, "#365314", 40);
-  spawnParticles(e.x, e.y, "#4ade80", 18);
+  spawnParticles(e.x, e.y, fase.warnaBar, 18);
   if (typeof sfxUltimate === "function") sfxUltimate();
-  if (player.invuln <= 0 && dist(e.x, e.y, player.x, player.y) < e.r * 2.3) {
-    const dmg = Math.round(40 * (1 - (player.armor || 0)));
+  if (player.invuln <= 0 && dist(e.x, e.y, player.x, player.y) < radius) {
+    const dmg = Math.round(fase.dmgSlam * (1 - (player.armor || 0)));
     player.hp -= dmg;
     player.hitFlash = 0.2;
-    spawnDamage(player.x, player.y - 52, dmg, "#4ade80");
+    spawnDamage(player.x, player.y - 52, dmg, fase.warnaBar);
     sfxPemainKena();
     hurtVig = 1;
-    spawnParticles(player.x, player.y, "#4ade80", 12);
+    spawnParticles(player.x, player.y, fase.warnaBar, 12);
     if (player.hp <= 0) prosesKematianPemain();
   }
+}
+
+// Damage masuk ke musuh; bos dapat pengali vulnKali (transisi fase & stagger parry).
+function applyDamageMusuh(e, dmg) {
+  const total = e.bos ? dmg * (e.vulnKali || 1) : dmg;
+  e.hp -= total;
+  return total;
+}
+
+// --- Fase -------------------------------------------------------------------
+// Minion: total dibatasi minionTotal per fight, tiap fase masuk summon 1.
+function summonMinionBos(e, fase) {
+  if (!fase.spawn) return;
+  if (e.minionDipanggil >= (e.bosDef.minionTotal || 0)) return;
+  const t = TIPE_MUSUH[fase.spawn];
+  if (!t) return;
+  e.minionDipanggil++;
+
+  const hp = Math.max(8, Math.round(90 * t.hpKali));
+  const ang = Math.random() * Math.PI * 2;
+  let x = e.x + Math.cos(ang) * (e.r + 70);
+  let y = e.y + Math.sin(ang) * (e.r + 70);
+  if (x < BARRIER_KIRI + 40) x = e.x - Math.cos(ang) * (e.r + 70);
+  if (x > WORLD_W - BARRIER_KANAN - 40) x = e.x - Math.cos(ang) * (e.r + 70);
+  if (y < BARRIER_ATAS + 40) y = e.y - Math.sin(ang) * (e.r + 70);
+  if (y > WORLD_H - BARRIER_BAWAH - 40) y = e.y - Math.sin(ang) * (e.r + 70);
+  if (tesLingkaran(x, y, t.r)) { x = e.x; y = e.y + e.r + 40; }
+
+  enemies.push({
+    x: x, y: y,
+    tipe: fase.spawn,
+    kunci: t.kunci,
+    hp: hp, maxHp: hp,
+    speed: 95 * t.kecepatanKali,
+    r: t.r, skala: t.skala, warna: t.warna,
+    hitFlash: 0, freeze: 0,
+    cd: 1.4,
+    lahirT: 0.8,
+    lungeBersiap: 0, lungeT: 0, lungeCd: 2.0 + Math.random(), mundurT: 0,
+    punyaBos: true,
+    koinNol: true
+  });
+  rings.push({ x: x, y: y, r: 8, maxR: 90, life: 0.45, t: 0 });
+  spawnParticles(x, y, fase.warnaBar, 22);
+  spawnDamage(x, y - t.r - 50, "PANGGILAN", fase.warnaBar);
+}
+
+function masukFaseBos(e, nf) {
+  const def = e.bosDef;
+  const fase = def.fase[nf];
+  e.fase = nf;
+  e.state = "transisi";
+  e.stateT = 0;
+  e.aksi = null;
+  e.bosParah = false;
+  e.bomJalan = null;
+  e.tarikT = 0;
+  e.vulnKali = def.transisi.damageKali;
+  e.comboSisa = 0;
+
+  shake = 1;
+  addFlash(warnaRGBA(fase.warnaBar, 0.42), 1, 0.5);
+  rings.push({ x: e.x, y: e.y, r: 20, maxR: e.r * 3, life: 0.6, t: 0 });
+  rings.push({ x: e.x, y: e.y, r: 10, maxR: e.r * 1.8, life: 0.4, t: 0 });
+  spawnParticles(e.x, e.y, fase.warnaBar, 40);
+  spawnDamage(e.x, e.y - e.r - 60, "FASE " + (nf + 1), fase.warnaBar);
+  if (typeof sfxBoss === "function") sfxBoss();
+  summonMinionBos(e, fase);
+}
+
+// --- Serangan ---------------------------------------------------------------
+function bosSpora(e, fase) {
+  const jumlah = fase.sporaJumlah;
+  const speed = fase.sporaSpeed;
+  const off = Math.random() * Math.PI * 2;
+  for (let i = 0; i < jumlah; i++) {
+    const a = off + (i / jumlah) * Math.PI * 2;
+    enemyShots.push({
+      x: e.x + Math.cos(a) * e.r,
+      y: e.y + Math.sin(a) * e.r,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      life: 3.4, r: 11, dmg: fase.sporaDmg,
+      warna: fase.warnaBar
+    });
+  }
+  rings.push({ x: e.x, y: e.y, r: 12, maxR: e.r * 1.3, life: 0.35, t: 0 });
+  spawnParticles(e.x, e.y, fase.warnaBar, 18);
+}
+
+// Tarik pemain ke arah bos. `gaya` = px/s^2, jadi langkah per frame = gaya * dt.
+function bosTarik(e, fase, dt) {
+  const gaya = fase.tarikGaya;
+  if (!gaya) return;
+  const a = Math.atan2(e.y - player.y, e.x - player.x);
+  const dorong = gaya * dtJarak(e) * dt;
+  const nx = player.x + Math.cos(a) * dorong;
+  const ny = player.y + Math.sin(a) * dorong;
+  if (!tesLingkaran(nx, player.y, P_RADIUS)) player.x = nx;
+  if (!tesLingkaran(player.x, ny, P_RADIUS)) player.y = ny;
+  // Jangan sampai pemain tertarik menembus badan bos.
+  const minJarak = e.r + P_RADIUS + 6;
+  const d2 = dist(e.x, e.y, player.x, player.y);
+  if (d2 < minJarak && d2 > 0.001) {
+    const k = minJarak / d2;
+    player.x = e.x + (player.x - e.x) * k;
+    player.y = e.y + (player.y - e.y) * k;
+  }
+  rings.push({ x: e.x, y: e.y, r: e.r * 0.9, maxR: e.r * 1.5, life: 0.25, t: 0 });
+}
+
+// Jarak tempuh tarik: dunkel dari jarak, jadi tidak deadly saat boss di sisi lain.
+function dtJarak(e) {
+  return Math.max(0, Math.min(1, (dist(e.x, e.y, player.x, player.y) - e.r - 30) / 220));
+}
+
+function bosCharge(e, fase) {
+  const S = e.bosDef.serangan.charge;
+  const speed = e.bosDef.kecepatan * S.speedKali;
+  if (!e.bomJalan) e.bomJalan = { t: 0, jejak: 0 };
+  e.bomJalan.t += 1 / 60;
+  e.bomJalan.jejak += 1 / 60;
+
+  if (e.bomJalan.jejak >= 0.16) {
+    e.bomJalan.jejak = 0;
+    hazards.push({
+      x: e.x, y: e.y, r: e.r * 0.85, life: 2.6, t: 0,
+      dmg: Math.round(fase.dmgSlam * 0.5 * (1 - (player.armor || 0))),
+      warna: fase.warnaBar,
+      dariBos: true
+    });
+  }
+  spawnParticles(e.x, e.y, fase.warnaBar, 3);
+  return { spd: speed, ang: e.angSerang };
+}
+
+function bosBarrage(e, fase) {
+  const S = e.bosDef.serangan.barrage;
+  e.barrageT -= 1 / 60;
+  if (e.barrageT <= 0) {
+    e.barrageT += S.jedaTahap;
+    e.barrageTahap++;
+    const n = fase.sporaJumlah;
+    const off = Math.random() * Math.PI * 2;
+    for (let i = 0; i < n; i++) {
+      const a = off + (i / n) * Math.PI * 2;
+      enemyShots.push({
+        x: e.x + Math.cos(a) * e.r,
+        y: e.y + Math.sin(a) * e.r,
+        vx: Math.cos(a) * fase.sporaSpeed * 1.1,
+        vy: Math.sin(a) * fase.sporaSpeed * 1.1,
+        life: 3.4, r: 12, dmg: fase.sporaDmg,
+        warna: "#ef4444"
+      });
+    }
+    rings.push({ x: e.x, y: e.y, r: 14, maxR: e.r * 1.4, life: 0.3, t: 0 });
+    shake = Math.max(shake, 0.35);
+  }
+  return { spd: 0, ang: null };
+}
+
+// --- State machine ----------------------------------------------------------
+// Telegraph >= 0.5s dan selalu ada jeda "recover" supaya bisa di-dash / di-parry.
+function updateBos(e, dt) {
+  const def = e.bosDef;
+
+  // Cek ambang fase tiap frame (kecuali sedang transisi / sedang dipatah).
+  if (e.state !== "transisi" && e.state !== "stagger" && e.state !== "mati") {
+    const nf = cariFaseBos(def, Math.max(0, e.hp / e.maxHp));
+    if (nf > e.fase) { masukFaseBos(e, nf); }
+  }
+
+  const fase = def.fase[e.fase];
+  const S = def.serangan;
+
+  if (e.state === "transisi") {
+    e.stateT += dt;
+    if (e.stateT >= def.transisi.durasi) {
+      e.stateT = 0;
+      e.state = "idle";
+      e.vulnKali = 1;
+      e.serangCd = 0.5;
+    }
+    return { spd: 0, ang: null };
+  }
+
+  if (e.state === "stagger") {
+    e.stateT += dt;
+    e.vulnKali = 1.35;
+    if (e.stateT >= 1.0) {
+      e.stateT = 0;
+      e.vulnKali = 1;
+      e.state = "recover";
+      e.stateT = 0;
+    }
+    return { spd: 0, ang: null };
+  }
+
+  if (e.state === "recover") {
+    e.stateT += dt;
+    e.bosParah = true;
+    if (Math.random() < 0.25) {
+      spawnParticles(e.x + (Math.random() - 0.5) * e.r * 2, e.y - e.r * 0.4, fase.warnaBar, 1);
+    }
+    if (e.stateT >= 0.5) {
+      e.stateT = 0;
+      e.state = "idle";
+      e.bosParah = false;
+      e.serangCd = fase.jedaSerangan;
+    }
+    return { spd: 0, ang: null };
+  }
+
+  if (e.state === "tele") {
+    e.stateT += dt;
+    if (e.stateT >= e.telegrafDur) {
+      e.stateT = 0;
+      e.state = "serang";
+      mulaiSeranganBos(e, fase);
+    }
+    return { spd: e.speed * 0.1, ang: e.state === "tele" ? e.angSerang : null };
+  }
+
+  if (e.state === "serang") {
+    e.stateT += dt;
+    let g = { spd: 0, ang: null };
+
+    if (e.aksi === "slam") {
+      g = { spd: e.speed * 0.1, ang: null };
+    } else if (e.aksi === "spora") {
+      g = { spd: e.speed * 0.1, ang: null };
+    } else if (e.aksi === "tarik") {
+      bosTarik(e, fase, dt);
+      e.tarikT -= dt;
+      g = { spd: 0, ang: null };
+      if (e.tarikT <= 0) selesaiSeranganBos(e, fase);
+    } else if (e.aksi === "charge") {
+      g = bosCharge(e, fase);
+      if (e.stateT >= S.charge.durasi) {
+        e.bomJalan = null;
+        e.state = "recover";
+        e.stateT = -S.charge.repuh;
+      }
+    } else if (e.aksi === "barrage") {
+      g = bosBarrage(e, fase);
+      if (e.barrageTahap >= 4) selesaiSeranganBos(e, fase);
+    }
+
+    if (e.state === "serang" && e.aksi !== "charge" && e.aksi !== "tarik" && e.aksi !== "barrage") {
+      if (e.stateT >= 0.28) selesaiSeranganBos(e, fase);
+    }
+    return g;
+  }
+
+  // idle
+  e.stateT += dt;
+  e.serangCd -= dt;
+  const jd = dist(e.x, e.y, player.x, player.y);
+  if (e.serangCd <= 0 && jd < 900) {
+    const daftar = fase.serang;
+    e.aksi = daftar[Math.floor(Math.random() * daftar.length)];
+    e.state = "tele";
+    e.stateT = 0;
+    e.telegrafDur = Math.max(0.5, S[e.aksi].telegraf);
+    e.angSerang = Math.atan2(player.y - e.y, player.x - e.x);
+    e.barrageTahap = 0;
+    e.barrageT = 0;
+  }
+  return { spd: e.speed * fase.gerak * 0.5, ang: null };
+}
+
+function mulaiSeranganBos(e, fase) {
+  const S = e.bosDef.serangan;
+  const konf = S[e.aksi] || {};
+  e.bomJalan = null;
+  e.tarikT = konf.durasi || 0;
+  e.barrageTahap = 0;
+  e.barrageT = 0;
+  e.comboSisa = konf.combo || 1;
+
+  if (e.aksi === "slam") bossSlam(e, fase);
+  else if (e.aksi === "spora") bosSpora(e, fase);
+  else if (e.aksi === "charge") shake = 0.5;
+}
+
+function selesaiSeranganBos(e, fase) {
+  const S = e.bosDef.serangan;
+  const konf = S[e.aksi] || {};
+  e.comboSisa--;
+  if (e.comboSisa > 0) {
+    // Combo: telegraph ulang dengan jeda pendek.
+    e.state = "tele";
+    e.stateT = -((konf.jedaCombo || 0.4) - 0.4);
+    e.telegrafDur = Math.max(0.5, konf.telegraf);
+    e.angSerang = Math.atan2(player.y - e.y, player.x - e.x);
+    return;
+  }
+  e.state = "recover";
+  e.stateT = 0;
+  e.aksi = null;
+}
+
+
+// --- Kematian bos: 4 beat, total 3.2 detik, baru bayar koin ---------------
+let bosKematian = null;
+const BOS_MATI_BEAT = { guncang: 0.7, ledakan: 0.9, tenang: 0.8, koin: 0.8 };
+const BOS_MATI_TOTAL = 3.2;
+
+function mulaiKematianBos(e) {
+  // Burn / damage lanjutan bisa memanggil killEnemy lagi — jangan restart sinematik.
+  if (e.bosKematian) return;
+  e.hp = 0;
+  e.bosKematian = true;
+  e.state = "mati";
+  e.stateT = 0;
+  e.vulnKali = 0;
+  e.bosParah = false;
+  e.bomJalan = null;
+  e.tarikT = 0;
+  e.burn = null;
+  bossIntro = null;
+  bosKematian = { e: e, t: 0, sudahBayar: false };
+  spawnTimer = 999;
+  if (typeof sfxBoss === "function") sfxBoss();
+}
+
+// Sinematik masih berjalan? Bosnya dicek masih di arena, else global sisa
+// bikin levelSelesai() macet selamanya.
+function bosKematianAktif() {
+  if (!bosKematian) return false;
+  if (enemies.indexOf(bosKematian.e) === -1) {
+    bosKematian = null;
+    return false;
+  }
+  return true;
+}
+
+function bunuhMinionBos(e) {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const mm = enemies[i];
+    if (mm === e || !mm.punyaBos) continue;
+    spawnParticles(mm.x, mm.y, mm.warna, 12);
+    rings.push({ x: mm.x, y: mm.y, r: 6, maxR: 60, life: 0.3, t: 0 });
+    enemies.splice(i, 1);
+  }
+}
+
+function updateBosKematian(e, dt) {
+  const K = bosKematian;
+  if (!K) { bersihkanBosMati(e); return; }
+
+  const sebelum = K.t;
+  K.t += dt;
+  K.e.stateT = K.t;
+
+  // Beat 1: guncang — bos goyah, darah mengucur, belum meledak.
+  if (sebelum < BOS_MATI_BEAT.guncang) {
+    shake = Math.max(shake, 0.35);
+    if (Math.random() < 0.6) {
+      spawnParticles(
+        e.x + (Math.random() - 0.5) * e.r * 2.2,
+        e.y + (Math.random() - 0.5) * e.r * 1.4,
+        Math.random() < 0.5 ? "#14532d" : "#4ade80", 2
+      );
+    }
+  }
+
+  // Beat 2: ledakan. Pakai flag satu-csekali, bukan perbandingan waktu, supaya
+  // aman dari frame hitch dan tidak menumpuk flash jadi layar putih.
+  const tLedak = BOS_MATI_BEAT.guncang;
+  if (!K.ledakanSelesai && K.t >= tLedak) {
+    K.ledakanSelesai = true;
+    shake = 1.4;
+    addFlash("rgba(200, 255, 210, 0.30)", 0.30, 0.28);
+    rings.push({ x: e.x, y: e.y, r: 20, maxR: 420, life: 0.8, t: 0 });
+    rings.push({ x: e.x, y: e.y, r: 10, maxR: 260, life: 0.55, t: 0 });
+    spawnParticles(e.x, e.y, "#dcfce7", 14);
+    spawnParticles(e.x, e.y, "#4ade80", 26);
+    spawnParticles(e.x, e.y, "#14532d", 22);
+    if (typeof sfxUltimate === "function") sfxUltimate();
+    bunuhMinionBos(e);
+  }
+
+  // Beat 3: tenang — bos menyusut, soul keluar.
+  const tTenang = tLedak + BOS_MATI_BEAT.ledakan;
+  if (K.t >= tTenang) {
+    const u = Math.min(1, (K.t - tTenang) / BOS_MATI_BEAT.tenang);
+    // Bersih-bersihnapas, bukan percikan tiap frame.
+    K.embedu = (K.embedu || 0) + dt;
+    if (K.embedu > 0.05) {
+      K.embedu = 0;
+      spawnParticles(e.x + (Math.random() - 0.5) * e.r, e.y, "#bbf7d0", 1);
+    }
+    if (!K.soulDilepas && u > 0.35) {
+      K.soulDilepas = true;
+      for (let k = 0; k < 8; k++) {
+        const ang = Math.random() * Math.PI * 2;
+        const sp = 90 + Math.random() * 200;
+        souls.push({ x: e.x, y: e.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, t: 0, life: 9 });
+      }
+    }
+  }
+
+  // Beat 4: coin burst — koin masuk dulu, baru level selesai.
+  if (!K.sudahBayar && K.t >= BOS_MATI_TOTAL - BOS_MATI_BEAT.koin) {
+    K.sudahBayar = true;
+    const dapat = Math.round(KOIN_BOS * (player.mult && player.mult.koin || 1));
+    koin += dapat;
+    spawnDamage(e.x, e.y - e.r - 40, "+" + dapat + " KOIN", "#ffd23f");
+    for (let k = 0; k < 60; k++) {
+      const ang = Math.random() * Math.PI * 2;
+      const sp = 140 + Math.random() * 320;
+      particles.push({
+        x: e.x, y: e.y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 120,
+        life: 0.8 + Math.random() * 0.6, t: 0,
+        size: 5 + Math.random() * 7,
+        color: Math.random() < 0.6 ? "#ffd23f" : "#fff3b0"
+      });
+    }
+    rings.push({ x: e.x, y: e.y, r: 10, maxR: 300, life: 0.6, t: 0 });
+  }
+
+  if (K.t >= BOS_MATI_TOTAL) bersihkanBosMati(e);
+}
+
+function bersihkanBosMati(e) {
+  const i = enemies.indexOf(e);
+  if (i !== -1) enemies.splice(i, 1);
+  bossIntro = null;
+  bosKematian = null;
 }
 
 function killEnemy(e) {
@@ -305,14 +774,12 @@ function killEnemy(e) {
   if (i === -1) return;
 
   if (e.bos) {
-    shake = 1.2;
-    addFlash("rgba(74, 222, 128, 0.5)", 1, 0.6);
-    rings.push({ x: e.x, y: e.y, r: 20, maxR: 280, life: 0.7, t: 0 });
-    spawnParticles(e.x, e.y, "#4ade80", 55);
-    spawnParticles(e.x, e.y, "#14532d", 35);
-    if (typeof sfxBoss === "function") sfxBoss();
+    mulaiKematianBos(e);
+    return;
   }
-  koin += Math.round(10 * (player.mult && player.mult.koin || 1));
+
+  // Minion bos tidak menjatuhkan koin (soul tetap normal).
+  if (!e.koinNol) koin += Math.round(10 * (player.mult && player.mult.koin || 1));
   sfxMatMusuh();
 
   const imgMusuh = tekstur[e.kunci + "-idle-0"] || tekstur[e.kunci];
@@ -346,6 +813,7 @@ function prosesKematianPemain() {
   if (animMati || gameOver) return;
   player.hp = 0;
   const punyaNyawa = !!(player.kartu && player.kartu.nyawaKedua);
+  if (typeof setSfxTerjeda === "function") setSfxTerjeda(true);
   animMati = {
     t: 0,
     durasi: punyaNyawa ? 1.35 : 1.7,
@@ -357,7 +825,6 @@ function prosesKematianPemain() {
   player.invuln = 999;
   spawnParticles(player.x, player.y, "#3aa0ff", 30);
   shake = 0.6;
-  if (!punyaNyawa && typeof sfxGameOver === "function") sfxGameOver();
 }
 
 function reviveNyawaKedua() {
@@ -370,6 +837,7 @@ function reviveNyawaKedua() {
   }
   delete player.kartu.nyawaKedua;
   if (typeof perbaruiNotaKartu === "function") perbaruiNotaKartu();
+  if (typeof setSfxTerjeda === "function") setSfxTerjeda(false);
   player.hp = Math.max(1, Math.round(player.maxHp * 0.3));
   player.invuln = 2;
   player.hitFlash = 0.3;
@@ -507,7 +975,7 @@ function update(dt) {
     if (bossIntro.t >= bossIntro.durasi) {
       const bi = bossIntro;
       bossIntro = null;
-      spawnBoss(bi.x, bi.y);
+      spawnBoss(bi.x, bi.y, bi.def);
     }
   }
 
@@ -674,7 +1142,7 @@ function update(dt) {
           }
           for (const e2 of impuls) {
             b.hitSet.add(e2);
-            e2.hp -= dmg;
+            applyDamageMusuh(e2, dmg);
             e2.hitFlash = 0.1;
             e2.freeze = 7;
             parrySerigala(e2);
@@ -694,7 +1162,7 @@ function update(dt) {
           dmg *= 2;
           spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
         }
-        e.hp -= dmg;
+        const dmgPasar = applyDamageMusuh(e, dmg);
         e.hitFlash = 0.1;
         parrySerigala(e);
         sfxKena();
@@ -761,18 +1229,24 @@ function update(dt) {
           dmg *= 2;
           spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
         }
-        e.hp -= dmg;
+        const dmgSlash = applyDamageMusuh(e, dmg);
         e.hitFlash = 0.1;
-        spawnDamage(e.x, e.y - e.r - 8, dmg, "#ffd23f");
-        serapanDarah(dmg);
+        spawnDamage(e.x, e.y - e.r - 8, dmgSlash, "#ffd23f");
+        serapanDarah(dmgSlash);
         parrySerigala(e);
 
         if (sl.skill && e.hp > 0) {
           e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
           spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         }
-        e.x += Math.cos(sl.angle) * 60;
-        e.y += Math.sin(sl.angle) * 60;
+        if (e.bos) {
+          // Bos berat: tidak terpental, tapi tetap bisa terbakar / knockback kecil.
+          e.x += Math.cos(sl.angle) * 10;
+          e.y += Math.sin(sl.angle) * 10;
+        } else {
+          e.x += Math.cos(sl.angle) * 60;
+          e.y += Math.sin(sl.angle) * 60;
+        }
         spawnParticles(e.x, e.y, "#ff8c3f", 8);
         if (e.hp <= 0) killEnemy(e);
       }
@@ -857,9 +1331,9 @@ function update(dt) {
       e.burn.timer += dt;
       while (e.burn.timer >= e.burn.tick) {
         e.burn.timer -= e.burn.tick;
-        e.hp -= e.burn.dmg;
+        const dmgBakar = applyDamageMusuh(e, e.burn.dmg);
         e.hitFlash = 0.1;
-        spawnDamage(e.x, e.y - e.r - 16, e.burn.dmg, "#ff8c3f");
+        spawnDamage(e.x, e.y - e.r - 16, dmgBakar, "#ff8c3f");
         parrySerigala(e);
       }
       e.burn.durasi -= dt;
@@ -868,6 +1342,11 @@ function update(dt) {
         killEnemy(e);
         continue;
       }
+    }
+
+    if (e.bosKematian) {
+      updateBosKematian(e, dt);
+      continue;
     }
 
     if (e.freeze <= 0) {
@@ -911,34 +1390,14 @@ function update(dt) {
       }
 
       if (e.tipe === "bos") {
-        const loncatHabis = e.lungeT > 0 && e.lungeT - dt <= 0;
-        if (e.lungeBersiap > 0) {
-          e.lungeBersiap -= dt;
-          spd *= 0.08;
-        } else if (e.lungeT > 0) {
-          e.lungeT -= dt;
-          spd *= 6.2;
-        } else {
-          e.lungeCd -= dt;
-          if (e.lungeCd <= 0) {
-            const jd = dist(e.x, e.y, player.x, player.y);
-            if (jd < 680) {
-              e.lungeBersiap = 0.7;
-              e.lungeT = 0.55;
-              e.lungeCd = 3.4 + Math.random() * 1.3;
-
-              spawnParticles(player.x, player.y, "#4ade80", 10);
-              rings.push({ x: player.x, y: player.y, r: 10, maxR: 46, life: 0.7, t: 0 });
-            } else {
-              e.lungeCd = 0.45;
-            }
-          }
-        }
-
-        if (loncatHabis) bossSlam(e);
+        const g = updateBos(e, dt);
+        spd = g.spd;
+        e.bosAng = g.ang;
       }
-      const mvx = Math.cos(angle) * spd * dt;
-      const mvy = Math.sin(angle) * spd * dt;
+      const angGerak = (e.tipe === "bos" && e.bosAng !== null && e.bosAng !== undefined)
+        ? e.bosAng : angle;
+      const mvx = Math.cos(angGerak) * spd * dt;
+      const mvy = Math.sin(angGerak) * spd * dt;
 
       if (e.tipe === "jamur") {
         const jd = dist(e.x, e.y, player.x, player.y);
@@ -993,12 +1452,13 @@ function update(dt) {
     }
 
     if (dist(e.x, e.y, player.x, player.y) < e.r + 32 && player.invuln <= 0 && (e.bos ? e.contactCd <= 0 : true)) {
+      const faseBos = e.bos ? e.bosDef.fase[e.fase] : null;
       const dmgMasuk = e.bos
-        ? Math.round(45 * (1 - (player.armor || 0)))
+        ? Math.round(faseBos.dmgKontak * (1 - (player.armor || 0)))
         : Math.round(20 * (1 - (player.armor || 0)));
       player.hp -= dmgMasuk;
       player.hitFlash = 0.15;
-      spawnDamage(player.x, player.y - 52, dmgMasuk, e.bos ? "#4ade80" : "#ff4d4d");
+      spawnDamage(player.x, player.y - 52, dmgMasuk, e.bos ? faseBos.warnaBar : "#ff4d4d");
       sfxPemainKena();
       hurtVig = 0.9;
       shake = e.bos ? 0.6 : 0.3;
@@ -1006,7 +1466,7 @@ function update(dt) {
 
       if (player.kartu && player.kartu.duriBalik) {
         const reflek = Math.round(dmgMasuk * 0.15);
-        e.hp -= reflek;
+        applyDamageMusuh(e, reflek);
         spawnDamage(e.x, e.y - e.r - 40, reflek, "#fb7185");
         spawnParticles(e.x, e.y, "#fb7185", 8);
         if (e.hp <= 0) killEnemy(e);
@@ -1034,13 +1494,14 @@ function update(dt) {
     }
     if (!player.invuln && dist(s.x, s.y, player.x, player.y) < s.r + player.r) {
       const dmgMasuk = Math.round(s.dmg * (1 - (player.armor || 0)));
+      const wSh = s.warna || "#a3e635";
       player.hp -= dmgMasuk;
       player.hitFlash = 0.15;
-      spawnDamage(player.x, player.y - 52, dmgMasuk, "#a3e635");
+      spawnDamage(player.x, player.y - 52, dmgMasuk, wSh);
       sfxPemainKena();
       hurtVig = 0.7;
       enemyShots.splice(i, 1);
-      spawnParticles(player.x, player.y, "#a3e635", 10);
+      spawnParticles(player.x, player.y, wSh, 10);
       if (player.hp <= 0) prosesKematianPemain();
     }
   }
@@ -1049,6 +1510,7 @@ function update(dt) {
   for (let i = hazards.length - 1; i >= 0; i--) {
     const hz = hazards[i];
     hz.t += dt;
+    if (hz.dmg) hz.cd = Math.max(0, (hz.cd || 0) - dt);
     if (hz.t >= hz.life) {
       hazards.splice(i, 1);
       continue;
@@ -1056,7 +1518,20 @@ function update(dt) {
     for (const e of enemies) if (e.tipe === "semak" && Math.random() < 0.15) {
       spawnParticles(hz.x + (Math.random() - 0.5) * hz.r * 1.6, hz.y + (Math.random() - 0.5) * hz.r * 1.6, "#4ade80", 1);
     }
-    if (hz.t < hz.life && !player.invuln && dist(hz.x, hz.y, player.x, player.y) < hz.r + player.r) {
+    if (hz.t < hz.life && !player.invuln && hz.dmg && hz.cd <= 0
+        && dist(hz.x, hz.y, player.x, player.y) < hz.r + player.r) {
+      // Jejak charge bos / hazard yang punya damage sendiri (ada cooldown).
+      hz.cd = 0.7;
+      player.hp -= hz.dmg;
+      player.hitFlash = 0.15;
+      spawnDamage(player.x, player.y - 52, hz.dmg, hz.warna || "#ef4444");
+      sfxPemainKena();
+      hurtVig = 0.8;
+      shake = 0.25;
+      spawnParticles(player.x, player.y, hz.warna || "#ef4444", 8);
+      if (player.hp <= 0) prosesKematianPemain();
+    } else if (hz.t < hz.life && !hz.dmg && !player.invuln
+               && dist(hz.x, hz.y, player.x, player.y) < hz.r + player.r) {
       berdiriDuri = true;
     }
   }

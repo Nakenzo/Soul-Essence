@@ -9,20 +9,6 @@ function muatGambar(src) {
   });
 }
 
-function gambarPixel(img, px, py, skala) {
-  if (!img || !img.width) {
-    ctx.fillStyle = "#ff8844";
-    ctx.fillRect(px - 16, py - 16, 32, 32);
-    return;
-  }
-  const w = img.width * skala;
-  const h = img.height * skala;
-
-  ctx.imageSmoothingEnabled = w < img.width || h < img.height;
-  if (ctx.imageSmoothingEnabled) ctx.imageSmoothingQuality = "medium";
-  ctx.drawImage(img, px - w / 2, py - h / 2, w, h);
-}
-
 function ukuranSprite(img, targetLebar) {
   const wPng = img && img.width > 0 ? img.width : 1;
   const hPng = img && img.height > 0 ? img.height : 1;

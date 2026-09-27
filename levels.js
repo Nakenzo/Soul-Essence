@@ -9,7 +9,7 @@ const TIPE_MUSUH = {
 
   semak: { kunci: "semak", r: 34, skala: 1.45, hpKali: 2.4, kecepatanKali: 0.5, warna: "#3ea05f" },
 
-  bos: { kunci: "bos", r: 72, skala: 2.4, hpKali: 12, kecepatanKali: 0.35, warna: "#14532d" }
+  bos: { kunci: "bos", r: 72, skala: 2.4, hpKali: 1, kecepatanKali: 1, warna: "#14532d" }
 };
 
 const LEVELS = [
@@ -103,6 +103,7 @@ const DAFTAR_LEVEL = [
     deskripsi: "Slime raksasa hijau tua menjaga rawa.",
     mulaiWave: 20,
     selesaiWave: 30,
+    bos: "raja-slime",
     warna: "#16a34a"
   }
 ];
@@ -113,8 +114,9 @@ let level = 0;
 let levelSpawn = 0;
 let levelBanner = null;
 
-function waveMulaiLevel()   { const l = DAFTAR_LEVEL[levelPilihan] || {}; return l.mulaiWave || 0; }
-function waveSelesaiLevel() { const l = DAFTAR_LEVEL[levelPilihan] || {}; return l.selesaiWave || LEVELS.length; }
+function definisiLevelSaatIni() { return DAFTAR_LEVEL[levelPilihan] || DAFTAR_LEVEL[0] || {}; }
+function waveMulaiLevel()   { const l = definisiLevelSaatIni(); return l.mulaiWave || 0; }
+function waveSelesaiLevel() { const l = definisiLevelSaatIni(); return l.selesaiWave || LEVELS.length; }
 function totalWaveLevel()   { return Math.max(1, waveSelesaiLevel() - waveMulaiLevel()); }
 
 function mutarBanner(teks, durasi, boss, sub) {
@@ -132,6 +134,9 @@ function tampilkanBannerLevel(lv) {
 }
 
 function levelSelesai() {
+  // Tunggu sinematik kematian bos - tapi hanya kalau bosnya masih ada di arena.
+  if (typeof bosKematianAktif === "function" && bosKematianAktif()) return;
+
   koin += 50 + level * 10;
   player.hp = Math.min(player.maxHp, player.hp + 30);
 
@@ -142,6 +147,7 @@ function levelSelesai() {
 
   if (level + 1 >= waveSelesaiLevel()) {
     koin += 100;
+    if (typeof setMusik === "function") setMusik(null);
     sfxMenang();
     tampilkanMenang();
     return;

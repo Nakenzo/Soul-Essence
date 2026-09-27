@@ -1672,6 +1672,65 @@ body[data-device="mobile"] .bantuan-canvas {
     }
 }
 
+.konfeti-wadah {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 45;
+}
+
+.konfeti-wadah span {
+    position: absolute;
+    display: block;
+    opacity: 0;
+    will-change: transform;
+    z-index: 1;
+}
+
+.konfeti-wadah span.konfeti-rintik {
+    outline: 1px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 1px;
+}
+
+.konfeti-wadah span.konfeti-bintang {
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.konfeti-kilat {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: radial-gradient(circle at 50% 42%, rgba(255, 210, 63, 0.3), rgba(255, 210, 63, 0.1) 45%, transparent 72%);
+    animation: konfetiKilat 0.9s ease-out forwards;
+}
+
+@keyframes konfetiJatuh {
+    0% {
+        transform: translate3d(var(--kvsway, 0px), -6vh, 0) rotate(0deg);
+        opacity: 0;
+    }
+    6% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate3d(var(--kvsway, 0px), 112vh, 0) rotate(var(--kvrot, 540deg));
+        opacity: 0.75;
+    }
+}
+
+@keyframes konfetiKilat {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
 #layarGameOver .judul-gameover,
 #layarGameOver .teks-skor,
 #layarGameOver .grup-tombol,

@@ -141,6 +141,7 @@ function resetArena({ koinBaru }) {
   deathPixels = [];
   soul = 0;
   bossIntro = null;
+  if (typeof bosKematian !== "undefined") bosKematian = null;
 
   level = typeof levelPilihan === "number" ? waveMulaiLevel() : 0;
   levelSpawn = 0;

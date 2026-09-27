@@ -151,11 +151,6 @@ function tambahKoinSaldo(koin) {
   }
 }
 
-function resetProgres() {
-  progres = progresBaru();
-  saveTulis();
-}
-
 function biayaNaikLevelKarakter(levelSekarang) {
   if (levelSekarang >= KARAKTER_LEVEL_MAX) return Infinity;
   return 1000 * (levelSekarang + 1);

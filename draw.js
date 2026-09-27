@@ -1,86 +1,59 @@
+let _kvWadah = null;
 let winKonfeti = [];
 let winFlash = 0;
-let _winT = 0;
-
-function konfetiAktif() {
-  return winKonfeti.length > 0 || winFlash > 0;
-}
 
 function mulaiKonfeti(jumlah, durasi) {
-  const warna = ["#ffd23f", "#ffb020", "#ff6a3a", "#4ade80", "#38bdf8", "#f472b6", "#f8fafc"];
   if (jumlah == null) jumlah = 80;
   if (durasi == null) durasi = 3.5;
+  const warna = ["#ffd23f", "#ffb020", "#ff6a3a", "#4ade80", "#38bdf8", "#f472b6", "#f8fafc"];
+  const rumah = document.querySelector(".posisi-game") || document.body;
+  if (_kvWadah && _kvWadah.isConnected) _kvWadah.remove();
+  _kvWadah = document.createElement("div");
+  _kvWadah.className = "konfeti-wadah";
+  const wadah = _kvWadah;
   for (let i = 0; i < jumlah; i++) {
-    winKonfeti.push({
-      x: Math.random() * W,
-      y: -20 - Math.random() * H * 0.5,
-      vy: 120 + Math.random() * 220 + H * 0.08,
-      vx: (Math.random() - 0.5) * 60,
-      rot: Math.random() * Math.PI * 2,
-      vr: (Math.random() - 0.5) * 9,
-      s: 5 + Math.random() * 9,
-      warna: warna[Math.floor(Math.random() * warna.length)],
-      bentuk: Math.random() < 0.7 ? "kotak" : (Math.random() < 0.5 ? "bulat" : "zet"),
-      life: durasi * (0.5 + Math.random() * 0.6),
-      t: 0,
-      rintik: Math.random() > 0.85
-    });
+    const b = document.createElement("span");
+    const bentuk = Math.random() < 0.7 ? "kotak" : (Math.random() < 0.5 ? "bulat" : "zet");
+    const warnaPilih = warna[Math.floor(Math.random() * warna.length)];
+    const s = 5 + Math.random() * 9;
+    const jt = durasi * (0.6 + Math.random() * 0.5);
+    let isi = "";
+    if (bentuk === "zet") {
+      isi = "width:" + Math.round(s * 0.6) + "px;height:" + Math.round(s) + "px;" +
+        "box-shadow:" + Math.round(s * 0.6) + "px 0 0 " + warnaPilih + ";";
+    } else if (bentuk === "bulat") {
+      isi = "width:" + Math.round(s) + "px;height:" + Math.round(s) + "px;border-radius:50%;background:" + warnaPilih + ";";
+    } else {
+      isi = "width:" + Math.round(s) + "px;height:" + Math.round(s * 0.6) + "px;background:" + warnaPilih + ";";
+    }
+    b.setAttribute(
+      "style",
+      "left:" + (Math.random() * 100).toFixed(2) + "%;top:-" + (3 + Math.random() * 6).toFixed(2) + "%;" +
+      isi +
+      "--kvsway:" + Math.round((Math.random() - 0.5) * 140) + "px;" +
+      "--kvrot:" + Math.round(220 + Math.random() * 540) + "deg;" +
+      "animation:konfetiJatuh " + jt.toFixed(2) + "s linear " + (-Math.random() * 1.2).toFixed(2) + "s forwards;"
+    );
+    if (Math.random() > 0.85) b.classList.add("konfeti-rintik");
+    if (i < 12 && bentuk !== "zet") b.classList.add("konfeti-bintang");
+    wadah.appendChild(b);
   }
+  if (window.matchMedia && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const kilat = document.createElement("div");
+    kilat.className = "konfeti-kilat";
+    wadah.appendChild(kilat);
+  }
+  rumah.appendChild(wadah);
+  winKonfeti.length = jumlah;
   winFlash = Math.min(1, winFlash + 0.45);
+  setTimeout(() => { if (_kvWadah === wadah && wadah.isConnected) wadah.remove(); if (_kvWadah === wadah) _kvWadah = null; }, Math.round((durasi + 1) * 1000));
 }
 
 function hentikanKonfeti() {
+  if (_kvWadah && _kvWadah.isConnected) _kvWadah.remove();
+  _kvWadah = null;
   winKonfeti = [];
   winFlash = 0;
-}
-
-function gambarKonfeti() {
-  if (!konfetiAktif()) return;
-  const now = performance.now() / 1000;
-  const dt = Math.min(0.05, Math.max(0, now - (_winT || now)));
-  _winT = now;
-  ctx.save();
-  if (winFlash > 0) {
-    winFlash = Math.max(0, winFlash - dt * 0.6);
-    const a = Math.min(0.35, winFlash * 0.7).toFixed(3);
-    ctx.fillStyle = "rgba(255, 210, 63, " + a + ")";
-    ctx.fillRect(-50, -50, W + 100, H + 100);
-  }
-  for (let i = winKonfeti.length - 1; i >= 0; i--) {
-    const k = winKonfeti[i];
-    k.t += dt;
-    if (k.t >= k.life || k.y > H + 30) { winKonfeti.splice(i, 1); continue; }
-    k.y += k.vy * dt;
-    k.x += k.vx * dt + Math.sin(k.t * 3 + i) * 20 * dt;
-    k.rot += k.vr * dt;
-    const fadeOut = k.t > k.life - 0.4 ? (k.life - k.t) / 0.4 : 1;
-    const alpha = Math.min(1, k.t / 0.25) * fadeOut;
-    ctx.save();
-    ctx.translate(k.x, k.y);
-    ctx.rotate(k.rot);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = k.warna;
-    if (k.bentuk === "bulat") {
-      ctx.beginPath();
-      ctx.arc(0, 0, k.s / 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (k.bentuk === "zet") {
-      ctx.fillRect(0, -k.s / 2, k.s * 0.6, k.s);
-      ctx.fillRect(k.s * 0.3, -k.s / 2, k.s * 0.6, k.s);
-    } else {
-      ctx.fillRect(-k.s / 2, -k.s / 2, k.s, k.s * 0.6);
-    }
-    if (k.rintik) {
-      ctx.globalAlpha = alpha * 0.9;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, Math.max(2, k.s * 0.7), 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-  ctx.restore();
 }
 
 function gambarSenjata() {
@@ -123,14 +96,6 @@ function latarSkala() {
   return typeof deviceTerpilih === "string" && deviceTerpilih === "mobile" ? 0.5 : 1;
 }
 let latarSkalaTerpakai = 0;
-
-function rngPohon(seed) {
-  let s = (seed >>> 0) || 1;
-  return () => {
-    s = (s * 1103515245 + 12345) >>> 0;
-    return s / 4294967296;
-  };
-}
 
 function buatLatarCache() {
   const S = latarSkala();
@@ -347,7 +312,9 @@ function gambarSlime(e, tAnim) {
   const atas = dasar - h;
 
   const a = Math.atan2(player.y - e.y, player.x - e.x);
-  const ex = Math.cos(a) * r * 0.30, ey = Math.sin(a) * r * 0.30;
+  const maxEx = Math.max(0, r * 0.20 - r * 0.11) * 0.85;
+  const maxEy = Math.max(0, r * 0.24 - r * 0.11) * 0.85;
+  const ex = Math.cos(a) * maxEx, ey = Math.sin(a) * maxEy;
   for (const s of [-1, 1]) {
     const mx = e.x + s * w * 0.22;
     const my = atas + h * 0.38;
@@ -364,6 +331,56 @@ function gambarSlime(e, tAnim) {
     ctx.arc(mx + ex - r * 0.03, my + ey - r * 0.04, r * 0.035, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  if (e.bos) gambarMahkota(e.x, atas, r);
+}
+
+let _mahkotaCache = new Map();
+
+function gambarMahkota(x, dasar, r) {
+  let c = _mahkotaCache.get(r);
+  if (!c) {
+    const GRID = [
+      ".........L.........",
+      "........LDL........",
+      ".......LGGGD.......",
+      "......LGGGGGD......",
+      "..L...LGGGGGD...L..",
+      ".LGD.LGGGGGGGD.LGD.",
+      "LGGGGGGGGGGGGGGGGGD",
+      "GGGGGGGGGGGGGGGGGGG",
+      "BBBBBBBBBBBBBBBBBBB",
+      "BBBBBBBBBBBBBBBBBBB"
+    ];
+    const W = 19, H = GRID.length;
+    const cell = Math.max(3, Math.floor(r * 0.068));
+    const cv = document.createElement("canvas");
+    cv.width = W * cell;
+    cv.height = H * cell;
+    const g = cv.getContext("2d");
+    const col = { L: "#fff3b0", G: "#ffd23f", D: "#d99509", B: "#8a5a00" };
+    const isi = [];
+    GRID.forEach((row, yy) => {
+      for (let xx = 0; xx < W; xx++) {
+        if (row[xx] !== ".") {
+          isi.push([xx, yy]);
+          g.fillStyle = col[row[xx]] || "#ffd23f";
+          g.fillRect(xx * cell, yy * cell, cell, cell);
+        }
+      }
+    });
+    g.fillStyle = "#5b3600";
+    for (const [xx, yy] of isi) {
+      for (const [nx, ny] of [[xx - 1, yy], [xx + 1, yy], [xx, yy - 1], [xx, yy + 1]]) {
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const o = isi.some(([px, py]) => px === nx && py === ny);
+        if (!o) g.fillRect(nx * cell, ny * cell, cell, cell);
+      }
+    }
+    c = { cv: cv, w: cv.width, h: cv.height, ox: cv.width / 2, oy: cv.height };
+    _mahkotaCache.set(r, c);
+  }
+  ctx.drawImage(c.cv, Math.round(x - c.ox), Math.round(dasar - r * 0.08 - c.h));
 }
 
 function gambarJamur(e, tAnim) {
@@ -556,7 +573,137 @@ function gambarMusuh(e, tAnim) {
   if (e.tipe === "jamur") return gambarJamur(e, tAnim);
   if (e.tipe === "serigala") return gambarSerigala(e, tAnim);
   if (e.tipe === "semak") return gambarSemak(e, tAnim);
+  if (e.bos) return gambarBos(e, tAnim);
   return gambarSlime(e, tAnim);
+}
+
+// Badan bos = slime + mahkota, dibungkus efek per fase + animasi kematian.
+function gambarBos(e, tAnim) {
+  let shrink = 1;
+  let alpha = 1;
+  const K = (typeof bosKematian !== "undefined" && bosKematian && bosKematian.e === e) ? bosKematian : null;
+  if (K) {
+    const u = Math.max(0, Math.min(1, K.t / BOS_MATI_TOTAL));
+    if (u > 0.42) {
+      const k = (u - 0.42) / 0.58;
+      shrink = 1 - k * 0.7;
+      alpha = 1 - k * 0.8;
+    }
+  }
+  ctx.save();
+  if (shrink !== 1) {
+    ctx.translate(e.x, e.y);
+    ctx.scale(shrink, shrink);
+    ctx.translate(-e.x, -e.y);
+  }
+  if (alpha !== 1) ctx.globalAlpha = alpha;
+  gambarSlime(e, tAnim);
+  ctx.restore();
+
+  if (K) return;
+  gambarBosEfek(e, tAnim);
+}
+
+// Telegraph selalu terlihat >= 0.5s supaya sempat didash / di-counter.
+function gambarTelegraphBos(e, fase, u) {
+  const konf = e.bosDef.serangan[e.aksi] || {};
+  const warna = fase.warnaBar;
+  const a = 0.18 + u * 0.42;
+  ctx.save();
+
+  if (e.aksi === "slam") {
+    const R = e.r * fase.radiusSlam;
+    ctx.fillStyle = warnaRGBA(warna, a * 0.35);
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = warnaRGBA(warna, 0.5 + u * 0.5);
+    ctx.lineWidth = 4 + u * 5;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = warnaRGBA("#ffffff", 0.35 + u * 0.5);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, R * u, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (e.aksi === "charge") {
+    const jang = 760;
+    const cx = e.x + Math.cos(e.angSerang) * jang * 0.5;
+    const cy = e.y + Math.sin(e.angSerang) * jang * 0.5;
+    ctx.translate(cx, cy);
+    ctx.rotate(e.angSerang);
+    const w = e.r * 1.5;
+    ctx.fillStyle = warnaRGBA(warna, a * 0.32);
+    ctx.fillRect(-jang * 0.5, -w * 0.5, jang, w);
+    ctx.strokeStyle = warnaRGBA(warna, 0.45 + u * 0.5);
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-jang * 0.5, -w * 0.5, jang, w);
+    ctx.fillStyle = warnaRGBA(warna, 0.3 + u * 0.5);
+    ctx.fillRect(-jang * 0.5, -w * 0.5, jang * u, w);
+  } else {
+    const R = e.r * (1.5 + u * 0.7);
+    ctx.strokeStyle = warnaRGBA(warna, 0.4 + u * 0.55);
+    ctx.lineWidth = 3 + u * 4;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = warnaRGBA(warna, 0.25 + u * 0.4);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r * (1.05 + u * 0.25), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function gambarBosEfek(e, tAnim) {
+  const def = e.bosDef;
+  if (!def) return;
+  const fase = def.fase[e.fase];
+
+  // Aura per fase — makin merah/panas saat fase 3.
+  const denyut = 0.5 + 0.5 * Math.sin(tAnim * (2 + e.fase) * 1.4);
+  ctx.save();
+  ctx.globalAlpha = 0.13 + denyut * 0.10;
+  ctx.fillStyle = fase.warnaBar;
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, e.r * (1.45 + denyut * 0.2), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  if (e.state === "tele" && e.telegrafDur > 0) {
+    gambarTelegraphBos(e, fase, Math.max(0, Math.min(1, e.stateT / e.telegrafDur)));
+  }
+
+  // Cincin emas = window parry.
+  if (e.bosParah) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(251, 191, 36, " + (0.45 + 0.45 * Math.sin(tAnim * 11)).toFixed(3) + ")";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Transisi fase: tanda weaken + damage multiplier.
+  if (e.state === "transisi" || e.state === "stagger") {
+    const k = e.state === "stagger" ? 1.35 : (def.transisi.damageKali || 1);
+    const pulse = 0.5 + 0.5 * Math.sin(tAnim * 9);
+    ctx.save();
+    ctx.globalAlpha = 0.25 + pulse * 0.35;
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "bold 34px Zen Dots";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeStyle = "rgba(0,0,0,0.9)";
+    ctx.lineWidth = 5;
+    const t = "x" + k.toFixed(2).replace("0.", ".");
+    ctx.strokeText(t, e.x, e.y - e.r - 74);
+    ctx.fillText(t, e.x, e.y - e.r - 74);
+    ctx.restore();
+  }
 }
 
 function draw() {
@@ -1470,7 +1617,6 @@ function draw() {
 
   drawHUD();
   gambarBossHealth();
-  gambarKonfeti();
 
   if (statusGame === "upgrade" && pilihanKartu && pilihanKartu.length) {
     gambarKartuUpgrade();
@@ -1529,7 +1675,11 @@ function gambarRambuPeringatan(cx, cy, u) {
 function gambarBossHealth() {
   let bos = null;
   for (const en of enemies) { if (en.bos) { bos = en; break; } }
-  if (!bos) return;
+  if (!bos || !bos.bosDef) return;
+  if (bos.bosKematian) return;
+
+  const def = bos.bosDef;
+  const fase = def.fase[bos.fase];
 
   const s = Math.min(W / 1280, H / 960);
   const fs = (px) => Math.round(px * s);
@@ -1546,29 +1696,38 @@ function gambarBossHealth() {
   ctx.font = "bold " + fs(22) + "px Zen Dots";
   ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
   ctx.lineWidth = Math.max(2, fs(4));
-  ctx.strokeText("RAJA SLIME", bx + bw / 2, by - Math.round(13 * s));
-  ctx.fillStyle = "#ff5d3a";
-  ctx.fillText("RAJA SLIME", bx + bw / 2, by - Math.round(13 * s));
+  ctx.strokeText(def.nama, bx + bw / 2, by - Math.round(13 * s));
+  ctx.fillStyle = "#ffb18a";
+  ctx.fillText(def.nama, bx + bw / 2, by - Math.round(13 * s));
+  ctx.font = "bold " + fs(14) + "px Zen Dots";
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.strokeText("FASE " + (bos.fase + 1) + "/" + def.fase.length, bx + bw / 2, by - Math.round(34 * s));
+  ctx.fillText("FASE " + (bos.fase + 1) + "/" + def.fase.length, bx + bw / 2, by - Math.round(34 * s));
   ctx.restore();
 
+  // Satu bar utuh — tidak dipecah per fase. Warna mengikuti fase aktif.
+  ctx.save();
   ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
   gambarBundar(bx - 4, by - 4, bw + 8, bh + 8, (bh + 8) / 2);
   ctx.fill();
   ctx.fillStyle = "#2a0d0d";
   gambarBundar(bx, by, bw, bh, bh / 2);
   ctx.fill();
-  if (ratio > 0.003) {
-    const gradi = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-    gradi.addColorStop(0, "#ff5d3a");
-    gradi.addColorStop(1, "#c81e1e");
-    ctx.fillStyle = gradi;
-    const wisi = Math.max(bh - 4, (bw - 4) * ratio);
-    gambarBundar(bx + 2, by + 2, wisi, bh - 4, (bh - 4) / 2);
-    ctx.fill();
+
+  const iw = bw - 4, ih = bh - 4;
+  ctx.save();
+  gambarBundar(bx + 2, by + 2, iw, ih, ih / 2);
+  ctx.clip();
+  const wIsi = iw * ratio;
+  if (wIsi > 0.5) {
+    ctx.fillStyle = fase.warnaBar;
+    ctx.fillRect(bx + 2, by + 2, wIsi, ih);
     ctx.fillStyle = "rgba(255,255,255,0.18)";
-    gambarBundar(bx + 2, by + 2, wisi, (bh - 4) * 0.35, (bh - 4) / 2);
-    ctx.fill();
+    ctx.fillRect(bx + 2, by + 2, wIsi, ih * 0.32);
   }
+  ctx.restore();
+  ctx.restore();
+
   ctx.strokeStyle = "#ffb18a";
   ctx.lineWidth = Math.max(1, Math.round(2 * s));
   gambarBundar(bx + Math.round(1 * s), by + Math.round(1 * s), bw - Math.round(2 * s), bh - Math.round(2 * s), bh / 2);
@@ -1577,6 +1736,9 @@ function gambarBossHealth() {
   ctx.font = "bold " + fs(20) + "px Zen Dots";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+  ctx.lineWidth = Math.max(2, fs(3));
+  ctx.strokeText(Math.round(ratio * 100) + "%", bx + bw / 2, by + bh / 2 + Math.round(1 * s));
   ctx.fillStyle = "#fff";
   ctx.fillText(Math.round(ratio * 100) + "%", bx + bw / 2, by + bh / 2 + Math.round(1 * s));
   ctx.restore();

@@ -448,6 +448,21 @@ function setMusik(kunci) {
   if (!_mulaiFileMusik(kunci)) _mulaiMusikProsedural(kunci);
 }
 
+const _FALLBACK_DURASI_SFX = { menang: 1.1, gameover: 1.5 };
+
+function _durasiSfx(kunci) {
+  const a = _sfxFiles[kunci];
+  if (a && Number.isFinite(a.duration) && a.duration > 0) return a.duration;
+  return _FALLBACK_DURASI_SFX[kunci] || 1;
+}
+
+function _jedaMusikLobby(untukSfx) {
+  if (typeof setMusik !== "function") return;
+  if (!(_volUmum > 0 && _volSfx > 0)) { setMusik("lobby"); return; }
+  const dur = _durasiSfx(untukSfx || "menang");
+  setTimeout(() => setMusik("lobby"), Math.max(50, Math.round(dur * 1000) + 150));
+}
+
 let _musElTersambung = new WeakSet();
 function _alirkanFileMusik(el) {
   if (!_actx || _musElTersambung.has(el)) return false;

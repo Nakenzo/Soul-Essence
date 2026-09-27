@@ -384,8 +384,11 @@ function tampilkanGameOver() {
   if (typeof catatKoinTertinggi === "function") catatKoinTertinggi(koin);
   if (typeof tambahKoinSaldo === "function") tambahKoinSaldo(koin);
   layarGameOver.classList.remove("hidden");
+  if (typeof setSfxTerjeda === "function") setSfxTerjeda(false);
+  if (typeof setMusik === "function") setMusik(null);
+  if (typeof sfxGameOver === "function") sfxGameOver();
   aturTombolPause();
-  if (typeof setMusik === "function") setMusik("lobby");
+  if (typeof _jedaMusikLobby === "function") _jedaMusikLobby("gameover");
 }
 
 function tampilkanMenang() {
@@ -410,7 +413,7 @@ function tampilkanMenang() {
   layarMenang.classList.remove("hidden");
   if (typeof mulaiKonfeti === "function") mulaiKonfeti(90, 3.5);
   aturTombolPause();
-  if (typeof setMusik === "function") setMusik("lobby");
+  if (typeof _jedaMusikLobby === "function") _jedaMusikLobby("menang");
 }
 
 function segarkanUISuara() {
