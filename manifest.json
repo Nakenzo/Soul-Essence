@@ -2,6 +2,7 @@
   "name": "Soul Essence",
   "short_name": "SoulEssence",
   "description": "2D Top-Down Action Roguelike Game",
+  "build": 2,
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
