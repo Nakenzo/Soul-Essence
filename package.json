@@ -1,0 +1,12 @@
+{
+  "name": "soul-essence",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Soul Essence - 2D top-down action roguelike (PWA, vanilla JS, tanpa dependency)",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

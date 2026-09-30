@@ -452,12 +452,12 @@ function dtJarak(e) {
   return Math.max(0, Math.min(1, (dist(e.x, e.y, player.x, player.y) - e.r - 30) / 220));
 }
 
-function bosCharge(e, fase) {
+function bosCharge(e, fase, dt) {
   const S = e.bosDef.serangan.charge;
   const speed = e.bosDef.kecepatan * S.speedKali;
   if (!e.bomJalan) e.bomJalan = { t: 0, jejak: 0 };
-  e.bomJalan.t += 1 / 60;
-  e.bomJalan.jejak += 1 / 60;
+  e.bomJalan.t += dt;
+  e.bomJalan.jejak += dt;
 
   if (e.bomJalan.jejak >= 0.16) {
     e.bomJalan.jejak = 0;
@@ -472,9 +472,9 @@ function bosCharge(e, fase) {
   return { spd: speed, ang: e.angSerang };
 }
 
-function bosBarrage(e, fase) {
+function bosBarrage(e, fase, dt) {
   const S = e.bosDef.serangan.barrage;
-  e.barrageT -= 1 / 60;
+  e.barrageT -= dt;
   if (e.barrageT <= 0) {
     e.barrageT += S.jedaTahap;
     e.barrageTahap++;
@@ -505,7 +505,7 @@ function updateBos(e, dt) {
   // Cek ambang fase tiap frame (kecuali sedang transisi / sedang dipatah).
   if (e.state !== "transisi" && e.state !== "stagger" && e.state !== "mati") {
     const nf = cariFaseBos(def, Math.max(0, e.hp / e.maxHp));
-    if (nf > e.fase) { masukFaseBos(e, nf); }
+    while (nf > e.fase) { masukFaseBos(e, e.fase + 1); }
   }
 
   const fase = def.fase[e.fase];
@@ -573,14 +573,14 @@ function updateBos(e, dt) {
       g = { spd: 0, ang: null };
       if (e.tarikT <= 0) selesaiSeranganBos(e, fase);
     } else if (e.aksi === "charge") {
-      g = bosCharge(e, fase);
+      g = bosCharge(e, fase, dt);
       if (e.stateT >= S.charge.durasi) {
         e.bomJalan = null;
         e.state = "recover";
         e.stateT = -S.charge.repuh;
       }
     } else if (e.aksi === "barrage") {
-      g = bosBarrage(e, fase);
+      g = bosBarrage(e, fase, dt);
       if (e.barrageTahap >= 4) selesaiSeranganBos(e, fase);
     }
 
@@ -767,6 +767,17 @@ function bersihkanBosMati(e) {
   if (i !== -1) enemies.splice(i, 1);
   bossIntro = null;
   bosKematian = null;
+
+  if (typeof dropArtefak === "function") {
+    const drop = dropArtefak();
+    if (drop) {
+      artefakBaruTerakhir = drop;
+      const cari = artefakCari(drop.id);
+      const warna = cari ? cari.set.warna : "#ffd23f";
+      rings.push({ x: e.x, y: e.y, r: 10, maxR: 130, life: 0.6, t: 0 });
+      spawnParticles(e.x, e.y, warna, 24);
+    }
+  }
 }
 
 function killEnemy(e) {
@@ -1125,9 +1136,7 @@ function update(dt) {
       const e = enemies[j];
 
       const hitR = b.raksasa ? e.r + 60 : e.r + 8;
-      const hit = b.raksasa
-        ? segDist(b.px, b.py, b.x, b.y, e.x, e.y) < hitR
-        : dist(b.x, b.y, e.x, e.y) < hitR;
+      const hit = segDist(b.px, b.py, b.x, b.y, e.x, e.y) < hitR;
       if (hit) {
         if (b.raksasa) {
 
@@ -1185,30 +1194,55 @@ function update(dt) {
     const sl = slashes[s];
     sl.t += dt;
 
+    if (sl.laju) {
+      // tebasan melaju: pusat tebasan ikut maju (badan pemain diam)
+      const v = (sl.tebal && !sl.hantamBarier) ? sl.laju * Math.max(0, 1 - sl.t / sl.life) : sl.laju;
+      sl.x += Math.cos(sl.angle) * v * dt;
+      sl.y += Math.sin(sl.angle) * v * dt;
+      if (sl.tebal) {
+        if (!sl.jejak) sl.jejak = [];
+        sl.jejak.push({ x: sl.x + Math.cos(sl.angle) * sl.reach, y: sl.y + Math.sin(sl.angle) * sl.reach });
+        if (sl.jejak.length > 16) sl.jejak.shift();
+      }
+    }
+
     if (sl.skill) {
-      const fullA = sl.halfArc * 2;
-      const halfA = sl.life / 2;
-      const u1 = sl.t < halfA
-        ? sl.angle - sl.halfArc
-        : sl.angle - sl.halfArc + fullA * ((sl.t - halfA) / halfA);
-      const u2 = sl.t < halfA
-        ? sl.angle - sl.halfArc + fullA * (sl.t / halfA)
-        : sl.angle + sl.halfArc;
-      for (const [fracA, cnt] of [[0, 8], [0.35, 5], [0.5, 10], [0.65, 5], [1, 8]]) {
+      const geserWaktu = sl.gambar || sl.life;
+      const uu = Math.max(0, Math.min(1, sl.t / geserWaktu));
+      let u1, u2;
+      if (sl.tebal) {
+        // bilah beku di busur penuh: api menubar di seluruh area busur itu
+        u1 = sl.angle - sl.halfArc;
+        u2 = sl.angle + sl.halfArc;
+      } else if (uu < 0.5) {
+        u1 = sl.angle - sl.halfArc;
+        u2 = u1 + sl.halfArc * 4 * uu;
+      } else {
+        u1 = sl.angle - sl.halfArc + sl.halfArc * 4 * (uu - 0.5);
+        u2 = sl.angle + sl.halfArc;
+      }
+      const sp0 = sl.tebal ? 40 : 90;
+      const sp1 = sl.tebal ? 150 : 260;
+      const titik = sl.tebal ? 7 : 5;
+      for (let i = 0; i < titik; i++) {
+        const fracA = titik === 1 ? 0 : i / (titik - 1);
+        const cnt = sl.tebal ? 4 : (fracA === 0.5 ? 10 : 5 + (i % 2) * 3);
         const a = u1 + (u2 - u1) * fracA;
-        const fx = sl.x + Math.cos(a) * sl.reach;
-        const fy = sl.y + Math.sin(a) * sl.reach;
+        // tebal: api tersebar di seluruh lebar bilah -> area yang dilintasi
+        const rad = sl.reach + (sl.tebal ? (Math.random() - 0.5) * sl.tebal * 34 : 0);
+        const fx = sl.x + Math.cos(a) * rad;
+        const fy = sl.y + Math.sin(a) * rad;
         for (let k = 0; k < cnt; k++) {
           const ang = Math.random() * Math.PI * 2;
-          const sp = 90 + Math.random() * 260;
+          const sp = sp0 + Math.random() * sp1;
           particles.push({
             x: fx,
             y: fy,
             vx: Math.cos(ang) * sp,
-            vy: Math.sin(ang) * sp - 70,
-            life: 0.32 + Math.random() * 0.3,
+            vy: Math.sin(ang) * sp - 35,
+            life: sl.tebal ? 0.16 + Math.random() * 0.18 : 0.32 + Math.random() * 0.3,
             t: 0,
-            size: 7 + Math.random() * 9,
+            size: sl.tebal ? 5 + Math.random() * 8 : 7 + Math.random() * 9,
             color: Math.random() < 0.5 ? "#ff8c3f" : "#ffd23f"
           });
         }
@@ -1225,6 +1259,9 @@ function update(dt) {
       if (d < sl.reach + e.r && Math.abs(diff) < sl.halfArc + 0.2) {
         sl.hit.add(e);
         let dmg = sl.dmg || player.damage || karakter.damage;
+        if (sl.skill && typeof pengaliElement === "function") {
+          dmg *= pengaliElement(karakter.kunci);
+        }
         if (!sl.dmg && Math.random() < (player.crit || 0)) {
           dmg *= 2;
           spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
@@ -1236,7 +1273,7 @@ function update(dt) {
         parrySerigala(e);
 
         if (sl.skill && e.hp > 0) {
-          e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.burst ? 2 : 1 };
+          e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: sl.apiBesar || sl.burst ? 2 : 1 };
           spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
         }
         if (e.bos) {
@@ -1252,6 +1289,155 @@ function update(dt) {
       }
     }
     if (sl.t >= sl.life) slashes.splice(s, 1);
+  }
+
+  // ===== INFERNO: hantam barier -> ledakan api =====
+  function ledakanBarier(sl, ex, ey) {
+    kipasLedak.push({ x: ex, y: ey, angle: sl.angle, r: 26, maksR: 230, gambar: 0.2, life: 0.52, t: 0 });
+    kipasLedak.push({ x: ex, y: ey, angle: sl.angle, r: 14, maksR: 150, gambar: 0.14, life: 0.4, t: 0 });
+    spawnParticles(ex, ey, "#ff8c3f", 26);
+    spawnParticles(ex, ey, "#ffd23f", 20);
+    spawnParticles(ex, ey, "#fff3c4", 12);
+    addFlash("rgba(255, 140, 60, 0.4)", 0.5, 0.3);
+    shake = Math.max(shake, 0.75);
+    sfxApiLapis("jurus-vender-api");
+    for (const e of enemies) {
+      if (Math.hypot(e.x - ex, e.y - ey) > 130 + e.r) continue;
+      const dmg = applyDamageMusuh(e, 60);
+      e.hitFlash = 0.1;
+      e.burn = { durasi: player.burnDurasi || 3, tick: 0.25, timer: 0, dmg: 2 };
+      spawnDamage(e.x, e.y - e.r - 16, dmg, "#ffd23f");
+      spawnDamage(e.x, e.y - e.r - 56, "TERBAKAR", "#ff8c3f");
+      serapanDarah(dmg);
+      parrySerigala(e);
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+
+  for (let s = slashes.length - 1; s >= 0; s--) {
+    const sl = slashes[s];
+    if (!sl.hantamBarier || sl.pecah) continue;
+    const tx = sl.x + Math.cos(sl.angle) * sl.reach;
+    const ty = sl.y + Math.sin(sl.angle) * sl.reach;
+    if (!tesLingkaran(tx, ty, 20) && !tesLingkaran(sl.x, sl.y, 16)) continue;
+    sl.pecah = true;
+    ledakanBarier(sl, tx, ty);
+    slashes.splice(s, 1);
+  }
+
+  for (let i = kipasLedak.length - 1; i >= 0; i--) {
+    const k = kipasLedak[i];
+    k.t += dt;
+    if (k.t >= k.life) kipasLedak.splice(i, 1);
+  }
+
+  // ===== FROZFALL: panah beku naik -> pecah -> hujani musuh terdekat =====
+  // tiap musuh di daftar dapat tepat 3 anak panah, dibagi rata antar peluncur
+  for (let i = panahEs.length - 1; i >= 0; i--) {
+    const p = panahEs[i];
+    p.t += dt;
+    p.life -= dt;
+    if (p.life <= 0) { panahEs.splice(i, 1); continue; }
+
+    if (p.fase === "naik") {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (Math.random() < 0.5) {
+        particles.push({
+          x: p.x + (Math.random() - 0.5) * 8, y: p.y + (Math.random() - 0.5) * 8,
+          vx: (Math.random() - 0.5) * 60, vy: 40 + Math.random() * 70,
+          life: 0.18 + Math.random() * 0.14, t: 0, size: 4 + Math.random() * 5,
+          color: Math.random() < 0.5 ? "#7dd3fc" : "#e0f2fe"
+        });
+      }
+      // PANAH NAIK cepat: pecah begitu sampai puncak / keluar arena
+      if (p.y <= 40 || p.t > 0.55) {
+        // hanya musuh yang masih hidup yang jadi sasaran
+        const hidup = [];
+        for (const e of (p.daftar || [])) if (e && e.hp > 0) hidup.push(e);
+        if (hidup.length === 0) { panahEs.splice(i, 1); continue; }
+        const len = Math.min(6, hidup.length);
+        const totalAnak = len * 3;
+        for (let w = 0; w < 3; w++) {
+          const slot = p.no + w * p.total;
+          if (slot >= totalAnak) break;
+          const e = hidup[slot % len];
+          panahEs.push({
+            x: p.x + (Math.random() - 0.5) * 30,
+            y: p.y - 10,
+            vx: (Math.random() - 0.5) * 70,
+            vy: 70,
+            t: 0,
+            life: 2.4,
+            fase: "turun",
+            kids: 1,
+            aim: e,
+            laju: 260,
+            hit: new Set(),
+            telat: w * 0.18 + p.no * 0.04
+          });
+        }
+        panahEs.splice(i, 1);
+        spawnParticles(p.x, p.y, "#7dd3fc", 12);
+        sfxBeku();
+      }
+      continue;
+    }
+
+    // Fase turun: AUTO AIM - arahkan lurus ke sasaran, pasti kena
+    if (p.telat > 0) { p.telat -= dt; continue; }
+    const lajuMax = 1500;
+    if (p.aim && p.aim.hp > 0) {
+      p.laju = Math.min(lajuMax, (p.laju || 260) + 2600 * dt);
+      const dx = p.aim.x - p.x, dy = p.aim.y - p.y;
+      const l = Math.hypot(dx, dy) || 1;
+      p.vx = (dx / l) * p.laju;
+      p.vy = (dy / l) * p.laju;
+    } else {
+      // sasaran sudah mati: jatuh bebas
+      p.aim = null;
+      p.vy = Math.min(lajuMax, p.vy + 2100 * dt);
+      p.vx *= 0.99;
+    }
+    const px = p.x, py = p.y;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+
+    // auto aim: hanya sasaran yang bisa terkena, jadi tidak pernah "salah kena"
+    const sasaran = p.aim && p.aim.hp > 0 ? p.aim : null;
+    if (sasaran) {
+      const dx = p.x - px, dy = p.y - py;
+      const l2 = dx * dx + dy * dy;
+      let t = 0;
+      if (l2 > 0) t = Math.max(0, Math.min(1, ((sasaran.x - px) * dx + (sasaran.y - py) * dy) / l2));
+      const cx = px + dx * t, cy = py + dy * t;
+      if (Math.hypot(sasaran.x - cx, sasaran.y - cy) <= sasaran.r + 14) {
+        // damage sama persis dengan panah beku FROSTBITE
+        let dmg = player.damage || karakter.damage;
+        if (Math.random() < (player.crit || 0)) {
+          dmg *= 2;
+          spawnDamage(sasaran.x, sasaran.y - sasaran.r - 40, "KRITIS", "#fbbf24");
+        }
+        const dmgPasar = applyDamageMusuh(sasaran, dmg);
+        sasaran.hitFlash = 0.1;
+        sasaran.freeze = player.bekuDurasi || karakter.bekuDurasi;
+        parrySerigala(sasaran);
+        sfxKena();
+        sfxBeku();
+        spawnParticles(sasaran.x, sasaran.y, "#7dd3fc", 10);
+        spawnDamage(sasaran.x, sasaran.y - sasaran.r - 16, dmgPasar, "#ffd23f");
+        spawnDamage(sasaran.x, sasaran.y - sasaran.r - 56, "BEKU", "#7dd3fc");
+        serapanDarah(dmgPasar);
+        if (sasaran.hp <= 0) killEnemy(sasaran);
+        panahEs.splice(i, 1);
+        shake = Math.max(shake, 0.2);
+        continue;
+      }
+    }
+    if (p.y > WORLD_H - 4 || p.x < -20 || p.x > WORLD_W + 20) {
+      panahEs.splice(i, 1);
+      spawnParticles(Math.max(0, Math.min(WORLD_W, p.x)), Math.min(WORLD_H - 6, p.y), "#7dd3fc", 6);
+    }
   }
 
   for (let i = fires.length - 1; i >= 0; i--) {

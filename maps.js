@@ -10,8 +10,6 @@ let petaSiap = false;
 let petaBlok = [];
 let petaKolom = 0;
 let petaBaris = 0;
-let petaGagal = false;
-let pesanPeta = "";
 
 let petaSelX = WORLD_W;
 let petaSelY = WORLD_H;
@@ -26,6 +24,11 @@ function muatPeta() {
   img.onload = () => {
     petaKolom = img.naturalWidth;
     petaBaris = img.naturalHeight;
+    if (!(petaKolom > 0 && petaBaris > 0)) {
+      console.warn("MAP gambar kosong: " + MAP_ASSET.gambar);
+      petaSiap = false;
+      return;
+    }
     petaSelX = WORLD_W / petaKolom;
     petaSelY = WORLD_H / petaBaris;
 
@@ -67,7 +70,6 @@ function muatPeta() {
   img.onerror = () => {
     petaSiap = false;
     petaImage = null;
-    petaGagal = true;
     console.warn("MAP GAGAL DIMUAT: " + MAP_ASSET.gambar +
       " tidak ditemukan. Pastikan file ada di assets/maps/.");
   };
@@ -97,6 +99,7 @@ function tesBlokTile(x, y) {
 }
 
 function tesLingkaran(x, y, r) {
+  if (!petaSiap || !(petaSelX > 0 && petaSelY > 0)) return false;
   const t0x = Math.floor((x - r) / petaSelX);
   const t1x = Math.floor((x + r) / petaSelX);
   const t0y = Math.floor((y - r) / petaSelY);

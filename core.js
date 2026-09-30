@@ -25,10 +25,13 @@ let deviceTerpilih = (() => {
 })();
 let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
+let kipasLedak = [];
+let panahEs = [];
 let flashes, hurtVig;
 let deathPixels = [];
 let koin, gameOver, lastTime, spawnTimer, shake;
 let errorBanner = null;
+let errorBannerUmur = 0;
 
 let animMati = null;
 let zoomKamera = 1;
@@ -132,6 +135,8 @@ function resetArena({ koinBaru }) {
   particles = [];
   rings = [];
   slashes = [];
+  kipasLedak = [];
+  panahEs = [];
   fires = [];
   freezes = [];
   damages = [];

@@ -25,6 +25,8 @@ const ASSETS_TO_CACHE = [
   "./save.js",
   "./audio.js",
   "./config.js",
+  "./karakter.js",
+  "./artefak.js",
   "./bosses.js",
   "./maps.js",
   "./texture.js",
@@ -43,8 +45,15 @@ const ASSETS_TO_CACHE = [
   "./assets/weapons/panah.png",
   "./assets/weapons/pedang.png",
   "./assets/maps/padang.png",
+  "./assets/enemies/musuh.png",
+  "./assets/enemies/cepet.png",
+  "./assets/enemies/tank.png",
   "./assets/sfx/gameover.mp3",
   "./assets/sfx/menang.mp3",
+  "./assets/music/lobby.mp3",
+  "./assets/music/game.mp3",
+  "./assets/ui/logo-aura.png",
+  "./assets/ui/logo-kamu.png",
   "./assets/ui/icon-192.png",
   "./assets/ui/icon-512.png",
   "./assets/ui/icon.png"
@@ -72,7 +81,19 @@ self.addEventListener("install", (e) => {
         return caches.open(CACHE_NAME);
       })
       .catch(() => caches.open(CACHE_NAME))
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE).catch(() => {}))
+      .then((cache) => {
+        // Cache per-item, jadi satu file 404 tidak menggagalkan seluruh batch.
+        return Promise.all(
+          ASSETS_TO_CACHE.map((u) =>
+            fetch(u, { cache: "reload" })
+              .then((r) => {
+                if (r && r.ok) return cache.put(u, r);
+                console.warn("Precache gagal (offline?): " + u);
+              })
+              .catch(() => console.warn("Precache gagal: " + u))
+          )
+        );
+      })
   );
   self.skipWaiting();
 });
@@ -110,7 +131,7 @@ self.addEventListener("fetch", (e) => {
             cache.put(e.request, networkResponse.clone());
             return networkResponse;
           })
-          .catch(() => cachedResponse);
+          .catch(() => new Response("Offline", { status: 503 }));
       })
     )
   );

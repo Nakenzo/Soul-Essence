@@ -194,18 +194,36 @@
 
                 <div class="kar-isi">
                     <div class="kar-kiri">
-                        <div class="balok-skill">
-                            <h3>SKILL</h3>
-                            <div id="daftarSkill" class="daftar-upgrade"></div>
+                        <div class="tab-karakter" role="tablist">
+                            <button class="tab-karakter-btn aktif" data-tab="skill" type="button">SKILL</button>
+                            <button class="tab-karakter-btn" data-tab="artefak" type="button">ARTEFAK</button>
+                            <button class="tab-karakter-btn" data-tab="stat" type="button">STAT</button>
+                        </div>
+                        <div class="balok-panel">
+                            <div id="panelSkill" class="panel-karakter">
+                                <div id="daftarSkill" class="daftar-upgrade"></div>
+                            </div>
+                            <div id="panelArtefak" class="panel-karakter hidden">
+                                <div id="daftarArtefak" class="grid-artefak"></div>
+                                <div id="infoSetArtefak" class="info-set-artefak"></div>
+                            </div>
+                            <div id="kotakPemilihArtefak" class="modal-pilih hidden">
+                                <div class="modal-pilih-kartun">
+                                    <div class="modal-pilih-kepala">
+                                        <div id="judulPemilihArtefak" class="modal-pilih-judul">PILIH ARTEFAK</div>
+                                        <button id="tutupPemilihArtefak" class="modal-pilih-tutup" type="button">X</button>
+                                    </div>
+                                    <div id="daftarPemilihArtefak" class="modal-pilih-daftar"></div>
+                                </div>
+                            </div>
+                            <div id="panelStat" class="panel-karakter hidden">
+                                <div id="statKarakterIsi" class="isi-stat"></div>
+                            </div>
                         </div>
                         <div class="baris-naik">
                             <button id="tombolNaikLevel" class="tombol-abu">NAIK LEVEL</button>
                             <div id="levelKarakterTampil" class="lvl-tampil">LV 0/20</div>
                         </div>
-                    </div>
-                    <div class="kar-kanan">
-                        <h3>STAT KARAKTER</h3>
-                        <div id="statKarakterIsi"></div>
                     </div>
                 </div>
                 <button id="tombolKembaliKarakter" class="tombol-abu">&#8592; Kembali</button>
@@ -280,6 +298,8 @@
     <script src="save.js"></script>
     <script src="audio.js"></script>
     <script src="config.js"></script>
+<script src="karakter.js"></script>
+    <script src="artefak.js"></script>
     <script src="bosses.js"></script>
     <script src="maps.js"></script>
     <script src="texture.js"></script>

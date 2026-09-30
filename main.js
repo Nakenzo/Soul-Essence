@@ -23,6 +23,14 @@ window.addEventListener("resize", updateCanvasVars);
 function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
+  if (errorBanner) {
+    if (++errorBannerUmur > 120) {
+      errorBanner = null;
+      errorBannerUmur = 0;
+    }
+  } else {
+    errorBannerUmur = 0;
+  }
   try {
     update(dt);
     draw();
@@ -36,52 +44,40 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+function daftarAsetKarakter() {
+  const daftar = [];
+  for (const k of KARAKTER) {
+    daftar.push({ kunci: k.kunci, src: k.gambar });
+    daftar.push({ kunci: k.senjata, src: k.senjataGambar });
+    for (const clip of (k.animasi || [])) {
+      for (let i = 0; i < clip.jumlah; i++) {
+        daftar.push({
+          kunci: k.kunci + "-" + clip.nama + "-" + i,
+          src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-" + clip.nama + "-" + i + ".png"
+        });
+      }
+    }
+  }
+  return daftar;
+}
+
+function daftarAsetMusuh() {
+  const daftar = [
+    { kunci: "musuh", src: "assets/enemies/musuh.png" },
+    { kunci: "cepet", src: "assets/enemies/cepet.png" },
+    { kunci: "tank", src: "assets/enemies/tank.png" }
+  ];
+  for (const nama of ["musuh", "cepet", "tank"]) {
+    daftar.push({
+      kunci: nama + "-idle-0",
+      src: "assets/animasi/" + nama + "/" + nama + "-idle-0.png"
+    });
+  }
+  return daftar;
+}
+
 function mulai() {
-  const listSrc = []
-    .concat(
-      KARAKTER.map((k) => ({ kunci: k.kunci, src: k.gambar })),
-      KARAKTER.map((k) => ({ kunci: k.senjata, src: k.senjataGambar }))
-    )
-
-    .concat(
-      KARAKTER.flatMap((k) => {
-        const daftar = [];
-        for (let i = 0; i < 12; i++) {
-          daftar.push({ kunci: k.kunci + "-idle-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-idle-" + i + ".png" });
-        }
-        for (let i = 0; i < 12; i++) {
-          daftar.push({ kunci: k.kunci + "-walk-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-walk-" + i + ".png" });
-        }
-
-        for (let i = 0; i < 12; i++) {
-          daftar.push({ kunci: k.kunci + "-walk-atas-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-walk-atas-" + i + ".png" });
-        }
-        for (let i = 0; i < 12; i++) {
-          daftar.push({ kunci: k.kunci + "-walk-bawah-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-walk-bawah-" + i + ".png" });
-        }
-
-        for (let i = 0; i < 4; i++) {
-          daftar.push({ kunci: k.kunci + "-attack-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-attack-" + i + ".png" });
-        }
-
-        for (let i = 0; i < 4; i++) {
-          daftar.push({ kunci: k.kunci + "-mati-" + i, src: "assets/animasi/" + k.kunci + "/" + k.kunci + "-mati-" + i + ".png" });
-        }
-        return daftar;
-      })
-    )
-    .concat([
-
-      { kunci: "musuh", src: "assets/enemies/musuh.png" },
-      { kunci: "cepet", src: "assets/enemies/cepet.png" },
-      { kunci: "tank", src: "assets/enemies/tank.png" }
-    ])
-    .concat(
-
-      ["musuh", "cepet", "tank"].flatMap((nama) => {
-        return [{ kunci: nama + "-idle-0", src: "assets/animasi/" + nama + "/" + nama + "-idle-0.png" }];
-      })
-    );
+  const listSrc = daftarAsetKarakter().concat(daftarAsetMusuh());
 
   const muat = listSrc.map((item) =>
     muatGambar(item.src)
@@ -117,48 +113,22 @@ function mulai() {
     { kunci: "game", src: "assets/music/game.mp3" }
   ];
 
-  function bakeFrameMatiFallback(kunci, img) {
-    if (!img || !img.width) return;
-    const w = img.width, h = img.height;
-    const poses = [
-      { rot: 0.15, sy: 1.0,  dy: 0 },
-      { rot: 0.45, sy: 0.96, dy: 4 },
-      { rot: 0.85, sy: 0.88, dy: 10 },
-      { rot: 1.25, sy: 0.78, dy: 16 }
-    ];
-    for (let i = 0; i < 4; i++) {
-      const key = kunci + "-mati-" + i;
-      const ada = tekstur[key];
-      if (ada && ada.width) continue;
-      const cs = document.createElement("canvas");
-      const pad = Math.ceil(Math.max(w, h) * 0.35);
-      cs.width = w + pad * 2;
-      cs.height = h + pad * 2;
-      const g = cs.getContext("2d");
-      if (!g) continue;
-      const pose = poses[i];
-      g.translate(cs.width / 2, cs.height - pad - 4);
-      g.rotate(pose.rot);
-      g.scale(1, pose.sy);
-      g.drawImage(img, -w / 2, -h + pose.dy);
-      tekstur[key] = cs;
-    }
-  }
+  let loopDijadwalkan = false;
+  const jalankanLoop = () => {
+    if (loopDijadwalkan) return;
+    loopDijadwalkan = true;
+    if (!lastTime) lastTime = performance.now();
+    requestAnimationFrame(loop);
+  };
 
   Promise.all(muat)
     .then(() => Promise.all(sfxList.map((s) => muatSfxLokal(s.kunci, s.src, s.vol))))
     .then(() => Promise.all(musikList.map((m) => muatLaguLokal(m.kunci, m.src))))
     .then(() => {
-
-      for (const k of KARAKTER) {
-        const idle0 = tekstur[k.kunci + "-idle-0"] || tekstur[k.kunci];
-        bakeFrameMatiFallback(k.kunci, idle0);
-      }
       pasangTombol();
       buatBgPartikel();
       resetArena({ koinBaru: true });
-      lastTime = performance.now();
-      requestAnimationFrame(loop);
+      jalankanLoop();
       tampilkanJudul();
     })
     .catch((err) => {
@@ -170,9 +140,8 @@ function mulai() {
       }
       try {
         if (!bgPartikels || !bgPartikels.length) buatBgPartikel();
-        if (!lastTime) lastTime = performance.now();
         pasangTombol();
-        requestAnimationFrame(loop);
+        jalankanLoop();
       } catch (e2) {}
       try { tampilkanJudul(); } catch (e3) {
         layarJudul.classList.remove("hidden");

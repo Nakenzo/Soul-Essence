@@ -105,7 +105,7 @@ function ambLahirDaun() {
     spin: (Math.random() * 2 - 1) * 3,
     rot: Math.random() * Math.PI * 2,
     yoff: Math.random() * Math.PI * 2,
-    ci: Math.floor(Math.random() * ambDaunSprites.length)
+    ci: ambDaunSprites.length ? Math.floor(Math.random() * ambDaunSprites.length) : -1
   });
 }
 
@@ -219,7 +219,7 @@ function updateAmbience(dt) {
 
 function gambarAmbience() {
   if (!(statusGame === "main" || statusGame === "upgrade" ||
-    statusGame === "pause" || statusGame === "over")) return;
+    statusGame === "pause" || statusGame === "over" || statusGame === "menang")) return;
 
   if (ambCloudSprite) {
     for (const a of ambClouds) {
@@ -252,7 +252,15 @@ function gambarAmbience() {
     ctx.save();
     ctx.translate(d.x, d.y);
     ctx.rotate(d.rot);
-    ctx.drawImage(ambDaunSprites[d.ci], -16 * sk, -12 * sk, 32 * sk, 24 * sk);
+    const spr = ambDaunSprites[d.ci];
+    if (spr) {
+      ctx.drawImage(spr, -16 * sk, -12 * sk, 32 * sk, 24 * sk);
+    } else {
+      ctx.fillStyle = "rgba(74,222,128,0.65)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 16 * sk, 12 * sk, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 

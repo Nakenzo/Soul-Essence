@@ -420,14 +420,21 @@ function muatLaguLokal(kunci, src) {
   });
 }
 
+const _fadeJs = new WeakMap();
 function _fadeEl(el, vol, dt) {
+  const lama = _fadeJs.get(el);
+  if (lama) clearInterval(lama);
   const mulai = el.volume;
   const t0 = performance.now();
   const st = setInterval(() => {
     const p = Math.min(1, (performance.now() - t0) / (dt * 1000));
     el.volume = mulai + (vol - mulai) * p;
-    if (p >= 1) clearInterval(st);
+    if (p >= 1) {
+      clearInterval(st);
+      if (_fadeJs.get(el) === st) _fadeJs.delete(el);
+    }
   }, 40);
+  _fadeJs.set(el, st);
 }
 
 function _hentiMusik() {

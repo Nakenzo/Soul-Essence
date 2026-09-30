@@ -123,7 +123,7 @@ function buatLatarCache() {
 }
 
 function gambarLatar() {
-  if (!latarCache) buatLatarCache();
+  buatLatarCache();
 
   const S = latarSkala();
   const sw = W + _BG_M * 2;
@@ -1083,15 +1083,21 @@ function draw() {
 
   for (const sl of slashes) {
 
+    const geserWaktu = sl.gambar || sl.life;
     const full = sl.halfArc * 2;
-    const half = sl.life / 2;
+    const half = geserWaktu / 2;
+    const u = Math.max(0, Math.min(1, sl.t / geserWaktu));
     let a1, a2;
-    if (sl.t < half) {
-      const p = sl.t / half;
+    if (sl.tebal) {
+      // tumbuh cepat dari awal lalu BEKU di busur penuh (penuh setengah lingkaran)
+      a1 = sl.angle - sl.halfArc;
+      a2 = a1 + full * Math.min(1, u * 2);
+    } else if (u < 0.5) {
+      const p = u * 2;
       a1 = sl.angle - sl.halfArc;
       a2 = a1 + full * p;
     } else {
-      const q = (sl.t - half) / half;
+      const q = (u - 0.5) * 2;
       a1 = sl.angle - sl.halfArc + full * q;
       a2 = sl.angle + sl.halfArc;
     }
@@ -1236,6 +1242,89 @@ function draw() {
         ctx.globalAlpha = Math.max(0, 1 - fallT) * (1 - rot * 0.5);
         ctx.fillRect(ex - 1.5, ey - 1.5, 3, 3);
       }
+
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
+    if (sl.tebal) {
+      // ===== INFERNO: busur beku + jejak api di jalur bilah =====
+      const g = sl.tebal;
+      const usut = sl.t / sl.life;
+      const pudar = usut < 0.8 ? 1 : 1 - (usut - 0.8) / 0.2;
+
+      function sabit(maxW, warna, geser, taper) {
+        const ges = geser || 0;
+        const tpn = taper || 1;
+        ctx.fillStyle = warna;
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) {
+          const t = i / N;
+          const a = a1 + span * t;
+          const w = maxW * (0.2 + 0.8 * Math.sin(Math.PI * (0.15 + 0.85 * t)));
+          const geserW = ges * t;
+          ctx.lineTo(sl.x + Math.cos(a + geserW) * r + Math.cos(a + Math.PI / 2) * w * tpn,
+                     sl.y + Math.sin(a + geserW) * r + Math.sin(a + Math.PI / 2) * w * tpn);
+        }
+        for (let i = N; i >= 0; i--) {
+          const t = i / N;
+          const a = a1 + span * t;
+          const w = maxW * (0.2 + 0.8 * Math.sin(Math.PI * (0.15 + 0.85 * t)));
+          const geserW = ges * t;
+          ctx.lineTo(sl.x + Math.cos(a + geserW) * r - Math.cos(a + Math.PI / 2) * w * tpn,
+                     sl.y + Math.sin(a + geserW) * r - Math.sin(a + Math.PI / 2) * w * tpn);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // jejak api di lintasan ujung bilah
+      const jejak = sl.jejak || [];
+      if (jejak.length > 2) {
+        const pita = [34, 21, 10, 4];
+        const warnaPita = ["rgba(255, 77, 23, 0.3)", "rgba(255, 140, 63, 0.5)", "rgba(255, 184, 51, 0.75)", "#fff3c4"];
+        for (let L = 0; L < pita.length; L++) {
+          ctx.fillStyle = warnaPita[L];
+          ctx.beginPath();
+          for (let i = 0; i < jejak.length; i++) {
+            const p = jejak[i];
+            const sebelum = i === 0 ? jejak[0] : jejak[i - 1];
+            const dx = p.x - sebelum.x, dy = p.y - sebelum.y;
+            const l = Math.hypot(dx, dy) || 1;
+            const nx = -dy / l, ny = dx / l;
+            const w = pita[L] * (i / (jejak.length - 1));
+            if (i === 0) ctx.moveTo(p.x + nx * w, p.y + ny * w);
+            else ctx.lineTo(p.x + nx * w, p.y + ny * w);
+          }
+          for (let i = jejak.length - 1; i >= 0; i--) {
+            const p = jejak[i];
+            const sebelum = i === 0 ? jejak[0] : jejak[i - 1];
+            const dx = p.x - sebelum.x, dy = p.y - sebelum.y;
+            const l = Math.hypot(dx, dy) || 1;
+            const nx = -dy / l, ny = dx / l;
+            const w = pita[L] * (i / (jejak.length - 1));
+            ctx.lineTo(p.x - nx * w, p.y - ny * w);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      ctx.globalAlpha = pudar;
+      sabit(34 * g, "rgba(255, 60, 20, 0.45)", 0.16, 1);
+      sabit(22 * g, "rgba(255, 140, 60, 0.8)", 0.08, 1);
+      sabit(12 * g, "#ffb833", 0.03, 1);
+      sabit(5.5 * g, "#fff3c4", 0, 1);
+
+      // kilau di ujung bilah
+      const tipA = a1 + span;
+      ctx.fillStyle = "#fff8dc";
+      ctx.beginPath();
+      ctx.moveTo(sl.x + Math.cos(tipA) * (r + 14 * g), sl.y + Math.sin(tipA) * (r + 14 * g));
+      ctx.lineTo(sl.x + Math.cos(tipA - 0.09) * r, sl.y + Math.sin(tipA - 0.09) * r);
+      ctx.lineTo(sl.x + Math.cos(tipA + 0.09) * r, sl.y + Math.sin(tipA + 0.09) * r);
+      ctx.closePath();
+      ctx.fill();
 
       ctx.globalAlpha = 1;
       continue;
@@ -1430,7 +1519,7 @@ function draw() {
     ctx.restore();
   }
 
-  if (karakter !== null && (statusGame === "main" || statusGame === "pause" || statusGame === "over" || statusGame === "upgrade")) {
+  if (karakter !== null && (statusGame === "main" || statusGame === "pause" || statusGame === "over" || statusGame === "menang" || statusGame === "upgrade")) {
     gambarSenjata();
 
     if (player.specialBuff > 0) {
@@ -1500,6 +1589,80 @@ function draw() {
         ctx.globalCompositeOperation = "source-over";
       }
     }
+  }
+
+  // INFERNO: ledakan barier - kipas api tumbuh sampai setengah lingkaran lalu beku
+  for (const k of kipasLedak) {
+    const u = Math.min(1, k.t / k.gambar);
+    const R = k.r + (k.maksR - k.r) * (1 - (1 - u) * (1 - u));
+    const a0 = k.angle - Math.PI / 2 * u;
+    const sp = Math.PI * u;
+    const pudar = k.t < k.gambar ? 1 : Math.max(0, 1 - (k.t - k.gambar) / (k.life - k.gambar));
+    const lapisan = [
+      [1.0, "rgba(120, 16, 0, 0.35)"],
+      [0.72, "rgba(255, 80, 10, 0.45)"],
+      [0.44, "rgba(255, 150, 40, 0.6)"],
+      [0.2, "rgba(255, 215, 95, 0.8)"]
+    ];
+    ctx.globalAlpha = pudar;
+    for (const [sk, warna] of lapisan) {
+      ctx.fillStyle = warna;
+      ctx.beginPath();
+      ctx.moveTo(k.x, k.y);
+      const S = 34;
+      for (let i = 0; i <= S; i++) {
+        const t = i / S;
+        const a = a0 + sp * t;
+        const gg = 0.82 + 0.18 * Math.sin(t * Math.PI * 4);
+        ctx.lineTo(k.x + Math.cos(a) * R * sk * gg, k.y + Math.sin(a) * R * sk * gg);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(255, 240, 190, " + 0.7 * pudar + ")";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(k.x, k.y, R * 0.9, a0, a0 + sp);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // FROZFALL: panah beku (naik = tembak ke atas, turun = hujan)
+  for (const p of panahEs) {
+    const naik = p.fase === "naik";
+    const kelajuan = Math.hypot(p.vx, p.vy) || 1;
+    const sudut = Math.atan2(p.vy, p.vx) + Math.PI / 2;
+    const panjang = naik ? 34 : 42;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(sudut);
+    const gBodi = ctx.createLinearGradient(0, -panjang, 0, panjang * 0.7);
+    gBodi.addColorStop(0, "#ffffff");
+    gBodi.addColorStop(0.45, "#bae6fd");
+    gBodi.addColorStop(1, "#38bdf8");
+    ctx.fillStyle = gBodi;
+    ctx.beginPath();
+    ctx.moveTo(0, -panjang);
+    ctx.lineTo(-7, -panjang * 0.35);
+    ctx.lineTo(-4, panjang * 0.55);
+    ctx.lineTo(4, panjang * 0.55);
+    ctx.lineTo(7, -panjang * 0.35);
+    ctx.closePath();
+    ctx.fill();
+    // bulu ekor
+    ctx.fillStyle = "rgba(224, 242, 254, 0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-4, panjang * 0.5);
+    ctx.lineTo(0, panjang * 1.15);
+    ctx.lineTo(4, panjang * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    // kilau es
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-1.5, -panjang * 0.9, 3, panjang * 1.2);
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   for (const p of particles) {
@@ -2730,7 +2893,14 @@ function drawHUD() {
   ctx.fillText("KOIN " + koin, infoX + infoPad, infoYbaris(2));
   ctx.textBaseline = "alphabetic";
 
-  const namaSkill = karakter && karakter.tipe === "jarak" ? "FROSTBITE" : "HEATWAVE";
+  // nama skill = slot yang SEDANG terpasang (bukan hardcode per karakter)
+  let namaSkill = karakter && karakter.tipe === "dekat" ? "HEATWAVE" : "FROSTBITE";
+  if (karakter) {
+    const slotDipakai = typeof skillPakai === "function" ? skillPakai(karakter.kunci) : 2;
+    const daftar = typeof daftarSkill === "function" ? daftarSkill(karakter.kunci) : [];
+    const def = daftar[slotDipakai - 1];
+    if (def && def.nama) namaSkill = def.nama;
+  }
   const warnaSkill = karakter && karakter.tipe === "jarak" ? "#7dd3fc" : "#ffd23f";
   const skY = hpY + hpBarH + Math.round(8 * s);
   const skBarW = hpBarW, skBarH = hpBarH;
