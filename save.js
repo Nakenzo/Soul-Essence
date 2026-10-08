@@ -1,5 +1,12 @@
 const SAVE_KUNCI = "soul-essence-progress";
 const SAVE_KUNCI_BAK = "soul-essence-progress-bak";
+// Cadangan: 3 slot manual + riwayat otomatis berputar.
+const SAVE_KUNCI_SLOT = "soul-essence-slot-";
+const SAVE_KUNCI_OTO = "soul-essence-auto";
+const SLOT_CADANGAN_MAKS = 3;
+const CADANGAN_AUTOMATIS_MAKS = 5;
+const CADANGAN_JEDA_MS = 10 * 60 * 1000;
+const KODE_SAVE_MAKS = 200000;
 const SAVE_SALT = 0x9e3779b9;
 const SAVE_SALT2 = 0x85ebca6b;
 const SAVE_VERSI = 3;
@@ -66,6 +73,7 @@ function progresBaru() {
   return {
     v: SAVE_VERSI,
     selesai: [],
+    bosKalah: [],
     koinTertinggi: 0,
     koinSaldo: 0,
     levelKarakter: {},
@@ -78,26 +86,56 @@ function progresBaru() {
   };
 }
 
-function bacaProgres() {
-  let terbaik = null;
+// Sumber save mentah, urut dari paling dipercaya:
+//   primary -> backup -> riwayat otomatis (terbaru lebih dulu).
+// Slot manual TIDAK ikut dipakai di sini: itu pemulihan yang harus diminta
+// pemain secara sengaja, bukan diam-diam dimuat saat game dibuka.
+function saveAmbilMentah() {
+  const calon = [{ kunci: SAVE_KUNCI }, { kunci: SAVE_KUNCI_BAK }];
+  const oto = saveBacaOtomatis();
+  for (let i = 0; i < oto.length; i++) calon.push({ teks: oto[i].teks });
 
-  for (const kunci of [SAVE_KUNCI, SAVE_KUNCI_BAK]) {
+  for (const c of calon) {
     try {
-      const raw = localStorage.getItem(kunci);
-      if (!raw) continue;
+      const raw = c.teks !== undefined ? c.teks : localStorage.getItem(c.kunci);
+      if (!raw || typeof raw !== "string") continue;
       const box = saveDekode(raw);
       if (!box || typeof box !== "object") continue;
       if (box.sig !== saveChecksum(box.d)) continue;
       const d = box.d;
-      if (d && (d.v === SAVE_VERSI || d.v === 1 || d.v === 2)) { terbaik = d; break; }
+      if (d && (d.v === SAVE_VERSI || d.v === 1 || d.v === 2)) return d;
     } catch (err) { continue; }
   }
+  return null;
+}
 
-  if (!terbaik) terbaik = progresBaru();
+function bacaProgres() {
+  const mentah = saveAmbilMentah();
+  return bersihkanProgres(mentah);
+}
+
+// Sanitasi dipakai bersama oleh pembacaan save dan import kode:
+// data aneh dibuang, angka dibatasi, field yang tidak dikenal tidak diteruskan.
+function bersihkanProgres(terbaik) {
+  if (!terbaik || typeof terbaik !== "object") terbaik = {};
+
   const n = progresBaru();
   n.selesai = Array.isArray(terbaik.selesai)
     ? terbaik.selesai.filter((x) => Number.isInteger(x) && x >= 0 && x <= 200)
     : [];
+
+  // Daftar kunci bos yang sudah pernah dikalahkan (mis. "raja-slime").
+  // Save lama tidak punya field ini -> dianggap belum ada yang dikalahkan.
+  n.bosKalah = [];
+  if (Array.isArray(terbaik.bosKalah)) {
+    for (const b of terbaik.bosKalah) {
+      const kunci = String(b);
+      if (kunciAman(kunci) && kunci.length <= 40 && n.bosKalah.indexOf(kunci) === -1) {
+        n.bosKalah.push(kunci);
+      }
+      if (n.bosKalah.length >= 50) break;
+    }
+  }
 
   const koin = Number.isFinite(terbaik.koinTertinggi)
     ? terbaik.koinTertinggi
@@ -199,10 +237,11 @@ function bacaProgres() {
   return n;
 }
 
-function saveTulis() {
+function saveSnapshot() {
   const d = {
     v: SAVE_VERSI,
     selesai: progres.selesai,
+    bosKalah: progres.bosKalah,
     koinTertinggi: progres.koinTertinggi,
     koinSaldo: progres.koinSaldo,
     levelKarakter: progres.levelKarakter,
@@ -213,12 +252,176 @@ function saveTulis() {
     artefakSubstat: progres.artefakSubstat,
     t: Date.now()
   };
-  const box = { d: d, sig: saveChecksum(d) };
-  const teks = saveEnkode(box);
+  return { d: d, sig: saveChecksum(d) };
+}
+
+function saveTulis() {
+  const teks = saveEnkode(saveSnapshot());
+  if (!teks) return;
   try {
     localStorage.setItem(SAVE_KUNCI, teks);
     localStorage.setItem(SAVE_KUNCI_BAK, teks);
   } catch (err) {  }
+  saveRotasiOtomatis(teks);
+  // Kalau akun aktif, beri tahu lapisan sinkron (selalu lokal dulu).
+  if (typeof akunJadwalUnggah === "function") {
+    try {
+      akunJadwalUnggah();
+    } catch (err) {  }
+  }
+}
+
+// Dipanggil lapisan akun setelah menarik save dari server. Progress lokal yang
+// lama sudah masuk riwayat otomatis, jadi aman ditimpa.
+function saveGantiProgres(baru) {
+  if (!baru || typeof baru !== "object") return false;
+  const bersih = bersihkanProgres(baru);
+  if (!bersih) return false;
+  progres = bersih;
+  progres.t = Date.now();
+  saveTulis();
+  return true;
+}
+
+// --------------------------------------------------------------- cadangan
+
+// Kode save: string yang bisa disalin / ditempel pemain di mana saja.
+function saveKode() {
+  return saveEnkode(saveSnapshot());
+}
+
+function saveKodeValid(teks) {
+  if (typeof teks !== "string") return null;
+  let bersih = teks.trim().replace(/\s+/g, "");
+  if (!bersih || bersih.length > KODE_SAVE_MAKS) return null;
+  const box = saveDekode(bersih);
+  if (!box || typeof box !== "object") return null;
+  const d = box.d;
+  if (!d || typeof d !== "object") return null;
+  if (d.v !== SAVE_VERSI && d.v !== 1 && d.v !== 2) return null;
+  if (box.sig !== saveChecksum(d)) return null;
+  return d;
+}
+
+// Pulihkan dari kode. Cadangan otomatis dulu, supaya progres sekarang
+// tidak hilang kalau ternyata kode yang diimpor lebih tua.
+function savePulihkanKode(teks) {
+  const d = saveKodeValid(teks);
+  if (!d) return { ok: false, pesan: "Kode save tidak valid." };
+
+  // Snapshot lama masuk riwayat otomatis dulu, supaya tidak hilang
+  // kalau ternyata kode yang diimpor ternyata lebih tua.
+  saveRotasiOtomatis(saveKode());
+
+  const baru = bersihkanProgres(d);
+  baru.t = Date.now();
+  const box = { d: baru, sig: saveChecksum(baru) };
+  const teksBaru = saveEnkode(box);
+  if (!teksBaru) return { ok: false, pesan: "Gagal membuat save." };
+
+  progres = baru;
+  try {
+    localStorage.setItem(SAVE_KUNCI, teksBaru);
+    localStorage.setItem(SAVE_KUNCI_BAK, teksBaru);
+  } catch (err) {
+    return { ok: false, pesan: "Penyimpanan penuh, gagal menyimpan." };
+  }
+  return { ok: true, pesan: "Progres berhasil dipulihkan." };
+}
+
+function saveBacaOtomatis() {
+  try {
+    const raw = localStorage.getItem(SAVE_KUNCI_OTO);
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((x) => x && typeof x.teks === "string" && Number.isFinite(x.t))
+      .slice(0, CADANGAN_AUTOMATIS_MAKS)
+      .map((x) => ({
+        t: x.t,
+        teks: x.teks,
+        ringkas: (x.ringkas && typeof x.ringkas === "object") ? x.ringkas : null
+      }));
+  } catch (err) { return []; }
+}
+
+function saveTulisOtomatis(arr) {
+  try {
+    localStorage.setItem(SAVE_KUNCI_OTO, JSON.stringify(arr.slice(0, CADANGAN_AUTOMATIS_MAKS)));
+  } catch (err) {  }
+}
+
+// Rotasi: paling banyak 5 snapshot, satu every 10 menit. Dipakai sebagai
+// jaring pengaman kalau save utama rusak atau terhapus.
+function saveRotasiOtomatis(teks) {
+  if (!teks) return;
+  const arr = saveBacaOtomatis();
+  const sekarang = Date.now();
+  const terbaru = arr.length ? arr[0].t : 0;
+  if (terbaru && sekarang - terbaru < CADANGAN_JEDA_MS) return;
+  if (terbaru && sekarang < terbaru) return; // jam device mundur
+  // Ringkasan singkat biar UI tidak perlu decode tiap entry.
+  const ringkas = {
+    saldo: progres.koinSaldo,
+    level: Array.isArray(progres.selesai) ? progres.selesai.length : 0,
+    kar: Object.keys(progres.levelKarakter || {}).length
+  };
+  arr.unshift({ t: sekarang, teks: teks, ringkas: ringkas });
+  saveTulisOtomatis(arr);
+}
+
+function slotKunci(i) {
+  return SAVE_KUNCI_SLOT + i;
+}
+
+function saveSlotBaca(i) {
+  if (!Number.isInteger(i) || i < 1 || i > SLOT_CADANGAN_MAKS) return null;
+  try {
+    const arr = JSON.parse(localStorage.getItem(slotKunci(i)));
+    if (!Array.isArray(arr) || arr.length < 1) return null;
+    const data = arr[0];
+    if (!data || typeof data.teks !== "string" || !Number.isFinite(data.t)) return null;
+    return data;
+  } catch (err) { return null; }
+}
+
+function saveSlotTulis(i, teks) {
+  if (!Number.isInteger(i) || i < 1 || i > SLOT_CADANGAN_MAKS) return false;
+  try {
+    localStorage.setItem(slotKunci(i), JSON.stringify([{ t: Date.now(), teks: teks }]));
+    return true;
+  } catch (err) { return false; }
+}
+
+function saveSlotHapus(i) {
+  if (!Number.isInteger(i) || i < 1 || i > SLOT_CADANGAN_MAKS) return false;
+  try {
+    localStorage.removeItem(slotKunci(i));
+    return true;
+  } catch (err) { return false; }
+}
+
+function saveSlotSimpan(i) {
+  const kode = saveKode();
+  if (!kode) return { ok: false, pesan: "Gagal membuat kode save." };
+  if (!saveSlotTulis(i, kode)) return { ok: false, pesan: "Penyimpanan penuh." };
+  return { ok: true, pesan: "Cadangan disimpan di slot " + i + "." };
+}
+
+function saveSlotPulihkan(i) {
+  const slot = saveSlotBaca(i);
+  if (!slot) return { ok: false, pesan: "Slot " + i + " kosong." };
+  return savePulihkanKode(slot.teks);
+}
+
+// Daftar untuk UI: isi manual + riwayat otomatis, terbaru dulu.
+function saveCadanganDaftar() {
+  const manual = [];
+  for (let i = 1; i <= SLOT_CADANGAN_MAKS; i++) {
+    const s = saveSlotBaca(i);
+    manual.push({ slot: i, waktu: s ? s.t : 0, ada: !!s });
+  }
+  return { manual: manual, otomatis: saveBacaOtomatis() };
 }
 
 let progres;
@@ -238,8 +441,67 @@ function apakahLevelTerbuka(idx) {
 function tandaiLevelSelesai(idx, koin) {
   if (!Number.isInteger(idx) || idx < 0) return;
   if (!progres.selesai.includes(idx)) progres.selesai.push(idx);
+  // Bos di akhir level itu otomatis tercatat: bos hanya bisa dibunuh di
+  // wave bos level tersebut (lihat DAFTAR_LEVEL).
+  const lvlDef = (typeof DAFTAR_LEVEL !== "undefined" && DAFTAR_LEVEL[idx]) ? DAFTAR_LEVEL[idx] : null;
+  if (lvlDef && typeof lvlDef.bos === "string" && lvlDef.bos && progres.bosKalah.indexOf(lvlDef.bos) === -1) {
+    progres.bosKalah.push(lvlDef.bos);
+  }
   if (koin > 0) progres.koinTertinggi = Math.max(progres.koinTertinggi, Math.floor(koin));
   saveTulis();
+}
+
+function catatBosKalah(bos) {
+  if (!kunciAman(String(bos))) return false;
+  if (progres.bosKalah.indexOf(bos) !== -1) return false;
+  progres.bosKalah.push(bos);
+  saveTulis();
+  return true;
+}
+
+function bosSudahKalah(bos) {
+  return !!bos && progres.bosKalah.indexOf(bos) !== -1;
+}
+
+// Syarat buka karakter diambil dari field "terkunci" di config.js, contoh:
+//   terkunci: { level: 3, bos: "raja-slime" }
+// artinya: tuntaskan level ke-3 DAN kalahkan bos "raja-slime".
+function syaratKarakter(kar) {
+  const s = kar && kar.terkunci;
+  if (!s) return { terbuka: true, syarat: "" };
+
+  const bagian = [];
+  let terbuka = true;
+  let levelSudah = false;
+
+  if (Number.isInteger(s.level) && s.level > 0) {
+    const idx = s.level - 1;
+    const sudah = progres.selesai.indexOf(idx) !== -1;
+    if (!sudah) terbuka = false;
+    levelSudah = sudah;
+    const lvlDef = (typeof DAFTAR_LEVEL !== "undefined" && DAFTAR_LEVEL[idx]) ? DAFTAR_LEVEL[idx] : null;
+    const namaLvl = (lvlDef && lvlDef.nama) ? lvlDef.nama : ("Level " + s.level);
+    bagian.push((sudah ? "Selesai " : "Tuntaskan ") + namaLvl);
+  }
+
+  if (typeof s.bos === "string" && s.bos) {
+    // Bos dianggap sudah kalah juga kalau level yang mewadahnya sudah tuntas,
+    // karena bos cuma bisa mati di wave bos level itu. Ini menjaga player
+    // lama (save-nya belum punya catatan bosKalah) tetap bisa memakai karakter.
+    const sudah = bosSudahKalah(s.bos) || levelSudah;
+    if (!sudah) terbuka = false;
+    const def = (typeof BOSS_DEF !== "undefined" && BOSS_DEF[s.bos]) ? BOSS_DEF[s.bos] : null;
+    const namaBos = (def && def.nama) ? def.nama : s.bos;
+    bagian.push((sudah ? "Kalah: " : "Kalahkan ") + namaBos);
+  }
+
+  return { terbuka: terbuka, syarat: bagian.join("  ·  ") };
+}
+
+function karakterTerbuka(kunci) {
+  if (typeof KARAKTER === "undefined") return true;
+  const kar = KARAKTER.filter(function (k) { return k && k.kunci === kunci; })[0];
+  return syaratKarakter(kar).terbuka;
 }
 
 function catatKoinTertinggi(koin) {

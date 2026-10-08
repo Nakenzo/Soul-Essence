@@ -13,6 +13,8 @@ const judulAkhirEl = document.getElementById("judulAkhir");
 
 const layarDevice = document.getElementById("layarDevice");
 const layarPutar = document.getElementById("layarPutar");
+const layarAkun = document.getElementById("layarAkun");
+const layarSetting = document.getElementById("layarSetting");
 
 // ========== EQUIP ANIMATION EFFECTS ==========
 function spawnEquipBurst(kotak, warna) {
@@ -165,6 +167,8 @@ function sembunyiSemua() {
   layarGameOver.classList.add("hidden");
   layarPause.classList.add("hidden");
   layarMenang.classList.add("hidden");
+  if (layarAkun) layarAkun.classList.add("hidden");
+  if (layarSetting) layarSetting.classList.add("hidden");
   if (typeof hentikanKonfeti === "function") hentikanKonfeti();
 
   if (!animMati && statusGame !== "main") {
@@ -234,7 +238,177 @@ function ikonElemenSVG(el) {
       '<path d="M6.6 17.5v-2.4l-2.1-1.2"/>' +
       '</svg>';
   }
+  if (e === "nihil") {
+    return '<svg class="ikon-stat ikon-elemen" viewBox="0 0 24 24" width="46" height="46" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="8.4" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5 3.4" opacity="0.9"/>' +
+      '<ellipse cx="12" cy="12" rx="4.2" ry="7" stroke="#c084fc" stroke-width="1.4" transform="rotate(35 12 12)"/>' +
+      '<circle cx="10.5" cy="10.5" r="1.2" fill="#e9d5ff" stroke="none"/>' +
+      '<circle cx="13.6" cy="13.6" r="0.8" fill="#f5d0fe" stroke="none"/>' +
+      '</svg>';
+  }
   return "";
+}
+
+// Logo jurus utama (slot 3): INFERNO untuk Vender (jarak dekat, api) dan
+// FROZFALL untuk Kenzro (jarak jauh, es). Dipakai di panel skill karakter
+// maupun kotak info saat pemilihan karakter.
+function ikonLogoInferno() {
+  return '<svg class="ikon-stat ikon-logo-skill" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M4.2 19A10.5 10.5 0 0 1 19.8 19" stroke="#ff3d00" stroke-width="2.3"/>'
+    + '<path d="M8.1 19A8 8 0 0 1 15.9 19" stroke="#ff9100" stroke-width="1.6" opacity=".85"/>'
+    + '<path d="M12 16.4l2.4 4.2a2.4 2.4 0 0 1-4.8 0z" fill="#ffd54f"/>'
+    + '<path d="M12 17.3l1.5 2.6a1.5 1.5 0 0 1-3 0z" fill="#ff9100"/>'
+    + '<path d="M5.6 21.7l1-1.7M4.3 23.1l1.3-1" stroke="#ff6a00" stroke-width="1.2" opacity=".85"/>'
+    + '<path d="M18.4 21.7l-1-1.7M19.7 23.1l-1.3-1" stroke="#ff6a00" stroke-width="1.2" opacity=".85"/>'
+    + '</svg>';
+}
+
+function ikonLogoFrozfall() {
+  return '<svg class="ikon-stat ikon-logo-skill" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M12 2.6v9.6" stroke="#7dd3fc" stroke-width="2"/>'
+    + '<path d="M9.7 4.9L12 3.5l2.3 1.4" stroke="#b3e5fc" stroke-width="1.6"/>'
+    + '<path d="M12 11.8l-3.1 3.1M12 11.8l3.1 3.1" stroke="#e1f5fe" stroke-width="1.9"/>'
+    + '<path d="M12 14.9l.9 1.5a.95.95 0 0 1-1.8 0z" fill="#7dd3fc"/>'
+    + '<path d="M5.1 8.3l.8.8M6 8.3v1M6 8.3l1.1-1" stroke="#4fc3f7" stroke-width="1.2"/>'
+    + '<path d="M18.5 6.2l.8.8M19.7 6.2v1M19.7 6.2l1.1-1" stroke="#4fc3f7" stroke-width="1.2"/>'
+    + '<path d="M16.9 13.7l-.7.7M17.6 14.4l.8-.7" stroke="#b3e5fc" stroke-width="1.2"/>'
+    + '</svg>';
+}
+
+function ikonLogoSkill(kar) {
+  if (kar && kar.kunci === "voiz") return ikonLogoNihil();
+  return kar && kar.tipe === "jarak" ? ikonLogoFrozfall() : ikonLogoInferno();
+}
+
+function ikonLogoNihil() {
+  return '<svg class="ikon-stat ikon-logo-skill" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+    + '<circle cx="12" cy="12" r="8" stroke="#a78bfa" stroke-width="2" stroke-dasharray="4 3"/>'
+    + '<ellipse cx="12" cy="12" rx="4.9" ry="2.4" stroke="#c084fc" stroke-width="1.4" transform="rotate(38 12 12)"/>'
+    + '<path d="M4.6 7.4a8.4 8.4 0 0 1 5.4-3.2M19.4 16.8a8.4 8.4 0 0 1-5.4 3" stroke="#e9d5ff" stroke-width="1.2" opacity=".8"/>'
+    + '<circle cx="11.7" cy="11.7" r="1.5" fill="#f5d0fe" stroke="none"/>'
+    + '</svg>';
+}
+
+// Ikon tiap jurus = PERSIS sama dengan yang ditampilkan di menu karakter.
+// Satu sumber data vektor (jalurJurus) dipakai menu karakter (SVG) DAN
+// tombol HP (pasangIkonSentuh menggambar jalur yang sama ke canvas),
+// jadi logo tombol selalu menyesuaikan karakter yang dipilih.
+//   tombolSkill  (tombol 1 / Q) -> slot 2
+//   tombolSkill2 (tombol 2 / K) -> slot 3
+//   tombolSkill3 (tombol 3)     -> slot 4
+// Setiap entri: { d, warna, tebal } (garis) atau { d, warna, isi:true } (fill),
+// { jenis:"circle", ... }, { jenis:"ellipse", ... }.
+function jalurJurus(kar, slot) {
+  if (!kar) return [];
+  const jarak = kar.tipe === "jarak";
+  const aksen = kar.warnaDash || (jarak ? "#7dd3fc" : "#ff4d4d");
+  const netral0 = [{ d: "M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z", warna: aksen, tebal: 1.8 }];
+  const netral1 = [{ d: "M13 2L5 14h6l-1 8 8-12h-6z", warna: aksen, tebal: 1.8 }];
+  if (kar.kunci === "voiz") {
+    if (slot === 1) return [
+      { d: "M4 19c1.5-3.4 4-5.8 7.2-7.2 2.6-1.1 5.4-1.4 8.3-.9", warna: aksen, tebal: 2.1 },
+      { d: "M4 19l3-.8M4 19l.8-3M19.4 8.6l1.7 1.5M20.2 5.3l2.2.6", warna: aksen, tebal: 1.5 }
+    ];
+    if (slot === 2) return [
+      { d: "M4 12h16", warna: "#e9d5ff", tebal: 2.6 },
+      { d: "M6 9l.5 6M9 8l.5 8M12 7.5l.5 9M15 8l.5 8M18 9l.5 6", warna: aksen, tebal: 1.4, op: .85 },
+      { d: "M7.5 12h9M8 15h8M8 9h8", warna: aksen, tebal: 1.1, op: .5 }
+    ];
+    if (slot === 3) return [
+      { d: "M12 3.5L18.5 11.5v6.5h-13v-6.5z", warna: "#c084fc", tebal: 2 },
+      { d: "M8.4 13.8l3.6 4.0 3.6-4.0", warna: "#e9d5ff", tebal: 1.5, op: .9 },
+      { d: "M12 3.5V1.8", warna: aksen, tebal: 1.8 },
+      { d: "M7.2 18l1.8-1.4M16.8 18l-1.8-1.4", warna: aksen, tebal: 1.4, op: .7 }
+    ];
+    if (slot === 4) return netral1;
+    return netral0;
+  }
+  if (jarak) {
+    if (slot === 1) return [
+      { d: "M5 19L16 8", warna: aksen, tebal: 2.2 },
+      { d: "M13 5l6 6", warna: aksen, tebal: 2.2 },
+      { d: "M15 5h4v4", warna: aksen, tebal: 2.2 },
+      { d: "M5 19l1.5-3.5L10 17z", warna: aksen, isi: true }
+    ];
+    if (slot === 2) return [
+      { d: "M3 16a9 9 0 0 1 18 0", warna: "#b3e5fc", tebal: 2.4 },
+      { d: "M6 16a6 6 0 0 1 12 0", warna: aksen, tebal: 1.8 },
+      { d: "M9 16a3 3 0 0 1 6 0", warna: "#e1f5fe", tebal: 1.4 },
+      { d: "M8 18v2.5M12 18.5v2.5M16 18v2.5", warna: "#b3e5fc", tebal: 1.4 }
+    ];
+    if (slot === 3) return jalurLogoSkill(kar);
+    if (slot === 4) return netral0;
+    return netral1;
+  }
+  if (slot === 1) return [
+    { d: "M4 18C8 14 14 8 20 4", warna: aksen, tebal: 2.4 },
+    { d: "M4 18l.5-3M4 18l3-.5", warna: aksen, tebal: 1.6 }
+  ];
+  if (slot === 2) return [
+    { d: "M3 17a9 9 0 0 1 18 0", warna: "#ff3d00", tebal: 2.6 },
+    { d: "M6 17a6 6 0 0 1 12 0", warna: "#ff9100", tebal: 1.8 },
+    { d: "M9 17a3 3 0 0 1 6 0", warna: "#ffee58", tebal: 1.4 }
+  ];
+  if (slot === 3) return jalurLogoSkill(kar);
+  if (slot === 4) return netral0;
+  return netral1;
+}
+
+function jalurLogoSkill(kar) {
+  if (kar && kar.kunci === "voiz") {
+    return [
+      { jenis: "circle", cx: 12, cy: 12, r: 8, warna: "#a78bfa", tebal: 2, das: [4, 3] },
+      { jenis: "ellipse", cx: 12, cy: 12, rx: 4.9, ry: 2.4, rot: 38, warna: "#c084fc", tebal: 1.4 },
+      { d: "M4.6 7.4a8.4 8.4 0 0 1 5.4-3.2M19.4 16.8a8.4 8.4 0 0 1-5.4 3", warna: "#e9d5ff", tebal: 1.2, op: .8 },
+      { jenis: "circle", cx: 11.7, cy: 11.7, r: 1.5, warna: "#f5d0fe", isi: true }
+    ];
+  }
+  if (kar && kar.tipe === "jarak") {
+    return [
+      { d: "M12 2.6v9.6", warna: "#7dd3fc", tebal: 2 },
+      { d: "M9.7 4.9L12 3.5l2.3 1.4", warna: "#b3e5fc", tebal: 1.6 },
+      { d: "M12 11.8l-3.1 3.1M12 11.8l3.1 3.1", warna: "#e1f5fe", tebal: 1.9 },
+      { d: "M12 14.9l.9 1.5a.95.95 0 0 1-1.8 0z", warna: "#7dd3fc", isi: true },
+      { d: "M5.1 8.3l.8.8M6 8.3v1M6 8.3l1.1-1", warna: "#4fc3f7", tebal: 1.2 },
+      { d: "M18.5 6.2l.8.8M19.7 6.2v1M19.7 6.2l1.1-1", warna: "#4fc3f7", tebal: 1.2 },
+      { d: "M16.9 13.7l-.7.7M17.6 14.4l.8-.7", warna: "#b3e5fc", tebal: 1.2 }
+    ];
+  }
+  return [
+    { d: "M4.2 19A10.5 10.5 0 0 1 19.8 19", warna: "#ff3d00", tebal: 2.3 },
+    { d: "M8.1 19A8 8 0 0 1 15.9 19", warna: "#ff9100", tebal: 1.6, op: .85 },
+    { d: "M12 16.4l2.4 4.2a2.4 2.4 0 0 1-4.8 0z", warna: "#ffd54f", isi: true },
+    { d: "M12 17.3l1.5 2.6a1.5 1.5 0 0 1-3 0z", warna: "#ff9100", isi: true },
+    { d: "M5.6 21.7l1-1.7M4.3 23.1l1.3-1M18.4 21.7l-1-1.7M19.7 23.1l-1.3-1", warna: "#ff6a00", tebal: 1.2, op: .85 }
+  ];
+}
+
+function ikonSkillSlot(kar, slot) {
+  if (!kar) return "<svg></svg>";
+  const jalur = jalurJurus(kar, slot);
+  let isi = "";
+  for (let i = 0; i < jalur.length; i++) {
+    const p = jalur[i];
+    const attrs = p.op != null ? ' opacity="' + p.op + '"' : "";
+    if (p.d) {
+      if (p.isi) {
+        isi += '<path d="' + p.d + '" fill="' + p.warna + '" stroke="none"' + attrs + '/>';
+      } else {
+        isi += '<path d="' + p.d + '" stroke="' + p.warna + '" stroke-width="' + p.tebal + '"' + attrs + '/>';
+      }
+    } else if (p.jenis === "circle") {
+      if (p.isi) {
+        isi += '<circle cx="' + p.cx + '" cy="' + p.cy + '" r="' + p.r + '" fill="' + p.warna + '" stroke="none"' + attrs + '/>';
+      } else {
+        isi += '<circle cx="' + p.cx + '" cy="' + p.cy + '" r="' + p.r + '" stroke="' + p.warna + '" stroke-width="' + p.tebal + '"' +
+          (p.das ? ' stroke-dasharray="' + p.das.join(" ") + '"' : '') + attrs + '/>';
+      }
+    } else if (p.jenis === "ellipse") {
+      isi += '<ellipse cx="' + p.cx + '" cy="' + p.cy + '" rx="' + p.rx + '" ry="' + p.ry + '"' +
+        ' transform="rotate(' + p.rot + ' 12 12)" stroke="' + p.warna + '" stroke-width="' + p.tebal + '"' + attrs + '/>';
+    }
+  }
+  return '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke-linecap="round" stroke-linejoin="round">' + isi + '</svg>';
 }
 
 let karakterUpgrade = null;
@@ -1190,7 +1364,7 @@ function buatPilihanUpgrade() {
       cx.imageSmoothingEnabled = s < 1;
       cx.drawImage(img, (56 - img.width * s) / 2, (56 - img.height * s) / 2, img.width * s, img.height * s);
     } else {
-      cx.fillStyle = "#ff8844";
+      cx.fillStyle = kar.warnaDash || "#ff8844";
       cx.fillRect(7, 7, 42, 42);
     }
     card.appendChild(cv);
@@ -1269,74 +1443,38 @@ function buatPilihanUpgrade() {
     const svg = (isi) =>
       '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke-linecap="round" stroke-linejoin="round">' + isi + '</svg>';
 
-    const ikonSkill = jarak ? [
-
-      svg('<path d="M5 19L16 8" stroke="' + aksen + '" stroke-width="2.2"/>' +
-        '<path d="M13 5l6 6" stroke="' + aksen + '" stroke-width="2.2"/>' +
-        '<path d="M15 5h4v4" stroke="' + aksen + '" stroke-width="2.2"/>' +
-        '<path d="M5 19l1.5-3.5L10 17z" fill="' + aksen + '"/>'),
-
-      svg('<path d="M3 16a9 9 0 0 1 18 0" stroke="#b3e5fc" stroke-width="2.4"/>' +
-        '<path d="M6 16a6 6 0 0 1 12 0" stroke="' + aksen + '" stroke-width="1.8"/>' +
-        '<path d="M9 16a3 3 0 0 1 6 0" stroke="#e1f5fe" stroke-width="1.4"/>' +
-        '<path d="M8 18v2.5M12 18.5v2.5M16 18v2.5" stroke="#b3e5fc" stroke-width="1.4"/>'),
-      svg('<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" stroke="' + aksen + '" stroke-width="1.8"/>'),
-      svg('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" stroke="' + aksen + '" stroke-width="1.8"/>'),
-      svg('<path d="M13 2L5 14h6l-1 8 8-12h-6z" stroke="' + aksen + '" stroke-width="1.8"/>')
-    ] : [
-
-      svg('<path d="M4 18C8 14 14 8 20 4" stroke="' + aksen + '" stroke-width="2.4"/>' +
-        '<path d="M4 18l.5-3M4 18l3-.5" stroke="' + aksen + '" stroke-width="1.6"/>'),
-
-      svg('<path d="M3 17a9 9 0 0 1 18 0" stroke="#ff3d00" stroke-width="2.6"/>' +
-        '<path d="M6 17a6 6 0 0 1 12 0" stroke="#ff9100" stroke-width="1.8"/>' +
-        '<path d="M9 17a3 3 0 0 1 6 0" stroke="#ffee58" stroke-width="1.4"/>'),
-      svg('<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" stroke="' + aksen + '" stroke-width="1.8"/>'),
-      svg('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" stroke="' + aksen + '" stroke-width="1.8"/>'),
-      svg('<path d="M13 2L5 14h6l-1 8 8-12h-6z" stroke="' + aksen + '" stroke-width="1.8"/>')
-    ];
-
     const ikonTerkunci = svg('<rect x="5" y="10" width="14" height="10" rx="2" stroke="#8a93a5" stroke-width="1.8"/>' +
       '<path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#8a93a5" stroke-width="1.8"/>' +
       '<circle cx="12" cy="15" r="1.4" fill="#8a93a5"/>');
     const lv = levelKarakter(kar.kunci);
-    const dipakai = skillPakai(kar.kunci);
     const daftar = daftarSkill(kar.kunci);
 
-    daftar.forEach((s, i) => {
+    // Tanpa sistem equip: tiap skill hanya menampilkan kunci (1/2/3), nama,
+    // dan syarat level kalau belum terbuka. Semua skill dipakai bersama
+    // lewat keybind 1/2/3 saat bermain (CD bersama, model Mobile Legends).
+    // 1 = skill bawaan (slot 2), 2 = slot 3, 3 = slot 4.
+    const keyPadaSlot = { 2: "1", 3: "2", 4: "3" };
+
+    daftar.forEach((s) => {
       const terbuka = lv >= s.level;
-      const terpakai = s.slot === dipakai;
       const baris = document.createElement("div");
       baris.className = "kartu-note";
       if (!terbuka) baris.classList.add("skill-terkunci");
-      else if (terpakai) {
-        baris.classList.add("skill-dipakai");
-        baris.style.background = aksen + "1f";
-        baris.style.boxShadow = "inset 0 0 0 2px " + aksen + "55";
-      } else if (s.bisaPakai) baris.classList.add("skill-bisa-pakai");
 
       const bulat = document.createElement("div");
       bulat.className = "kartu-note-bulat";
       bulat.style.background = terbuka ? aksen + "2b" : "rgba(138,147,165,0.15)";
-      bulat.innerHTML = terbuka ? (ikonSkill[i] || ikonTerkunci) : ikonTerkunci;
+      bulat.innerHTML = terbuka ? ikonSkillSlot(kar, s.slot) : ikonTerkunci;
 
       const teks = document.createElement("span");
       teks.className = "nama-karakter";
-      teks.textContent = !terbuka ? s.nama + "  ·  BUKA LV " + s.level
-        : terpakai ? s.nama + "  ·  DIPAKAI" : s.nama;
+      const tombol = keyPadaSlot[s.slot];
+      const awalan = tombol ? tombol + " · " : "";
+      teks.textContent = awalan + (!terbuka ? s.nama + "  ·  BUKA LV " + s.level : s.nama);
 
       baris.appendChild(bulat);
       baris.appendChild(teks);
       skillEl.appendChild(baris);
-
-      if (terbuka && s.bisaPakai && !terpakai) {
-        baris.onclick = () => {
-          if (pasangSkill(kar.kunci, s.slot)) {
-            if (typeof sfxKlik === "function") sfxKlik();
-            buatPilihanUpgrade();
-          }
-        };
-      }
     });
   }
 
@@ -1457,6 +1595,36 @@ function lanjutDariPause() {
   aturTombolPause();
 }
 
+// Mencetak status tombol skill ke konsol OTOMATIS (tanpa perlu paste apa pun).
+function cetakStatusTombol(catatan) {
+  if (typeof console !== "object" || typeof console.log !== "function") return;
+  try {
+    const mode = typeof pakaiModeTigaSkill === "function" && pakaiModeTigaSkill();
+    console.log("[DEB " + catatan + "] dev=" + deviceTerpilih +
+      " kar=" + (karakter ? karakter.kunci : "-") + " mode=" + (mode ? 1 : 0));
+  } catch (err) {}
+  try {
+    const d = function (id) {
+      const el = document.getElementById(id);
+      if (!el) return "x";
+      try {
+        if (typeof window === "object" && window.getComputedStyle) return window.getComputedStyle(el).display;
+      } catch (err2) {}
+      return el.style.display || "?";
+    };
+    console.log("[DEB " + catatan + "] b1=" + d("tombolSkill") +
+      " b2=" + d("tombolSkill2") + " b3=" + d("tombolSkill3"));
+  } catch (err) {}
+}
+
+function siapkanSentuh() {
+  try { if (typeof sinkronkanKontrolSentuh === "function") sinkronkanKontrolSentuh(); } catch (err) {}
+  try { if (typeof pasangIkonSentuh === "function") pasangIkonSentuh(); } catch (err) {}
+  try { if (typeof perbaruiCdSkillSentuh === "function") perbaruiCdSkillSentuh(); } catch (err) {}
+  cetakStatusTombol("mulai");
+  try { setTimeout(function () { cetakStatusTombol("t+1.5s"); }, 1500); } catch (err) {}
+}
+
 function mulaiGameBaru() {
   sfxResume();
   resetArena({ koinBaru: true });
@@ -1464,7 +1632,7 @@ function mulaiGameBaru() {
   sinkronSfxTerjeda();
   sembunyiSemua();
   aturTombolPause();
-  if (typeof pasangIkonSentuh === "function") pasangIkonSentuh();
+  if (typeof siapkanSentuh === "function") siapkanSentuh();
   if (typeof setMusik === "function") setMusik("game");
 }
 
@@ -1474,7 +1642,7 @@ function ulangDenganKarakter() {
   sinkronSfxTerjeda();
   sembunyiSemua();
   aturTombolPause();
-  if (typeof pasangIkonSentuh === "function") pasangIkonSentuh();
+  if (typeof siapkanSentuh === "function") siapkanSentuh();
   if (typeof setMusik === "function") setMusik("game");
 }
 
@@ -1485,6 +1653,7 @@ function pasangTombol() {
   tombolTerpasang = true;
   document.getElementById("tombolPlay").addEventListener("click", tampilkanLevel);
   document.getElementById("tombolKarakter").addEventListener("click", tampilkanKarakter);
+  pasangAkun();
   document.getElementById("tombolKembaliKarakter").addEventListener("click", tampilkanJudul);
   pasangTabKarakter();
   document.getElementById("tombolKembaliJudul").addEventListener("click", tampilkanJudul);
@@ -1533,6 +1702,10 @@ function buatPilihanKarakter() {
     const img = tekstur[kar.kunci];
     const card = document.createElement("button");
     card.className = "kartu-karakter";
+    const cek = typeof syaratKarakter === "function"
+      ? syaratKarakter(kar)
+      : { terbuka: true, syarat: "" };
+    if (!cek.terbuka) card.classList.add("terkunci");
 
     const cv = document.createElement("canvas");
     cv.width = 56;
@@ -1546,17 +1719,37 @@ function buatPilihanKarakter() {
       c.imageSmoothingEnabled = s < 1;
       c.drawImage(img, (56 - w) / 2, (56 - h) / 2, w, h);
     } else {
-      c.fillStyle = "#ff8844";
+      c.fillStyle = kar.warnaDash || "#ff8844";
       c.fillRect(7, 7, 42, 42);
     }
     card.appendChild(cv);
 
     const nama = document.createElement("div");
     nama.className = "nama-karakter";
-    nama.textContent = (idx + 1) + ". " + kar.nama;
+    nama.textContent = (idx + 1) + ". " + (cek.terbuka ? kar.nama : "???");
+
+    if (!cek.terbuka) {
+      const syarat = document.createElement("div");
+      syarat.className = "syarat-karakter";
+      syarat.textContent = cek.syarat || "TERKUNCI";
+      card.appendChild(syarat);
+
+      const gembok = document.createElement("div");
+      gembok.className = "gembok-karakter";
+      gembok.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#e2e8f0" stroke-width="1.8" stroke-linecap="round">' +
+        '<rect x="5" y="10" width="14" height="10" rx="2"/>' +
+        '<path d="M8 10V7a4 4 0 0 1 8 0v3"/>' +
+        '<circle cx="12" cy="15" r="1.4" fill="#e2e8f0" stroke="none"/></svg>';
+      card.appendChild(gembok);
+    }
+
     card.appendChild(nama);
 
     card.addEventListener("click", () => {
+      if (!cek.terbuka) {
+        if (typeof sfxKlik === "function") sfxKlik();
+        return;
+      }
       karakter = kar;
       mulaiGameBaru();
     });
@@ -1616,14 +1809,32 @@ function tampilInfoKarakter(kar) {
   const info = document.getElementById("infoKarakter");
   if (!info) return;
   info.innerHTML = "";
-  const emAngka = typeof atributElement === "function"
-    ? Math.round(atributElement(kar.kunci))
-    : (kar.atributElement || 0);
+
+  const cek = typeof syaratKarakter === "function"
+    ? syaratKarakter(kar)
+    : { terbuka: true, syarat: "" };
+
+  if (!cek.terbuka) {
+    const judul = document.createElement("div");
+    judul.className = "info-terkunci-judul";
+    judul.textContent = "TERKUNCI";
+    info.appendChild(judul);
+
+    const ket = document.createElement("div");
+    ket.className = "info-terkunci-syarat";
+    ket.textContent = cek.syarat || "Syarat belum terpenuhi";
+    info.appendChild(ket);
+
+    info.classList.remove("hidden");
+    return;
+  }
+
+  const namaElemen = kar.element ? String(kar.element).toUpperCase() : "ELEMENT";
   const parts = [
     { lbl: "HP", nilai: kar.hp },
 
     { lbl: "TIPE", ikon: ikonTipeSVG(kar) },
-    { lbl: "ATRIBUT ELEMENT", nilai: emAngka }
+    { lbl: "", ikon: ikonElemenSVG(kar.element) + '<span class="info-val-nama">' + namaElemen + '</span>' }
   ];
 
   parts.forEach((p) => {
@@ -1631,7 +1842,7 @@ function tampilInfoKarakter(kar) {
     baris.className = "info-baris";
     const lbl = document.createElement("span");
     lbl.className = "info-lbl";
-    lbl.textContent = p.lbl + ": ";
+    lbl.textContent = p.lbl ? p.lbl + ": " : "";
     const val = document.createElement("span");
     val.className = "info-val";
     if (p.ikon) {
@@ -1649,4 +1860,309 @@ function tampilInfoKarakter(kar) {
 function sembunyiInfoKarakter() {
   const info = document.getElementById("infoKarakter");
   if (info) info.classList.add("hidden");
+}
+
+// ------------------------------------------------------------- panel cadangan
+
+function waktuRelatif(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return "-";
+  const d = Math.floor((Date.now() - ms) / 1000);
+  if (d < 60) return d + " detik lalu";
+  if (d < 3600) return Math.floor(d / 60) + " menit lalu";
+  if (d < 86400) return Math.floor(d / 3600) + " jam lalu";
+  return Math.floor(d / 86400) + " hari lalu";
+}
+
+function catatanCadangan(pesan, warna) {
+  const el = document.getElementById("statusCadangan");
+  if (!el) return;
+  el.textContent = pesan || "";
+  el.classList.toggle("cad-status-galat", warna === "galat");
+  el.classList.toggle("cad-status-ok", warna === "ok");
+}
+
+function segarkanKodeSave() {
+  const el = document.getElementById("kodeSave");
+  if (el) el.value = typeof saveKode === "function" ? saveKode() : "";
+}
+
+function segarkanDaftarCadangan() {
+  if (typeof saveCadanganDaftar !== "function") return;
+  const daftar = saveCadanganDaftar();
+
+  const wadahSlot = document.getElementById("daftarSlotCadangan");
+  if (wadahSlot) {
+    wadahSlot.textContent = "";
+    for (const s of daftar.manual) {
+      const baris = document.createElement("div");
+      baris.className = "cad-item";
+
+      const nama = document.createElement("span");
+      nama.className = "cad-item-nama";
+      nama.textContent = "Slot " + s.slot + " — " + (s.ada ? waktuRelatif(s.waktu) : "kosong");
+      baris.appendChild(nama);
+
+      const btnSimpan = document.createElement("button");
+      btnSimpan.type = "button";
+      btnSimpan.className = "tombol-abu tombol-mini";
+      btnSimpan.textContent = "SIMPAN";
+      btnSimpan.addEventListener("click", () => {
+        const h = saveSlotSimpan(s.slot);
+        catatanCadangan(h.pesan, h.ok ? "ok" : "galat");
+        segarkanDaftarCadangan();
+        segarkanKodeSave();
+      });
+      baris.appendChild(btnSimpan);
+
+      const btnPulih = document.createElement("button");
+      btnPulih.type = "button";
+      btnPulih.className = "tombol-abu tombol-mini";
+      btnPulih.textContent = "PULIHKAN";
+      btnPulih.disabled = !s.ada;
+      btnPulih.addEventListener("click", () => pasangKonfirmasi(
+        btnPulih,
+        "Pulihkan slot " + s.slot + "?",
+        "Progres saat ini diganti dengan isi slot itu.",
+        () => {
+          const h = saveSlotPulihkan(s.slot);
+          catatanCadangan(h.pesan, h.ok ? "ok" : "galat");
+          if (h.ok) setelahProgresBerubah();
+          segarkanDaftarCadangan();
+          segarkanKodeSave();
+        }
+      ));
+      baris.appendChild(btnPulih);
+
+      const btnHapus = document.createElement("button");
+      btnHapus.type = "button";
+      btnHapus.className = "tombol-abu tombol-mini";
+      btnHapus.textContent = "HAPUS";
+      btnHapus.disabled = !s.ada;
+      btnHapus.addEventListener("click", () => {
+        saveSlotHapus(s.slot);
+        catatanCadangan("Slot " + s.slot + " dihapus.", "ok");
+        segarkanDaftarCadangan();
+      });
+      baris.appendChild(btnHapus);
+
+      wadahSlot.appendChild(baris);
+    }
+  }
+
+  const wadahOto = document.getElementById("daftarRiwayatOtomatis");
+  if (wadahOto) {
+    wadahOto.textContent = "";
+    if (!daftar.otomatis.length) {
+      const kosong = document.createElement("div");
+      kosong.className = "cad-kecil";
+      kosong.textContent = "Belum ada riwayat. Muncul setelah 10 menit bermain.";
+      wadahOto.appendChild(kosong);
+    }
+    for (let i = 0; i < daftar.otomatis.length; i++) {
+      const o = daftar.otomatis[i];
+      const baris = document.createElement("div");
+      baris.className = "cad-item";
+
+      const nama = document.createElement("span");
+      nama.className = "cad-item-nama";
+      nama.textContent = waktuRelatif(o.t) +
+        " — koin " + (o.ringkas ? o.ringkas.saldo : "?") +
+        ", level " + (o.ringkas ? o.ringkas.level : "?");
+      baris.appendChild(nama);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tombol-abu tombol-mini";
+      btn.textContent = "PULIHKAN";
+      btn.addEventListener("click", () => pasangKonfirmasi(
+        btn,
+        "Pulihkan riwayat " + (i + 1) + "?",
+        "Progres saat ini diganti dengan isi riwayat itu.",
+        () => {
+          const h = savePulihkanKode(o.teks);
+          catatanCadangan(h.pesan, h.ok ? "ok" : "galat");
+          if (h.ok) setelahProgresBerubah();
+          segarkanDaftarCadangan();
+          segarkanKodeSave();
+        }
+      ));
+      baris.appendChild(btn);
+
+      wadahOto.appendChild(baris);
+    }
+  }
+}
+
+// Konfirmasi dua-tahap per tombol: klik pertama hanya mengubah label jadi
+// "YAKIN? (4)", klik kedua pada tombol yang SAMA baru menjalankan aksi.
+// Kalau tidak diklik lagi, tombol kembali sendiri setelah 4 detik.
+// Dipakai karena window.confirm diblokir di beberapa WebView.
+function pasangKonfirmasi(btn, judul, detail, aksi) {
+  if (btn.dataset.konfirmasi === "1") {
+    delete btn.dataset.konfirmasi;
+    btn.textContent = btn.dataset.teksAwal || btn.textContent;
+    aksi();
+    return;
+  }
+
+  btn.dataset.konfirmasi = "1";
+  btn.dataset.teksAwal = btn.textContent;
+  btn.textContent = "YAKIN? (4)";
+  catatanCadangan(judul + " — " + detail, "galat");
+
+  if (btn._killKonfirmasi) clearTimeout(btn._killKonfirmasi);
+  btn._killKonfirmasi = setTimeout(function () {
+    delete btn.dataset.konfirmasi;
+    btn.textContent = btn.dataset.teksAwal || btn.textContent;
+    catatanCadangan("");
+  }, 4000);
+}
+
+function salinKeClipboard(teks) {
+  const cobaAsync = () => {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) return false;
+    navigator.clipboard.writeText(teks).catch(() => {});
+    return true;
+  };
+  if (cobaAsync()) return;
+  // Fallback untuk WebView lama / konteks tidak aman.
+  const area = document.createElement("textarea");
+  area.value = teks;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand("copy"); } catch (err) {  }
+  document.body.removeChild(area);
+}
+
+// Menit: layar AKUN adalah anak dari SETTINGS, jadi saat ditutup kita kembali
+// ke SETTINGS kalau layar itu masih terbuka, bukan langsung ke judul.
+function bukaAkun() {
+  const layar = document.getElementById("layarAkun");
+  if (!layar) return;
+  // Jangan tinggalkan mode tangkapan tombol dari Settings: keyboard jadi mati.
+  if (typeof batalTangkapIkatan === "function") {
+    try { batalTangkapIkatan(); } catch (err) { }
+  }
+  try { sembunyiSemua(); } catch (err) { }
+  layar.classList.remove("hidden");
+  catatanCadangan("");
+  segarkanKodeSave();
+  segarkanDaftarCadangan();
+  if (typeof akunPerbaruiUI === "function") akunPerbaruiUI();
+}
+
+function bukaSetting() {
+  if (!layarSetting) return;
+  try { sembunyiSemua(); } catch (err) { }
+  layarSetting.classList.remove("hidden");
+  if (typeof segarkanPengaturanUI === "function") segarkanPengaturanUI();
+}
+
+function tutupAkun() {
+  const layar = document.getElementById("layarAkun");
+  if (layar) layar.classList.add("hidden");
+  // AKUN subordinate dari SETTINGS: selalu balik ke settings dulu kalau layar
+  // itu ada. Tidak dicek "sedang terlihat" karena bukaAkun() menyembunyikannya.
+  if (layarSetting) {
+    try { sembunyiSemua(); } catch (err) { }
+    layarSetting.classList.remove("hidden");
+    if (typeof segarkanPengaturanUI === "function") segarkanPengaturanUI();
+    return;
+  }
+  tampilkanJudul();
+}
+
+function tutupSetting() {
+  // Menutup Settings sambil menunggu tombol baru harus membatalkan tangkapan,
+  // kalau tidak keyboard jadi mati (input.js mengabaikan semua tombol).
+  if (typeof batalTangkapIkatan === "function") {
+    try { batalTangkapIkatan(); } catch (err) { }
+  }
+  if (layarSetting) layarSetting.classList.add("hidden");
+  tampilkanJudul();
+}
+
+// Dipanggil setelah progres pulih supaya semua layar ikut segara.
+function setelahProgresBerubah() {
+  try {
+    segarkanSaldoJudul();
+    if (typeof segarkanSaldoKarakter === "function") segarkanSaldoKarakter();
+    if (typeof pasangTabKarakter === "function") pasangTabKarakter();
+    if (typeof tampilkanLevel === "function" && typeof statusGame !== "undefined" && statusGame === "level") {
+      tampilkanLevel();
+    }
+  } catch (err) {  }
+}
+
+function pasangAkun() {
+  if (typeof akunPasangUI === "function") {
+    try {
+      akunPasangUI();
+    } catch (err) { }
+  }
+  if (typeof pasangPengaturanUI === "function") {
+    try {
+      pasangPengaturanUI();
+    } catch (err) { }
+  }
+
+  const btnSetting = document.getElementById("tombolSetting");
+  if (btnSetting) btnSetting.addEventListener("click", bukaSetting);
+  const btnKeAkun = document.getElementById("tombolKeAkun");
+  if (btnKeAkun) btnKeAkun.addEventListener("click", bukaAkun);
+  const tutupSet = document.getElementById("tutupSetting");
+  if (tutupSet) tutupSet.addEventListener("click", tutupSetting);
+
+  const layar = document.getElementById("layarAkun");
+  if (!layar) return;
+
+  const tutup = document.getElementById("tutupAkun");
+  if (tutup) tutup.addEventListener("click", tutupAkun);
+
+  const btnSalin = document.getElementById("tombolSalinKode");
+  if (btnSalin) {
+    btnSalin.addEventListener("click", () => {
+      const kode = typeof saveKode === "function" ? saveKode() : "";
+      if (!kode) { catatanCadangan("Gagal membuat kode save.", "galat"); return; }
+      segarkanKodeSave();
+      salinKeClipboard(kode);
+      const el = document.getElementById("kodeSave");
+      if (el) el.select();
+      catatanCadangan("Kode disalin. Simpan di chat/catatan/screenshot.", "ok");
+    });
+  }
+
+  const btnMuat = document.getElementById("tombolMuatKode");
+  if (btnMuat) {
+    btnMuat.addEventListener("click", () => {
+      segarkanKodeSave();
+      catatanCadangan("Kode diperbarui dari progres saat ini.", "ok");
+    });
+  }
+
+  const btnPulih = document.getElementById("tombolPulihkan");
+  if (btnPulih) {
+    btnPulih.addEventListener("click", () => {
+      const el = document.getElementById("kodeTempel");
+      const kode = el ? el.value : "";
+      pasangKonfirmasi(
+        btnPulih,
+        "Pulihkan dari kode?",
+        "Progres saat ini diganti dengan isi kode tersebut.",
+        () => {
+          const h = savePulihkanKode(kode);
+          catatanCadangan(h.pesan, h.ok ? "ok" : "galat");
+          if (h.ok) {
+            if (el) el.value = "";
+            setelahProgresBerubah();
+            segarkanDaftarCadangan();
+            segarkanKodeSave();
+          }
+        }
+      );
+    });
+  }
 }

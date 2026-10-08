@@ -1,7 +1,6 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { execFile } = require("child_process");
 
 const PORT = process.env.PORT || 8080;
 const ROOT = path.resolve(__dirname);
@@ -91,7 +90,4 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(` Buka URL di browser (Chrome / Edge), lalu klik`);
   console.log(` tombol 'Install App' di address bar untuk menginstall!`);
   console.log(`====================================================`);
-
-  const startCmd = process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
-  execFile(startCmd, [url], () => {});
 });

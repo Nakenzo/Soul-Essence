@@ -255,6 +255,11 @@ function lanjutKartuKeLevel() {
   spawnTimer = 0.6;
   if (typeof sinkronSfxTerjeda === "function") sinkronSfxTerjeda();
   if (typeof tampilkanBannerLevel === "function") tampilkanBannerLevel(level);
+  // Lepas kartu -> tombol & joystik HP langsung tampil lagi, tanpa menunggu
+  // frame berikutnya (cegah nyangkut "hilang semua" di mode HP).
+  if (typeof siapkanSentuh === "function") {
+    try { siapkanSentuh(); } catch (err) {}
+  }
 }
 
 function rectKartuUpgrade(i) {

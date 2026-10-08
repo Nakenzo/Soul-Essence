@@ -42,6 +42,13 @@ function aturVolumeMusik(v) {
   _simpanVolume();
 }
 
+// Pembaca volume 0..1. Dipakai layar Settings supaya slider di situ dan slider
+// di menu Pause menampilkan angka yang sama (let di luar window, jadi tidak bisa
+// dibaca lewat window).
+function ambilVolumeUmum() { return _volUmum; }
+function ambilVolumeSfx() { return _volSfx; }
+function ambilVolumeMusik() { return _volMusik; }
+
 function bukaAudio() {
   if (_actx) {
     if (_actx.state === "suspended") _actx.resume();
@@ -258,6 +265,13 @@ function sfxNoise({ dur, vol, fType, fFreq, fEnd, delay, q, trem, tremFreq, out 
 
 function sfxTembak() {
 
+  if (karakter && karakter.kunci === "voiz") {
+    if (sfxFile("tembak-voiz")) return;
+    sfxTone({ freq: 900, endFreq: 1600, dur: 0.11, type: "sine", vol: 0.17 });
+    sfxNoise({ dur: 0.09, vol: 0.1, fType: "highpass", fFreq: 3600 });
+    return;
+  }
+
   if (player && player.specialBuff > 0) {
     if (sfxFile("panah-beku")) return;
     sfxTone({ freq: 980, endFreq: 1450, dur: 0.14, type: "sine", vol: 0.18 });
@@ -328,6 +342,11 @@ function sfxPemainKena() {
 function sfxDash() {
 
   if (sfxFile("dash")) return;
+  if (karakter && karakter.kunci === "voiz") {
+    if (sfxFile("dash-voiz")) return;
+    sfxNoise({ dur: 0.2, vol: 0.15, fType: "bandpass", fFreq: 500, fEnd: 3800 });
+    return;
+  }
   sfxNoise({ dur: 0.18, vol: 0.18, fType: "bandpass", fFreq: 320, fEnd: 2600 });
 }
 
@@ -365,6 +384,34 @@ function sfxUltimateVender() {
 
 function sfxUltimateKenzro() {
   if (!sfxFile("ultimate-kenzro")) sfxUltimate();
+}
+
+function sfxLaserVoiz() {
+  if (sfxFile("jurus-umbra")) return;
+  sfxNoise({ dur: 0.7, vol: 0.22, fType: "lowpass", fFreq: 2600, fEnd: 900, trem: 0.09, tremFreq: 30 });
+  sfxTone({ freq: 240, endFreq: 190, dur: 0.5, type: "sawtooth", vol: 0.12 });
+  sfxTone({ freq: 660, endFreq: 1240, dur: 0.4, type: "triangle", vol: 0.08, delay: 0.04 });
+}
+
+// ===== PRISM (skill voiz slot 3) — serangan cepat bertema prisma =====
+// Konsep bunyi: cahaya dipecah kaca prismatik — kilau kristal yang cepat
+// naik (bukan laser/gebukan), lalu tiap lompatan "tink" kaca staccato
+// yang nadanya naik mengikuti urutan pantulan. Semua prosedural supaya
+// tidak butuh file; file override "jurus-prism"/"prism-hop" tetap dihormati.
+function sfxPrismKast() {
+  if (sfxFile("jurus-prism")) return;
+  // Kaskade nada kristal naik (panahnya tidak satu garis, melainkan pecah bercahaya).
+  sfxTone({ freq: 620, endFreq: 1520, dur: 0.14, type: "sine", vol: 0.16 });
+  sfxTone({ freq: 1250, endFreq: 1860, dur: 0.1, type: "sine", vol: 0.09, delay: 0.03 });
+  sfxTone({ freq: 260, endFreq: 840, dur: 0.16, type: "triangle", vol: 0.08, delay: 0.01 });
+  sfxNoise({ dur: 0.09, vol: 0.1, fType: "highpass", fFreq: 5200 });
+}
+
+function sfxPrismHop(i) {
+  if (sfxFile("prism-hop")) return;
+  const b = 700 + i * 220;
+  sfxTone({ freq: b, endFreq: b * 1.4, dur: 0.05, type: "sine", vol: 0.09, delay: i * 0.045 });
+  sfxTone({ freq: b * 2.01, endFreq: b * 2.4, dur: 0.035, type: "sine", vol: 0.05, delay: i * 0.045 + 0.008 });
 }
 
 function sfxLevel() {
@@ -453,6 +500,20 @@ function setMusik(kunci) {
   if (!kunci) return;
 
   if (!_mulaiFileMusik(kunci)) _mulaiMusikProsedural(kunci);
+}
+
+// Dipanggil tiap frame: pastikan BGM "game" benar-benar berbunyi saat
+// statusGame "main" (memperbaiki kasus key macet / gcd BGM yang salah).
+function sinkronkanMusikGame() {
+  if (typeof setMusik !== "function") return;
+  if (statusGame !== "main") return;
+  if (_actx && _actx.state === "suspended" && typeof _actx.resume === "function") {
+    try { _actx.resume(); } catch (err) {}
+  }
+  if (_musKey !== "game") { setMusik("game"); return; }
+  if (!_musEl && !_musSeq && _actx && _actx.state === "running") {
+    _mulaiMusikProsedural("game");
+  }
 }
 
 const _FALLBACK_DURASI_SFX = { menang: 1.1, gameover: 1.5 };

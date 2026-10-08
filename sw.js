@@ -15,14 +15,26 @@
    Contoh: rilis hari ini "build": 2 -> besok "build": 3.
    ============================================================ */
 
-const CACHE_FALLBACK = "soul-essence-v2";
+// PENANDA BUILD: angka ini HARUS selalu sama dengan "build" di manifest.json.
+// Browser hanya memeriksa ulang service worker kalau isi file sw.js BERUBAH,
+// jadi tiap rilis yang menaikkan build manifest WAJIB mengubah angka ini juga.
+// Kalau tidak, pemain terus-menerus dilayani JS lama dari cache (bug klasik:
+// tombol/CSS baru tapi draw.js basi). tools/salin-www.js memverifikasi keduanya.
+const BUILD = 36;
+const CACHE_FALLBACK = "soul-essence-v" + BUILD;
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./style.css",
+  "./settings.css",
   "./manifest.json",
   "./core.js",
   "./save.js",
+  "./settings.js",
+  "./akun-konfig.js",
+  "./akun.js",
+  "./akun-ui.js",
+  "./settings-ui.js",
   "./audio.js",
   "./config.js",
   "./karakter.js",
@@ -32,6 +44,7 @@ const ASSETS_TO_CACHE = [
   "./texture.js",
   "./menu.js",
   "./input.js",
+  "./ikon-sentuh.js",
   "./levels.js",
   "./upgrades.js",
   "./skills.js",
@@ -42,8 +55,10 @@ const ASSETS_TO_CACHE = [
   "./assets/fonts/ZenDots.woff2",
   "./assets/characters/kenzro.png",
   "./assets/characters/rin.png",
+  "./assets/characters/voiz.png",
   "./assets/weapons/panah.png",
   "./assets/weapons/pedang.png",
+  "./assets/weapons/tongkat.png",
   "./assets/maps/padang.png",
   "./assets/enemies/musuh.png",
   "./assets/enemies/cepet.png",
@@ -67,7 +82,7 @@ let AMAN_UNTUK_HAPUS = false;
 
 function namaCacheDari(manifest) {
   const b = manifest && manifest.build;
-  return "soul-essence-v" + (Number.isFinite(b) ? b : 2);
+  return "soul-essence-v" + (Number.isFinite(b) ? b : BUILD);
 }
 
 self.addEventListener("install", (e) => {
@@ -111,6 +126,17 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  // URL ber-query (?nc= manifest / ?v= CSS) = penanda cache-buster dari
+  // index.html. Selalu ambil dari jaringan (jangan dibaca/ditulis cache),
+  // supaya versi baru CSS selalu segar walau cache-first ini menyimpan
+  // file lama tanpa query.
+  try {
+    const q = new URL(e.request.url).searchParams;
+    if (q.has("nc") || q.has("v")) {
+      e.respondWith(fetch(e.request));
+      return;
+    }
+  } catch (err) {}
   // Hanya boleh baca dari cache versi ini, supaya tidak pernah warehouse
   // file basi dari cache lama yang belum terhapus.
   e.respondWith(

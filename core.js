@@ -1,4 +1,4 @@
-const W = 1280;
+const W = 1707;
 const H = 960;
 
 const WORLD_W = 2560;
@@ -27,6 +27,11 @@ let player, bullets, enemies, particles, rings, slashes, damages, souls;
 let fires, freezes;
 let kipasLedak = [];
 let panahEs = [];
+let boltNihil = [];
+let nullLasers = [];
+let blackholes = [];
+let voidOrbs = [];
+let prismPulsa = [];
 let flashes, hurtVig;
 let deathPixels = [];
 let koin, gameOver, lastTime, spawnTimer, shake;
@@ -137,6 +142,11 @@ function resetArena({ koinBaru }) {
   slashes = [];
   kipasLedak = [];
   panahEs = [];
+  boltNihil = [];
+  nullLasers = [];
+  blackholes = [];
+  voidOrbs = [];
+  prismPulsa = [];
   fires = [];
   freezes = [];
   damages = [];

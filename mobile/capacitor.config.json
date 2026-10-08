@@ -1,0 +1,9 @@
+{
+  "appId": "com.soulescence.app",
+  "appName": "Soul Essence",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  }
+}

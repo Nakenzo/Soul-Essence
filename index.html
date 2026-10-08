@@ -5,12 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soul Essence</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        // Cache-buster CSS: muat style.css ?v=<build dari manifest> supaya CSS
+        // baru tidak pernah tersangkut di cache/SW lama. Kalau gagal (offline),
+        // link asli tetap dipakai dan tetap tersedia dari cache offline.
+        (function () {
+            var dasar = document.querySelector('link[rel="stylesheet"][href="style.css"]');
+            if (!dasar) return;
+            // ?nc= supaya manifest tidak pernah kena cache lama (SW cache-first
+            // menyimpan "manifest.json" tanpa query; dengan query = selalu segar).
+            fetch("manifest.json?nc=" + Date.now(), { cache: "no-store" })
+                .then(function (r) { return r && r.ok ? r.json() : null; })
+                .then(function (m) {
+                    if (!m || typeof m.build === "undefined") return;
+                    var segar = document.createElement("link");
+                    segar.rel = "stylesheet";
+                    segar.href = "style.css?v=" + m.build;
+                    segar.onload = function () {
+                        if (dasar.parentNode) dasar.parentNode.removeChild(dasar);
+                    };
+                    segar.onerror = function () {
+                        if (segar.parentNode) segar.parentNode.removeChild(segar);
+                    };
+                    document.head.appendChild(segar);
+                })
+                .catch(function () {});
+        })();
+    </script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111111">
     <link rel="icon" type="image/png" href="assets/ui/icon-192.png">
     <link rel="apple-touch-icon" href="assets/ui/icon-192.png">
+    <link rel="stylesheet" href="settings.css" media="all">
 </head>
 <body>
+    <script>var BUILD_TERKINI = 0;</script>
 
     <div class="ruangan-utama">
         <aside id="notaKartu">
@@ -21,7 +50,7 @@
 
         <div class="kotak-game">
             <div class="posisi-game">
-            <canvas id="game" width="1280" height="960"></canvas>
+            <canvas id="game" width="1707" height="960"></canvas>
 
             <div id="layarDevice" class="layar-awal">
                 <h1 class="judul-besar">Apa perangkat yang kau gunakan</h1>
@@ -53,8 +82,10 @@
                 <div id="joyBase" class="joy-basis"><div id="joyKnob" class="joy-tombol"></div></div>
                 <div class="tombol-sentuh-grup">
                     <button id="tombolSerang" class="tombol-sentuh tombol-serang" type="button"><canvas class="ikon-sentuh"></canvas><div id="serangKnob" class="serang-knob"></div></button>
+                    <button id="tombolSkill" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas><i class="cd-tutup"></i><span class="cd-angka"></span></button>
+                    <button id="tombolSkill2" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas><i class="cd-tutup"></i><span class="cd-angka"></span></button>
+                    <button id="tombolSkill3" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas><i class="cd-tutup"></i><span class="cd-angka"></span></button>
                     <button id="tombolDash" class="tombol-sentuh tombol-dash" type="button"><canvas class="ikon-sentuh"></canvas></button>
-                    <button id="tombolSkill" class="tombol-sentuh tombol-skill" type="button"><canvas class="ikon-sentuh"></canvas></button>
                 </div>
 
                 <button id="tombolUlt" class="tombol-sentuh tombol-ult" type="button"></button>
@@ -89,15 +120,15 @@
 
             <div id="layarJudul" class="overlay">
                 <div id="dekorJudul" class="dekor-bg" aria-hidden="true">
-                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:60%;height:26%;left:20%;top:10%;--dur:15s;--delay:0s">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:84%;height:28%;left:8%;top:8%;--dur:15s;--delay:0s">
                         <path class="au-green" d="M -15 72 C 22 20, 78 92, 115 45" />
                         <path class="au-core" d="M -15 72 C 22 20, 78 92, 115 45" />
                     </svg>
-                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:68%;height:32%;left:16%;top:26%;--dur:19s;--delay:-7s">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:88%;height:34%;left:6%;top:30%;--dur:19s;--delay:-7s">
                         <path class="au-green" d="M -15 30 C 35 70, 68 8, 115 52" />
                         <path class="au-core" d="M -15 30 C 35 70, 68 8, 115 52" />
                     </svg>
-                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:48%;height:22%;left:26%;top:44%;--dur:17s;--delay:-4s">
+                    <svg class="jalur-aura" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:72%;height:24%;left:14%;top:56%;--dur:17s;--delay:-4s">
                         <path class="au-green" d="M 5 55 C 35 15, 70 90, 95 35" />
                         <path class="au-core" d="M 5 55 C 35 15, 70 90, 95 35" />
                     </svg>
@@ -169,7 +200,200 @@
                 </h1>
                 <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
                 <button id="tombolKarakter" class="tombol-abu tombol-karakter-menu">&#9733; KARAKTER</button>
+                <button id="tombolSetting" class="tombol-abu tombol-karakter-menu">&#9881; SETTINGS</button>
+                <button id="tombolAdmin" class="tombol-admin-lock" type="button" title="Mode admin (khusus pengembang)">&#128274; ADMIN</button>
                 <div id="saldoJudul" class="teks-skor" hidden></div>
+            </div>
+
+            <div id="layarSetting" class="overlay hidden setting-layar">
+                <div class="modal-pilih setting-wide">
+                    <div class="modal-pilih-kartun">
+                        <div class="modal-pilih-kepala">
+                            <div class="modal-pilih-judul">SETTINGS</div>
+                            <button id="tutupSetting" class="modal-pilih-tutup" type="button">X</button>
+                        </div>
+                        <div class="modal-pilih-daftar set-daftar">
+
+                            <div class="set-grup">
+                                <div class="set-grup-judul">SUARA</div>
+
+                                <div class="set-baris set-baris-slider">
+                                    <label class="set-label" for="setSlUmum">SUARA</label>
+                                    <input id="setSlUmum" class="set-slider" type="range" min="0" max="100" step="1">
+                                    <span id="setNilUmum" class="set-nilai">90</span>
+                                </div>
+                                <div class="set-baris set-baris-slider">
+                                    <label class="set-label" for="setSlSfx">EFEK</label>
+                                    <input id="setSlSfx" class="set-slider" type="range" min="0" max="100" step="1">
+                                    <span id="setNilSfx" class="set-nilai">100</span>
+                                </div>
+                                <div class="set-baris set-baris-slider">
+                                    <label class="set-label" for="setSlMusik">MUSIK</label>
+                                    <input id="setSlMusik" class="set-slider" type="range" min="0" max="100" step="1">
+                                    <span id="setNilMusik" class="set-nilai">100</span>
+                                </div>
+                            </div>
+
+                            <div class="set-grup">
+                                <div class="set-grup-judul">GAMEPLAY</div>
+
+                                <div class="set-baris set-baris-toggle">
+                                    <span class="set-label">GOYANG KAMERA</span>
+                                    <button id="setTambahGoyang" class="set-saklar" type="button" role="switch"
+                                        aria-checked="true" aria-label="Goyang kamera"></button>
+                                </div>
+                                <div class="set-baris set-baris-toggle">
+                                    <span class="set-label">LAYAR PENUH</span>
+                                    <button id="setTambahPenuh" class="set-saklar" type="button" role="switch"
+                                        aria-checked="false" aria-label="Layar penuh"></button>
+                                </div>
+                            </div>
+
+                            <div id="setGrupKontrol" class="set-grup" hidden>
+                                <div class="set-grup-judul">KONTROL <span class="set-grup-catatan">keyboard</span></div>
+                                <div id="setDaftarIkatan" class="set-ikatan"></div>
+                                <div class="set-baris set-baris-tombol">
+                                    <button id="setResetIkatan" class="tombol-abu" type="button">&#8635; RESET KE BAWAAN</button>
+                                </div>
+                            </div>
+
+                            <div id="setPesan" class="set-pesan"></div>
+
+                            <div class="set-baris">
+                                <button id="tombolKeAkun" class="set-menu" type="button">
+                                    <span class="set-menu-ikon" aria-hidden="true">&#128100;</span>
+                                    <span class="set-menu-teks">
+                                        <span class="set-menu-judul">AKUN</span>
+                                        <span class="set-menu-ket">Cadangan kode save, slot, riwayat, dan sync server</span>
+                                    </span>
+                                    <span class="set-menu-panah" aria-hidden="true">&#8250;</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="layarAkun" class="overlay hidden setting-layar">
+                <div class="modal-pilih setting-wide">
+                    <div class="modal-pilih-kartun">
+                        <div class="modal-pilih-kepala">
+                            <div class="modal-pilih-judul">AKUN</div>
+                            <button id="tutupAkun" class="modal-pilih-tutup" type="button">X</button>
+                        </div>
+                        <div class="modal-pilih-daftar">
+
+                            <div id="zonaAkun" class="cad-baris cad-akun">
+                                <div class="cad-label cad-label-baris">
+                                    <span>AKUN &amp; SYNC SERVER</span>
+                                    <button id="tombolPanduanAkun" class="cad-tanya" type="button"
+                                        aria-expanded="false" aria-controls="panduanAkun"
+                                        title="Cara pakai akun">?</button>
+                                </div>
+
+                                <div id="panduanAkun" class="cad-panduan" hidden>
+                                    <div class="cad-panduan-judul">CARA PAKAINYA</div>
+                                    <ol class="cad-panduan-daftar">
+                                        <li><b>Daftar</b>: isi username, sandi, lalu Gmail kamu. Progres akan
+                                            dikirim ke server, jadi tetap ada walau game dihapus.</li>
+                                        <li><b>Masuk</b>: cukup username + sandi, Gmail tidak perlu diisi lagi.</li>
+                                        <li><b>Username</b>: 3-20 karakter, pakai huruf, angka, _ atau . saja.</li>
+                                        <li><b>Sandi</b>: minimal 8 karakter. Disimpan di Supabase, versi ini
+                                            belum bisa mengirim ulang sandi yang lupa.</li>
+                                        <li><b>Cadangkan ke Gmail</b>: membuka email yang isinya sudah berisi
+                                            kode save, tinggal tekan Kirim ke diri sendiri.</li>
+                                        <li>Progres otomatis tersimpan tiap keluar/masuk dan tombol
+                                            <b>SYNC SEKARANG</b> untuk menyimpan seketika.</li>
+                                    </ol>
+                                </div>
+
+                                <div id="akunBarisTamu">
+                                    <p class="cad-kecil">
+                                        Progres masih tersimpan di perangkat ini. Bikin akun supaya ikut
+                                        tersimpan di server.
+                                    </p>
+                                    <div class="cad-tombolan">
+                                        <button id="tombolBuatAkun" class="tombol-hijau" type="button">BUAT AKUN</button>
+                                        <button id="tombolMasukAkun" class="tombol-abu" type="button">MASUK</button>
+                                    </div>
+                                </div>
+
+                                <div id="akunBarisMasuk" hidden>
+                                    <div id="akunStatusTeks" class="cad-kecil"></div>
+                                    <div id="akunGmailTeks" class="cad-kecil"></div>
+                                    <div class="cad-tombolan">
+                                        <button id="tombolSyncSekarang" class="tombol-abu" type="button">&#8635; SYNC SEKARANG</button>
+                                        <button id="tombolKeluarAkun" class="tombol-abu" type="button">KELUAR</button>
+                                    </div>
+                                </div>
+
+                                <div class="cad-tombolan">
+                                    <button id="tombolKeGmail" class="tombol-abu" type="button">&#9993; CADANGKAN KE GMAIL</button>
+                                </div>
+
+                                <div id="akunForm" hidden>
+                                    <div class="cad-baris">
+                                        <input id="akunNama" class="cad-input" type="text" maxlength="20"
+                                            autocomplete="username" spellcheck="false"
+                                            placeholder="username" />
+                                    </div>
+                                    <div class="cad-baris">
+                                        <input id="akunSandi" class="cad-input" type="password" maxlength="72"
+                                            autocomplete="current-password"
+                                            placeholder="sandi (min. 8)" />
+                                    </div>
+                                    <div class="cad-baris" id="akunBarisGmail">
+                                        <input id="akunGmail" class="cad-input" type="email" inputmode="email"
+                                            autocomplete="email" placeholder="nama@gmail.com" spellcheck="false" />
+                                    </div>
+                                    <div class="cad-tombolan">
+                                        <button id="akunKirim" class="tombol-hijau" type="button">LANJUT</button>
+                                        <button id="akunBatal" class="tombol-abu" type="button">BATAL</button>
+                                    </div>
+                                </div>
+
+                                <div id="akunPesan" class="cad-catatan"></div>
+                            </div>
+
+                            <p class="cad-kecil">
+                                Progres disimpan di browser/perangkat ini saja. Kalau game dihapus atau data browser
+                                dibersihkan, progres ikut hilang. Salin kodenya dan simpan di tempat aman.
+                            </p>
+
+                            <div class="cad-baris">
+                                <div class="cad-label">KODE SAVE</div>
+                                <textarea id="kodeSave" class="cad-teks" rows="3" readonly spellcheck="false"></textarea>
+                                <div class="cad-tombolan">
+                                    <button id="tombolSalinKode" class="tombol-abu" type="button">&#128203; SALIN</button>
+                                    <button id="tombolMuatKode" class="tombol-abu" type="button">&#8635; MUAT ULANG</button>
+                                </div>
+                            </div>
+
+                            <div class="cad-baris">
+                                <div class="cad-label">PULIHKAN DARI KODE</div>
+                                <textarea id="kodeTempel" class="cad-teks" rows="3" spellcheck="false"
+                                    placeholder="Tempel kode save di sini"></textarea>
+                                <div class="cad-tombolan">
+                                    <button id="tombolPulihkan" class="tombol-hijau" type="button">&#9211; PULIHKAN</button>
+                                </div>
+                            </div>
+
+                            <div class="cad-baris">
+                                <div class="cad-label">SLOT CADANGAN</div>
+                                <div id="daftarSlotCadangan" class="cad-slot"></div>
+                            </div>
+
+                            <div class="cad-baris">
+                                <div class="cad-label">RIWAYAT OTOMATIS</div>
+                                <div id="daftarRiwayatOtomatis" class="cad-slot"></div>
+                                <div class="cad-kecil">Disimpan otomatis tiap 10 menit sebagai jaring pengaman.</div>
+                            </div>
+
+                            <div id="statusCadangan" class="cad-status"></div>
+
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="layarKarakter" class="overlay hidden">
@@ -294,9 +518,14 @@
     </div>
     </div>
 
-    <script src="core.js"></script>
-    <script src="save.js"></script>
-    <script src="audio.js"></script>
+<script src="core.js"></script>
+<script src="save.js"></script>
+        <script src="settings.js"></script>
+<script src="akun-konfig.js"></script>
+<script src="akun.js"></script>
+        <script src="akun-ui.js"></script>
+        <script src="audio.js"></script>
+        <script src="settings-ui.js"></script>
     <script src="config.js"></script>
 <script src="karakter.js"></script>
     <script src="artefak.js"></script>
@@ -305,6 +534,7 @@
     <script src="texture.js"></script>
     <script src="menu.js"></script>
     <script src="input.js"></script>
+<script src="ikon-sentuh.js"></script>
     <script src="levels.js"></script>
     <script src="upgrades.js"></script>
     <script src="skills.js"></script>
@@ -312,6 +542,27 @@
     <script src="draw.js"></script>
     <script src="ambience.js"></script>
     <script src="main.js"></script>
+    <script>
+        // KUNCI ADMIN: tombol ADMIN memuat admin-akses.js (tidak ikut git).
+        // Password + panel debug diurus file itu; sisanya tidak menyentuh game.
+        (function () {
+            var tombolAdmin = document.getElementById("tombolAdmin");
+            if (!tombolAdmin) return;
+            tombolAdmin.addEventListener("click", function () {
+                if (typeof window.bukaModalAdmin === "function") {
+                    window.bukaModalAdmin();
+                    return;
+                }
+                var skrip = document.createElement("script");
+                skrip.src = "admin-akses.js";
+                skrip.onerror = function () {
+                    var pesan = "File admin-akses.js tidak ditemukan.\nBuat dulu atau pastikan ikut ke folder.";
+                    if (window.alert) window.alert(pesan);
+                };
+                document.body.appendChild(skrip);
+            });
+        })();
+    </script>
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {

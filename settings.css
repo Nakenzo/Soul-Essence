@@ -1,0 +1,295 @@
+/* ==========================================================================
+   Layar SETTINGS
+
+   1. Kotak diisi area kanvas dengan sisa celah ke tepi 32-80px total (padahal
+      bawaan .modal-pilih-kartun membatasi ke calc(--cs * 460px), yang di HP
+      jatuh ke ~190px sehingga teks menumpuk, dan tingginya cuma kurang
+      ~22px dari layar kanvas sehingga box terasa seukuran layar).
+   2. Skala --cs di-clamp dan dinaikkan. --cs = lebar canvas / 1280, bisa
+      ~0.4 di HP, sehingga font jadi 4-5px dan kolom label lebih pendek dari
+      isinya. Karena itu: floor 1.0 supaya teks tidak pernah mengecil, nilai
+      asli dikalikan 1.25 agar lebih besar dari tata letak normal, dan cap 1.6
+      supaya di layar sangat besar teks tidak melebihi box yang sudah dikunci.
+      Nilai asli disimpan di --cs-akar dulu supaya deklarasi --cs yang baru
+      tidak siklik.
+   3. Seluruh isi diskalakan dengan --cs: font, tinggi saklar, thumb slider,
+      tombol, dan jarak antar elemen. Semua tetap dikalikan --cs.
+   4. line-height direset. .posisi-game { line-height: 0 } mewariskan 0 ke
+      seluruh layar, jadi kotak teks tingginya 0px dan tulisan tumpang tindih.
+   5. Baris pakai grid, bukan flex: label dan kontrol punya kolom sendiri,
+      jadi tidak pernah berebut tempat atau menumpuk.
+   6. Area isi diberi flex + min-height: 0 supaya benar-benar bisa discroll
+      (kartu memakai overflow: hidden, jadi tanpa ini konten terpotong).
+   ========================================================================== */
+
+.setting-layar {
+    --cs-akar: var(--cs, 0.56);
+}
+
+.setting-layar .modal-pilih.setting-wide {
+    --cs: clamp(1.0, calc(var(--cs-akar) * 1.25), 1.6);
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    margin: 0;
+    /* Celah ke tepi layar kanvas. Total potongan = 2x padding = 32..80px
+       (67px di layar 1400x900), sesuai permintaan: box tinggal menyisakan
+       sedikit jarak dari tepi, bukan menempel dan bukan menutupi layar. */
+    padding: clamp(16px, 2.4vw, 40px);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.4;
+}
+
+.setting-layar .modal-pilih-kartun {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+}
+
+/* ------------------------------------------------------------------ kepala */
+
+.setting-layar .modal-pilih-kepala {
+    flex: 0 0 auto;
+    gap: calc(var(--cs, 0.56) * 16px);
+    padding: calc(var(--cs, 0.56) * 15px) calc(var(--cs, 0.56) * 22px);
+}
+
+.setting-layar .modal-pilih-judul {
+    font-size: calc(var(--cs, 0.56) * 39px);
+    line-height: 1.2;
+}
+
+.setting-layar .modal-pilih-tutup {
+    width: calc(var(--cs, 0.56) * 46px);
+    height: calc(var(--cs, 0.56) * 46px);
+    font-size: calc(var(--cs, 0.56) * 24px);
+    line-height: 1;
+}
+
+/* --------------------------------------------------------------- area isi */
+
+/* Selector lamanya .modal-pilih-isi tidak pernah cocok: markup layar ini
+   memakai .modal-pilih-daftar, jadi scroll-nya tidak pernah terpasang. */
+.setting-layar .modal-pilih-daftar {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: calc(var(--cs, 0.56) * 15px) calc(var(--cs, 0.56) * 18px) calc(var(--cs, 0.56) * 18px);
+}
+
+.setting-layar .set-daftar {
+    gap: calc(var(--cs, 0.56) * 14px);
+}
+
+.setting-layar .set-grup {
+    padding-bottom: calc(var(--cs, 0.56) * 11px);
+}
+
+/* ------------------------------------------------------------------- teks */
+
+.setting-layar .set-grup-judul {
+    margin-bottom: calc(var(--cs, 0.56) * 12px);
+    font-size: calc(var(--cs, 0.56) * 33px);
+    line-height: 1.3;
+}
+
+.setting-layar .set-grup-catatan {
+    font-size: calc(var(--cs, 0.56) * 21px);
+}
+
+.setting-layar .set-label {
+    flex: none;
+    min-width: 0;
+    font-size: calc(var(--cs, 0.56) * 29px);
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Baris toggle boleh wrap kalau layar sempit (< ~340px), supaya "GOYANG
+   KAMERA" tidak kepotong atau menabrak saklarnya. Baris slider tetap nowrap
+   karena kolomnya max-content. */
+.setting-layar .set-baris-toggle .set-label {
+    white-space: normal;
+}
+
+.setting-layar .set-nilai {
+    flex: none;
+    font-size: calc(var(--cs, 0.56) * 26px);
+    line-height: 1.3;
+}
+
+.setting-layar .set-pesan {
+    min-height: calc(var(--cs, 0.56) * 24px);
+    padding: calc(var(--cs, 0.56) * 8px) 0;
+    font-size: calc(var(--cs, 0.56) * 27px);
+}
+
+/* ------------------------------------------------------------------ baris */
+
+.setting-layar .set-baris {
+    padding: calc(var(--cs, 0.56) * 12px) 0;
+}
+
+.setting-layar .set-baris-slider,
+.setting-layar .set-baris-toggle {
+    display: grid;
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 18px);
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.setting-layar .set-baris-slider {
+    grid-template-columns:
+        minmax(calc(var(--cs, 0.56) * 128px), max-content)
+        minmax(0, 1fr)
+        calc(var(--cs, 0.56) * 56px);
+}
+
+.setting-layar .set-slider {
+    width: 100%;
+    min-width: 0;
+    height: calc(var(--cs, 0.56) * 32px);
+    accent-color: #4ade80;
+    cursor: pointer;
+}
+
+.setting-layar .set-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: calc(var(--cs, 0.56) * 26px);
+    height: calc(var(--cs, 0.56) * 26px);
+    border-radius: 50%;
+    background: #4ade80;
+    border: calc(var(--cs, 0.56) * 3px) solid #0b1018;
+    box-shadow: 0 calc(var(--cs, 0.56) * 2px) calc(var(--cs, 0.56) * 7px) rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+}
+
+.setting-layar .set-slider::-moz-range-thumb {
+    width: calc(var(--cs, 0.56) * 26px);
+    height: calc(var(--cs, 0.56) * 26px);
+    border-radius: 50%;
+    background: #4ade80;
+    border: calc(var(--cs, 0.56) * 3px) solid #0b1018;
+    box-shadow: 0 calc(var(--cs, 0.56) * 2px) calc(var(--cs, 0.56) * 7px) rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+}
+
+/* Saklar dibesarkan untuk sentuh, dan geraknya pakai kiri (bukan translate)
+   supaya kenopnya selalu pas di ujung, berapa pun skala --cs. */
+.setting-layar .set-saklar {
+    justify-self: end;
+    width: calc(var(--cs, 0.56) * 74px);
+    height: calc(var(--cs, 0.56) * 36px);
+}
+
+.setting-layar .set-saklar::after {
+    left: calc(var(--cs, 0.56) * 4px);
+    right: auto;
+    width: calc(var(--cs, 0.56) * 28px);
+    height: calc(var(--cs, 0.56) * 28px);
+    transition: left 0.15s ease, background 0.15s ease;
+}
+
+.setting-layar .set-saklar[aria-checked="true"]::after {
+    left: calc(100% - var(--cs, 0.56) * 32px);
+    right: auto;
+    transform: translateY(-50%);
+    background: #4ade80;
+}
+
+/* ------------------------------------------------------------ ikatan tombol */
+
+.setting-layar .set-ikatan {
+    gap: calc(var(--cs, 0.56) * 7px);
+    padding-top: calc(var(--cs, 0.56) * 6px);
+}
+
+.setting-layar .set-ikatan-baris {
+    gap: calc(var(--cs, 0.56) * 18px);
+    padding: calc(var(--cs, 0.56) * 9px) 0;
+}
+
+.setting-layar .set-ikatan-nama-teks {
+    font-size: calc(var(--cs, 0.56) * 32px);
+    line-height: 1.3;
+}
+
+.setting-layar .set-ikatan-ket {
+    font-size: calc(var(--cs, 0.56) * 24px);
+    line-height: 1.35;
+}
+
+.setting-layar .set-ikatan-nama {
+    overflow-wrap: anywhere;
+}
+
+.setting-layar .set-ikatan-tombol {
+    min-width: calc(var(--cs, 0.56) * 112px);
+    padding: calc(var(--cs, 0.56) * 12px) calc(var(--cs, 0.56) * 16px);
+    font-size: calc(var(--cs, 0.56) * 18px);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.setting-layar .set-baris-tombol {
+    padding-top: calc(var(--cs, 0.56) * 10px);
+}
+
+.setting-layar .set-baris-tombol .tombol-abu {
+    font-size: calc(var(--cs, 0.56) * 18px);
+    line-height: 1.2;
+}
+
+/* ------------------------------------------------------------- menu AKUN -- */
+
+.setting-layar .set-menu {
+    align-items: center;
+    gap: calc(var(--cs, 0.56) * 20px);
+    min-height: calc(var(--cs, 0.56) * 96px);
+    margin-top: calc(var(--cs, 0.56) * 20px);
+    padding: calc(var(--cs, 0.56) * 18px) calc(var(--cs, 0.56) * 24px);
+    font-size: calc(var(--cs, 0.56) * 21px);
+    border-radius: calc(var(--cs, 0.56) * 18px);
+}
+
+.setting-layar .set-menu-ikon {
+    font-size: calc(var(--cs, 0.56) * 34px);
+}
+
+.setting-layar .set-menu-teks {
+    gap: calc(var(--cs, 0.56) * 5px);
+}
+
+.setting-layar .set-menu-judul {
+    font-size: calc(var(--cs, 0.56) * 36px);
+    line-height: 1.2;
+}
+
+.setting-layar .set-menu-ket {
+    font-size: calc(var(--cs, 0.56) * 27px);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.setting-layar .set-menu-judul,
+.setting-layar .set-menu-ket {
+    overflow-wrap: anywhere;
+}
+
+.setting-layar .set-menu-panah {
+    margin-left: calc(var(--cs, 0.56) * 8px);
+    font-size: calc(var(--cs, 0.56) * 30px);
+}

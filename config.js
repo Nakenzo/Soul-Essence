@@ -74,6 +74,42 @@ const KARAKTER = [
       {},  // slot 2 - default
       { nama: "INFERNO" }  // slot 3 - Inferno
     ]
+  },
+  {
+    kunci: "voiz",
+    animasi: [
+      { nama: "idle", jumlah: 12 },
+      { nama: "walk", jumlah: 12 }
+    ],
+    nama: "Voiz",
+    deskripsi: "Penyihir - jarak jauh",
+    // Terkunci sampai player tuntaskan Level 3 (Rawa Gulita) dan mengalahkan
+    // bosnya, RAJA SLIME. Kosongkan field ini = langsung terbuka.
+    terkunci: { level: 3, bos: "raja-slime" },
+    element: "Nihil",
+    atributElement: 150,
+    gambar: "assets/characters/voiz.png",
+    senjata: "tongkat",
+    senjataGambar: "assets/weapons/tongkat.png",
+    skala: 1,
+    senjataSkala: 0.45,
+    hp: 90,
+    kecepatan: 350,
+    attackRate: 0.3,
+    damage: 24,
+    reach: 0,
+    halfArc: 0,
+    rot: Math.PI / 2,  // tongkat tegak -> lurus sejajar arah pointer
+    warnaDash: "#a78bfa",
+    specialCd: 9,
+    specialRadius: 500,
+    specialDmg: 55,
+    tipe: "jarak",
+    skill: [
+      {},  // slot 1 - BASE ATTACK
+      { nama: "UMBRA" },  // slot 2 - jurus pertama = laser
+      { nama: "PRISM", level: 10 }  // slot 3 - skill 2 = sihir memantul
+    ]
   }
 ];
 

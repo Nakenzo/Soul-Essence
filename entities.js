@@ -1,4 +1,8 @@
 function attack() {
+  if (karakter && karakter.kunci === "voiz") {
+    tembakBoltNihil();
+    return;
+  }
   if (karakter.tipe === "dekat") {
     slashSwing();
     return;
@@ -18,6 +22,7 @@ function attack() {
 
 function dashLari() {
   if (statusGame !== "main" || !karakter || animMati) return;
+  if (nullLasers.length > 0) return; // tidak bisa dash saat menyalurkan laser
   if (player.dashStacks <= 0) return;
   player.dashStacks--;
   sfxDash();
@@ -96,6 +101,48 @@ function shoot() {
     beku: player.specialBuff > 0
   });
   spawnParticles(player.x, player.y, "#ffd23f", 4);
+}
+
+// Nyx: bolt nihil melengkung, auto-aim ke musuh terdekat dengan pointer
+// (fallback: musuh terdekat dari karakter), meninggalkan jejak partikel ungu.
+function tembakBoltNihil() {
+  if (player.attackCd > 0) return;
+  player.attackCd = player.attackRate;
+  player.attackAnimT = 0.25;
+  sfxTembak();
+
+  let tgt = null;
+  let bd = 480 * 480;
+  for (const en of enemies) {
+    if (en.hp <= 0) continue;
+    const dd = (en.x - mouse.x) * (en.x - mouse.x) + (en.y - mouse.y) * (en.y - mouse.y);
+    if (dd < bd) { bd = dd; tgt = en; }
+  }
+  if (!tgt) {
+    let bd2 = Infinity;
+    for (const en of enemies) {
+      if (en.hp <= 0) continue;
+      const dd = (en.x - player.x) * (en.x - player.x) + (en.y - player.y) * (en.y - player.y);
+      if (dd < bd2) { bd2 = dd; tgt = en; }
+    }
+  }
+  // arah awal = arah mouse; auto-aim hanya MEMBELOKKAN pelurunya ke sasaran
+  const ang0 = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+
+  boltNihil.push({
+    x: player.x,
+    y: player.y,
+    px: player.x,
+    py: player.y,
+    aim: tgt,
+    dx: Math.cos(ang0),
+    dy: Math.sin(ang0),
+    laju: 640,
+    wob: Math.random() * Math.PI * 2,
+    t: 0,
+    life: 2.2
+  });
+  spawnParticles(player.x, player.y, "#c084fc", 5);
 }
 
 function slashSwing() {
@@ -659,6 +706,9 @@ function mulaiKematianBos(e) {
   bossIntro = null;
   bosKematian = { e: e, t: 0, sudahBayar: false };
   spawnTimer = 999;
+  if (typeof catatBosKalah === "function" && e.bos && e.bosDef && e.bosDef.kunci) {
+    catatBosKalah(e.bosDef.kunci);
+  }
   if (typeof sfxBoss === "function") sfxBoss();
 }
 
@@ -992,12 +1042,13 @@ function update(dt) {
 
   let dx = 0, dy = 0;
   let mvx = 0, mvy = 0;
-  if (player.dashT > 0) {
+  const terKunciLaser = nullLasers.length > 0;
+  if (!terKunciLaser && player.dashT > 0) {
 
     player.dashT -= dt;
     mvx = Math.cos(player.dashAngle) * DASH_SPEED * dt;
     mvy = Math.sin(player.dashAngle) * DASH_SPEED * dt;
-    const dashWarna = karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff";
+const dashWarna = (karakter && karakter.warnaDash) || (karakter && karakter.tipe === "dekat" ? "#ff8c3f" : "#bfe9ff");
     if (Math.random() < 0.8) {
       particles.push({
         x: player.x,
@@ -1010,7 +1061,7 @@ function update(dt) {
         color: Math.random() < 0.5 ? dashWarna : (karakter && karakter.tipe === "dekat" ? "#ffd75f" : "#ffffff")
       });
     }
-  } else {
+  } else if (!terKunciLaser) {
     dx = gerakDx();
     dy = gerakDy();
     if (dx !== 0 || dy !== 0) {
@@ -1187,6 +1238,286 @@ function update(dt) {
         if (e.hp <= 0) killEnemy(e);
         break;
       }
+    }
+  }
+
+  // ===== NYX: bolt nihil melengkung (homing + goyangan) =====
+  for (let i = boltNihil.length - 1; i >= 0; i--) {
+    const b = boltNihil[i];
+    b.px = b.x;
+    b.py = b.y;
+    b.t += dt;
+    b.life -= dt;
+    if (b.life <= 0 || b.x < -10 || b.x > WORLD_W + 10 || b.y < -10 || b.y > WORLD_H + 10) {
+      boltNihil.splice(i, 1);
+      continue;
+    }
+
+    let vx, vy;
+    if (b.aim && b.aim.hp > 0) {
+      // Homing dengan laju belok terbatas: peluru MELENGKUNG ke sasaran,
+      // tidak menyetir instan apalagi ngorbit karena tidak ada goyangan
+      // tegak lurus arah terbang.
+      const sudutKaki = Math.atan2(b.dy, b.dx);
+      const ingin = Math.atan2(b.aim.y - b.y, b.aim.x - b.x);
+      let selisih = ingin - sudutKaki;
+      while (selisih > Math.PI) selisih -= Math.PI * 2;
+      while (selisih < -Math.PI) selisih += Math.PI * 2;
+      const TURN = 6.8; // rad/dtk -> busur melengkung yang wajar
+      let belok = Math.max(-TURN * dt, Math.min(TURN * dt, selisih));
+      // goyangan kecil ROTASIONAL (menggeliat halus di arah terbang,
+      // sudutnya tidak menumpuk jadi tidak pernah memutar di sekitar target)
+      belok += Math.sin(b.t * 10 + b.wob) * 0.09 * dt * 6;
+      const sudutBaru = sudutKaki + belok;
+      b.dx = Math.cos(sudutBaru);
+      b.dy = Math.sin(sudutBaru);
+      vx = b.dx * b.laju;
+      vy = b.dy * b.laju;
+    } else {
+      b.aim = null;
+      vx = b.dx * b.laju;
+      vy = b.dy * b.laju;
+    }
+    b.x += vx * dt;
+    b.y += vy * dt;
+
+    if (Math.random() < 0.85) {
+      particles.push({
+        x: b.x,
+        y: b.y,
+        vx: (Math.random() - 0.5) * 46,
+        vy: (Math.random() - 0.5) * 46,
+        life: 0.22 + Math.random() * 0.18,
+        t: 0,
+        size: 3 + Math.random() * 4,
+        color: Math.random() < 0.5 ? "#a855f7" : "#c084fc"
+      });
+    }
+
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      if (e.hp <= 0) continue;
+      if (segDist(b.px, b.py, b.x, b.y, e.x, e.y) < e.r + 10) {
+        let dmg = player.damage || karakter.damage;
+        if (Math.random() < (player.crit || 0)) {
+          dmg *= 2;
+          spawnDamage(e.x, e.y - e.r - 40, "KRITIS", "#fbbf24");
+        }
+        const dmgPasar = applyDamageMusuh(e, dmg);
+        e.hitFlash = 0.1;
+        parrySerigala(e);
+        sfxKena();
+        spawnParticles(e.x, e.y, "#c084fc", 10);
+        spawnDamage(e.x, e.y - e.r - 16, dmgPasar, "#e9d5ff");
+        serapanDarah(dmgPasar);
+        boltNihil.splice(i, 1);
+        if (e.hp <= 0) killEnemy(e);
+        break;
+      }
+    }
+  }
+
+  // ===== VOIZ: UMBRA (terkunci 2 detik, bisa KEMUDI dengan pointer, BERAT) =====
+  for (let i = nullLasers.length - 1; i >= 0; i--) {
+    const L = nullLasers[i];
+    L.t += dt;
+    L.life -= dt;
+    if (L.life <= 0) { nullLasers.splice(i, 1); continue; }
+
+    // asal di UJUNG TONGKAT (mengikuti player saat terkunci, tidak bergerak)
+    L.x = player.x + Math.cos(L.a) * (L.tip || 0);
+    L.y = player.y + Math.sin(L.a) * (L.tip || 0);
+
+    // KEMUDI pointer dengan kecepatan sudut (berat/ada momentum), bukan snap.
+    // Kecepatan sudut dipercepat ke arah target lalu melambat karena gesekan.
+    const MAXAV = 1.9;   // rad/dtk, batas belok (lebih berat = lebih lambat)
+    const AKSEL = 14;    // rad/dtk^2, inersia diawal gerak (besar -> kaku)
+    const GESEK = 1.6;   // redaman momentum (kecil -> meluncur, terasa berat)
+    const targetA = arahMaus();
+    let da = targetA - L.a;
+    while (da > Math.PI) da -= Math.PI * 2;
+    while (da < -Math.PI) da += Math.PI * 2;
+    if (typeof L.rav !== "number") L.rav = 0;
+    if (da > 0.02 && L.rav < MAXAV) L.rav += AKSEL * dt;
+    else if (da < -0.02 && L.rav > -MAXAV) L.rav -= AKSEL * dt;
+    L.rav = Math.max(-MAXAV, Math.min(MAXAV, L.rav));
+    L.rav *= Math.max(0, 1 - GESEK * dt);
+    L.a += L.rav * dt;
+
+    L.dx = Math.cos(L.a);
+    L.dy = Math.sin(L.a);
+    const pjg = 950;
+    const ex = L.x + L.dx * pjg;
+    const ey = L.y + L.dy * pjg;
+    if (!L.jejak) L.jejak = [];
+    L.jejak.push({ x: ex, y: ey });
+    if (L.jejak.length > 10) L.jejak.shift();
+
+    if (!L.tick) L.tick = {};
+    for (const e of enemies) {
+      if (e.hp <= 0) continue;
+      const d = segDist(L.x, L.y, ex, ey, e.x, e.y);
+      if (d < e.r + 40) {
+        const tTerakhir = L.tick[e] || -1;
+        if (L.t - tTerakhir >= 0.16) {
+          L.tick[e] = L.t;
+          let dmg = Math.round(34 * (typeof pengaliElement === "function" ? pengaliElement(karakter.kunci) : 1));
+          const dmgPasar = applyDamageMusuh(e, dmg);
+          e.hitFlash = 0.12;
+          parrySerigala(e);
+          sfxKena();
+          spawnParticles(e.x, e.y, "#c084fc", 6);
+          spawnDamage(e.x, e.y - e.r - 16, dmgPasar, "#e9d5ff");
+          serapanDarah(dmgPasar);
+          if (e.hp <= 0) killEnemy(e);
+        }
+      }
+    }
+
+    if (Math.random() < 0.9) {
+      const tt = Math.random();
+      particles.push({
+        x: L.x + L.dx * pjg * tt,
+        y: L.y + L.dy * pjg * tt,
+        vx: (Math.random() - 0.5) * 34,
+        vy: (Math.random() - 0.5) * 34,
+        life: 0.18 + Math.random() * 0.12,
+        t: 0,
+        size: 3 + Math.random() * 5,
+        color: Math.random() < 0.5 ? "#7c3aed" : "#a855f7"
+      });
+    }
+  }
+
+  // ===== VOIZ: PRISM — tautan sihir memudar cepat =====
+  for (let i = prismPulsa.length - 1; i >= 0; i--) {
+    const p = prismPulsa[i];
+    p.t += dt;
+    p.life -= dt;
+    if (p.life <= 0) prismPulsa.splice(i, 1);
+  }
+
+  // ===== VOIZ: bola void DILEMPAR dari ujung tongkat =====
+  for (let i = voidOrbs.length - 1; i >= 0; i--) {
+    const ob = voidOrbs[i];
+    ob.t += dt;
+    const dx = ob.tx - ob.x;
+    const dy = ob.ty - ob.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const step = ob.laju * dt;
+    if (d <= step) {
+      ob.x = ob.tx;
+      ob.y = ob.ty;
+      blackholes.push({
+        x: ob.x,
+        y: ob.y,
+        t: 0,
+        tick: 0,
+        TUMBUH: 4.2,
+        SUSUT: 0.8,
+        life: 5.0,
+        R0: 46,
+        R1: 340,
+        dmgT: 0.25,
+        seed: Math.random() * 100
+      });
+      spawnParticles(ob.x, ob.y, "#7c3aed", 30);
+      rings.push({ x: ob.x, y: ob.y, r: 20, maxR: 130, life: 0.45, t: 0 });
+      voidOrbs.splice(i, 1);
+      continue;
+    }
+    ob.x += (dx / d) * step;
+    ob.y += (dy / d) * step;
+    if (Math.random() < 0.75) {
+      particles.push({
+        x: ob.x + (Math.random() - 0.5) * 14,
+        y: ob.y + (Math.random() - 0.5) * 14,
+        vx: (Math.random() - 0.5) * 70,
+        vy: (Math.random() - 0.5) * 70,
+        life: 0.25 + Math.random() * 0.15,
+        t: 0,
+        size: 2.5 + Math.random() * 3.5,
+        color: Math.random() < 0.5 ? "#7c3aed" : "#a855f7"
+      });
+    }
+  }
+
+  // ===== VOIZ: BLACKHOLE ultimate (membesar -> menghisap -> menyusut) =====
+  for (let i = blackholes.length - 1; i >= 0; i--) {
+    const bh = blackholes[i];
+    bh.t += dt;
+    bh.tick += dt;
+    if (bh.t < bh.TUMBUH) {
+      const u = bh.t / bh.TUMBUH;
+      // ease-out: membesar cepat di awal supaya radius hisap cepat menjangkau
+      bh.R = bh.R0 + (bh.R1 - bh.R0) * (u * (2 - u));
+    } else {
+      const su = Math.min(1, (bh.t - bh.TUMBUH) / bh.SUSUT);
+      bh.R = bh.R1 * (1 - su * su);
+      if (bh.t >= bh.life) { blackholes.splice(i, 1); continue; }
+    }
+
+    if (bh.R > 4) {
+      // radius hisap LEBIH LUAS dari visual lubangnya: musuh tersedot masuk
+      const grab = Math.max(230, bh.R * 2.4);
+      for (const e of enemies) {
+        if (e.hp <= 0 || e.bosKematian) continue;
+        const dx = bh.x - e.x;
+        const dy = bh.y - e.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d < grab) {
+          const uu = d / grab;
+          const kuat = 1 - uu;
+          const mv = (e.bos ? 190 : 900) * kuat * (bh.t < bh.TUMBUH ? 1 : 0.6);
+          e.x += (dx / d) * mv * dt;
+          e.y += (dy / d) * mv * dt;
+          e.x = Math.max(e.r, Math.min(WORLD_W - e.r, e.x));
+          e.y = Math.max(e.r, Math.min(WORLD_H - e.r, e.y));
+        }
+      }
+
+      while (bh.tick >= bh.dmgT) {
+        bh.tick -= bh.dmgT;
+        for (const e of enemies) {
+          if (e.hp <= 0) continue;
+          const d = dist(e.x, e.y, bh.x, bh.y);
+          if (d < bh.R) {
+            let dmg = Math.round((karakter.specialDmg || 55) * (typeof pengaliElement === "function" ? pengaliElement(karakter.kunci) : 1));
+            const dmgPasar = applyDamageMusuh(e, dmg);
+            e.hitFlash = 0.1;
+            parrySerigala(e);
+            sfxKena();
+            spawnDamage(e.x, e.y - e.r - 16, dmgPasar, "#e9d5ff");
+            serapanDarah(dmgPasar);
+            particles.push({
+              x: e.x + (bh.x - e.x) * Math.random() * 0.4,
+              y: e.y + (bh.y - e.y) * Math.random() * 0.4,
+              vx: (Math.random() - 0.5) * 40,
+              vy: (Math.random() - 0.5) * 40,
+              life: 0.3 + Math.random() * 0.2,
+              t: 0,
+              size: 3 + Math.random() * 4,
+              color: Math.random() < 0.5 ? "#7c3aed" : "#c084fc"
+            });
+            if (e.hp <= 0) killEnemy(e);
+          }
+        }
+      }
+    }
+
+    if (Math.random() < 0.8) {
+      const a = Math.random() * Math.PI * 2;
+      const rr = Math.random() * bh.R;
+      particles.push({
+        x: bh.x + Math.cos(a) * rr,
+        y: bh.y + Math.sin(a) * rr,
+        vx: Math.cos(a + Math.PI / 2) * 54 * (rr / (bh.R || 1)),
+        vy: Math.sin(a + Math.PI / 2) * 54 * (rr / (bh.R || 1)),
+        life: 0.45 + Math.random() * 0.35,
+        t: 0,
+        size: 3 + Math.random() * 5,
+        color: "#a78bfa"
+      });
     }
   }
 
@@ -1511,6 +1842,7 @@ function update(dt) {
     const e = enemies[i];
     e.hitFlash = Math.max(0, e.hitFlash - dt);
     e.freeze = Math.max(0, (e.freeze || 0) - dt);
+    e.paralyze = Math.max(0, (e.paralyze || 0) - dt);
     e.contactCd = Math.max(0, (e.contactCd || 0) - dt);
 
     if (e.burn) {
@@ -1535,7 +1867,7 @@ function update(dt) {
       continue;
     }
 
-    if (e.freeze <= 0) {
+    if (e.freeze <= 0 && (e.paralyze || 0) <= 0) {
       const angle = Math.atan2(player.y - e.y, player.x - e.x);
       let spd = e.speed;
 

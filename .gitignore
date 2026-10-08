@@ -6,3 +6,6 @@ test-wave-select.js
 node_modules/
 *.log
 .DS_Store
+
+tools/test_out/
+tools/read-gt-ref.ps1

@@ -177,7 +177,7 @@ function gambarApiPasifP(f, tAnim) {
   const lidah = [
     { dx: -skala * 0.5, w: skala * 0.9, h: skala * 2.2, ph: 0.0, sway: 1.6 + Math.sin(tAnim * 5) * 2 },
     { dx: skala * 0.45, w: skala * 0.8, h: skala * 1.9, ph: 1.9, sway: -1.2 + Math.cos(tAnim * 6) * 1.5 },
-    { dx: 0,            w: skala * 1.05, h: skala * 2.7, ph: 3.1, sway: 0.4 + Math.sin(tAnim * 7 + 1) * 2 }
+    { dx: 0, w: skala * 1.05, h: skala * 2.7, ph: 3.1, sway: 0.4 + Math.sin(tAnim * 7 + 1) * 2 }
   ];
   ctx.globalAlpha = fade;
   for (const L of lidah) {
@@ -662,7 +662,7 @@ function gambarBosEfek(e, tAnim) {
   if (!def) return;
   const fase = def.fase[e.fase];
 
-  // Aura per fase — makin merah/panas saat fase 3.
+  // Aura per fase Ã¢â‚¬â€ makin merah/panas saat fase 3.
   const denyut = 0.5 + 0.5 * Math.sin(tAnim * (2 + e.fase) * 1.4);
   ctx.save();
   ctx.globalAlpha = 0.13 + denyut * 0.10;
@@ -715,9 +715,14 @@ function draw() {
 
   if (shake > 0) {
     shake -= 1 / 60;
-    _shakeX = (Math.random() - 0.5) * 8;
-    _shakeY = (Math.random() - 0.5) * 8;
-    ctx.translate(_shakeX, _shakeY);
+    // Pengaturan "Goyang kamera" di layar Settings. Nilai tetap dikurangi
+    // supaya efeknya selesai normal, cuma pergeserannya yang dilewati.
+    const nyalakan = typeof pengaturanAmbil !== "function" || pengaturanAmbil("goyangKamera") !== false;
+    if (nyalakan) {
+      _shakeX = (Math.random() - 0.5) * 8;
+      _shakeY = (Math.random() - 0.5) * 8;
+      ctx.translate(_shakeX, _shakeY);
+    }
   }
 
   ctx.translate(-kam.x, -kam.y);
@@ -732,6 +737,7 @@ function draw() {
       ctx.fillStyle = "rgba(255, 210, 63, " + p.alpha + ")";
       ctx.fillRect(p.x, p.y, p.size, p.size);
     }
+    gambarMarkahVersi();
     ctx.restore();
     return;
   }
@@ -788,188 +794,188 @@ function draw() {
 
         const effLen = Math.max(30, Math.min(fz.length, fz.reveal));
         const ex = fz.x0 + fz.nx * effLen;
-    const ey = fz.y0 + fz.ny * effLen;
+        const ey = fz.y0 + fz.ny * effLen;
 
-    const k1x = fz.x0 + fz.px * fz.half,  k1y = fz.y0 + fz.py * fz.half;
-    const k2x = ex + fz.px * fz.half,     k2y = ey + fz.py * fz.half;
-    const g1x = fz.x0 - fz.px * fz.half,  g1y = fz.y0 - fz.py * fz.half;
-    const g2x = ex - fz.px * fz.half,     g2y = ey - fz.py * fz.half;
+        const k1x = fz.x0 + fz.px * fz.half, k1y = fz.y0 + fz.py * fz.half;
+        const k2x = ex + fz.px * fz.half, k2y = ey + fz.py * fz.half;
+        const g1x = fz.x0 - fz.px * fz.half, g1y = fz.y0 - fz.py * fz.half;
+        const g2x = ex - fz.px * fz.half, g2y = ey - fz.py * fz.half;
 
-    ctx.globalCompositeOperation = "lighter";
-    ctx.fillStyle = "rgba(125, 211, 252, " + 0.24 * fade + ")";
-    ctx.beginPath();
-    ctx.moveTo(k1x, k1y);
-    ctx.lineTo(k2x, k2y);
-    ctx.lineTo(g2x, g2y);
-    ctx.lineTo(g1x, g1y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-
-    ctx.globalAlpha = fade;
-    const sisi = [
-      { a1x: k1x, a1y: k1y, a2x: k2x, a2y: k2y, sgn: 1 },
-      { a1x: g1x, a1y: g1y, a2x: g2x, a2y: g2y, sgn: -1 }
-    ];
-    for (const s of sisi) {
-      ctx.strokeStyle = "rgba(191, 233, 255, " + 0.3 * fade + ")";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(s.a1x, s.a1y);
-      ctx.lineTo(s.a2x, s.a2y);
-      ctx.stroke();
-    }
-
-    const nSp = Math.max(4, Math.floor(effLen / 11));
-    for (let k = 0; k < nSp; k++) {
-      const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 1.7));
-      const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.3 + 1));
-      const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed + 4.7));
-      const r4 = Math.abs(Math.sin(k * 91.7 + fz.seed * 3.3));
-      const r5 = Math.abs(Math.sin(k * 33.7 + fz.seed * 4.9));
-      const rr = (k + 0.5 + (r3 - 0.5) * 0.45) / nSp;
-      const h = 7 + r1 * 26;
-      const w = 6 + r2 * 10;
-
-      const leanAmt = r1 > 0.74 ? 30 : (r1 > 0.3 ? 15 : 5);
-      const leanDir = Math.sin(k * 41.3 + fz.seed * 5.1);
-      const lean = leanDir * leanAmt;
-      for (const s of sisi) {
-        const bx = s.a1x + (s.a2x - s.a1x) * rr;
-        const by = s.a1y + (s.a2y - s.a1y) * rr;
-        const tx = bx + fz.px * s.sgn * h + fz.nx * lean;
-        const ty = by + fz.py * s.sgn * h + fz.ny * lean;
-        const axs = tx - bx, ays = ty - by;
-        const L = Math.sqrt(axs * axs + ays * ays) || 1;
-        const ux = -ays / L, uy = axs / L;
-        const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
-        const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
-        ctx.fillStyle = "#d8f2ff";
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = "rgba(125, 211, 252, " + 0.24 * fade + ")";
         ctx.beginPath();
-        ctx.moveTo(e1x, e1y);
-        ctx.lineTo(tx, ty);
-        ctx.lineTo(bx, by);
+        ctx.moveTo(k1x, k1y);
+        ctx.lineTo(k2x, k2y);
+        ctx.lineTo(g2x, g2y);
+        ctx.lineTo(g1x, g1y);
         ctx.closePath();
         ctx.fill();
-        ctx.fillStyle = "#38bdf8";
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(tx, ty);
-        ctx.lineTo(e2x, e2y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
 
-        if (r4 > 0.64 && h > 14) {
-          const h2 = h * (0.7 + r2 * 0.35);
-          const tx2 = bx + fz.px * s.sgn * h2 + fz.nx * (lean + r5 * 26 - 13);
-          const ty2 = by + fz.py * s.sgn * h2 + fz.ny * (lean + r5 * 26 - 13);
-          const axs2 = tx2 - bx, ays2 = ty2 - by;
-          const L2 = Math.sqrt(axs2 * axs2 + ays2 * ays2) || 1;
-          const ux2 = -ays2 / L2, uy2 = axs2 / L2;
-          const w2 = w * 0.55;
-          const f1x = bx - ux2 * w2 / 2, f1y = by - uy2 * w2 / 2;
-          const f2x = bx + ux2 * w2 / 2, f2y = by + uy2 * w2 / 2;
-          ctx.fillStyle = "#e6f6ff";
+        ctx.globalAlpha = fade;
+        const sisi = [
+          { a1x: k1x, a1y: k1y, a2x: k2x, a2y: k2y, sgn: 1 },
+          { a1x: g1x, a1y: g1y, a2x: g2x, a2y: g2y, sgn: -1 }
+        ];
+        for (const s of sisi) {
+          ctx.strokeStyle = "rgba(191, 233, 255, " + 0.3 * fade + ")";
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.moveTo(f1x, f1y);
-          ctx.lineTo(tx2, ty2);
-          ctx.lineTo(bx, by);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = "#60c7f5";
-          ctx.beginPath();
-          ctx.moveTo(bx, by);
-          ctx.lineTo(tx2, ty2);
-          ctx.lineTo(f2x, f2y);
-          ctx.closePath();
-          ctx.fill();
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-          ctx.lineWidth = 0.9;
-          ctx.beginPath();
-          ctx.moveTo(bx, by);
-          ctx.lineTo(tx2, ty2);
+          ctx.moveTo(s.a1x, s.a1y);
+          ctx.lineTo(s.a2x, s.a2y);
           ctx.stroke();
         }
-      }
-    }
 
-    const nSpIn = Math.max(4, Math.floor(effLen / 9));
-    for (let k = 0; k < nSpIn; k++) {
-      const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 2.2));
-      const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.9 + 3));
-      const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed * 1.4 + 8));
-      const rr = (k + 0.5) / nSpIn;
-      const h = 4 + r1 * 13;
-      const w = 4 + r2 * 7;
-      const lean = Math.sin(k * 41.3 + fz.seed * 6.1) * 10;
-      for (const s of sisi) {
-        const bx = s.a1x + (s.a2x - s.a1x) * rr;
-        const by = s.a1y + (s.a2y - s.a1y) * rr;
-        const tx = bx - fz.px * s.sgn * h + fz.nx * lean;
-        const ty = by - fz.py * s.sgn * h + fz.ny * lean;
-        const axs = tx - bx, ays = ty - by;
-        const L = Math.sqrt(axs * axs + ays * ays) || 1;
-        const ux = -ays / L, uy = axs / L;
-        const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
-        const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
-        ctx.fillStyle = "#dff4ff";
-        ctx.beginPath();
-        ctx.moveTo(e1x, e1y);
-        ctx.lineTo(tx, ty);
-        ctx.lineTo(bx, by);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#4db8e8";
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(tx, ty);
-        ctx.lineTo(e2x, e2y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
-      }
-    }
+        const nSp = Math.max(4, Math.floor(effLen / 11));
+        for (let k = 0; k < nSp; k++) {
+          const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 1.7));
+          const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.3 + 1));
+          const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed + 4.7));
+          const r4 = Math.abs(Math.sin(k * 91.7 + fz.seed * 3.3));
+          const r5 = Math.abs(Math.sin(k * 33.7 + fz.seed * 4.9));
+          const rr = (k + 0.5 + (r3 - 0.5) * 0.45) / nSp;
+          const h = 7 + r1 * 26;
+          const w = 6 + r2 * 10;
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(k1x, k1y);
-    ctx.lineTo(k2x, k2y);
-    ctx.lineTo(g2x, g2y);
-    ctx.lineTo(g1x, g1y);
-    ctx.closePath();
-    ctx.clip();
-    const JUMLAH_SALJU = Math.max(90, Math.floor(effLen * 0.7));
-    for (let i = 0; i < JUMLAH_SALJU; i++) {
-      const xr = ((i * 53 + 7) % 100) / 100;
-      const perp = ((i * 29 + 11) % 101) / 100 - 0.5;
-      const bxS = fz.x0 + fz.nx * xr * effLen + fz.px * perp * fz.half * 1.5;
-      const byS = fz.y0 + fz.ny * xr * effLen + fz.py * perp * fz.half * 1.5;
-      const kecepatan = 0.5 + (i % 5) * 0.22;
-      const ph = i * 1.3;
-      const amp = 4 + (i % 4) * 2;
-      const sx = bxS + Math.sin(tNow * kecepatan + ph) * amp;
-      const sy = byS + Math.cos(tNow * kecepatan * 0.8 + ph * 1.7) * amp * 0.6;
-      const r = 1.6 + (i % 5 === 0 ? 1.6 : (i % 2 === 0 ? 0.9 : 0.4));
-      const alpha = (0.5 + 0.45 * Math.abs(Math.sin(tNow * 0.9 + ph))) * fade;
-      if (i % 8 === 0) {
-        gambarKepingSalju(sx, sy, r, tNow * 0.3 + ph * 0.2, alpha);
-      } else {
-        ctx.fillStyle = "rgba(224, 242, 254, " + alpha + ")";
-        ctx.fillRect(sx - r * 0.4, sy - r * 0.4, r * 0.8, r * 0.8);
-      }
-    }
-    ctx.restore();
+          const leanAmt = r1 > 0.74 ? 30 : (r1 > 0.3 ? 15 : 5);
+          const leanDir = Math.sin(k * 41.3 + fz.seed * 5.1);
+          const lean = leanDir * leanAmt;
+          for (const s of sisi) {
+            const bx = s.a1x + (s.a2x - s.a1x) * rr;
+            const by = s.a1y + (s.a2y - s.a1y) * rr;
+            const tx = bx + fz.px * s.sgn * h + fz.nx * lean;
+            const ty = by + fz.py * s.sgn * h + fz.ny * lean;
+            const axs = tx - bx, ays = ty - by;
+            const L = Math.sqrt(axs * axs + ays * ays) || 1;
+            const ux = -ays / L, uy = axs / L;
+            const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
+            const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
+            ctx.fillStyle = "#d8f2ff";
+            ctx.beginPath();
+            ctx.moveTo(e1x, e1y);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(bx, by);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "#38bdf8";
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(e2x, e2y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(tx, ty);
+            ctx.stroke();
+
+            if (r4 > 0.64 && h > 14) {
+              const h2 = h * (0.7 + r2 * 0.35);
+              const tx2 = bx + fz.px * s.sgn * h2 + fz.nx * (lean + r5 * 26 - 13);
+              const ty2 = by + fz.py * s.sgn * h2 + fz.ny * (lean + r5 * 26 - 13);
+              const axs2 = tx2 - bx, ays2 = ty2 - by;
+              const L2 = Math.sqrt(axs2 * axs2 + ays2 * ays2) || 1;
+              const ux2 = -ays2 / L2, uy2 = axs2 / L2;
+              const w2 = w * 0.55;
+              const f1x = bx - ux2 * w2 / 2, f1y = by - uy2 * w2 / 2;
+              const f2x = bx + ux2 * w2 / 2, f2y = by + uy2 * w2 / 2;
+              ctx.fillStyle = "#e6f6ff";
+              ctx.beginPath();
+              ctx.moveTo(f1x, f1y);
+              ctx.lineTo(tx2, ty2);
+              ctx.lineTo(bx, by);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = "#60c7f5";
+              ctx.beginPath();
+              ctx.moveTo(bx, by);
+              ctx.lineTo(tx2, ty2);
+              ctx.lineTo(f2x, f2y);
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+              ctx.lineWidth = 0.9;
+              ctx.beginPath();
+              ctx.moveTo(bx, by);
+              ctx.lineTo(tx2, ty2);
+              ctx.stroke();
+            }
+          }
+        }
+
+        const nSpIn = Math.max(4, Math.floor(effLen / 9));
+        for (let k = 0; k < nSpIn; k++) {
+          const r1 = Math.abs(Math.sin(k * 12.9898 + fz.seed * 2.2));
+          const r2 = Math.abs(Math.sin(k * 78.233 + fz.seed * 2.9 + 3));
+          const r3 = Math.abs(Math.sin(k * 39.19 + fz.seed * 1.4 + 8));
+          const rr = (k + 0.5) / nSpIn;
+          const h = 4 + r1 * 13;
+          const w = 4 + r2 * 7;
+          const lean = Math.sin(k * 41.3 + fz.seed * 6.1) * 10;
+          for (const s of sisi) {
+            const bx = s.a1x + (s.a2x - s.a1x) * rr;
+            const by = s.a1y + (s.a2y - s.a1y) * rr;
+            const tx = bx - fz.px * s.sgn * h + fz.nx * lean;
+            const ty = by - fz.py * s.sgn * h + fz.ny * lean;
+            const axs = tx - bx, ays = ty - by;
+            const L = Math.sqrt(axs * axs + ays * ays) || 1;
+            const ux = -ays / L, uy = axs / L;
+            const e1x = bx - ux * w / 2, e1y = by - uy * w / 2;
+            const e2x = bx + ux * w / 2, e2y = by + uy * w / 2;
+            ctx.fillStyle = "#dff4ff";
+            ctx.beginPath();
+            ctx.moveTo(e1x, e1y);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(bx, by);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "#4db8e8";
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(e2x, e2y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(tx, ty);
+            ctx.stroke();
+          }
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(k1x, k1y);
+        ctx.lineTo(k2x, k2y);
+        ctx.lineTo(g2x, g2y);
+        ctx.lineTo(g1x, g1y);
+        ctx.closePath();
+        ctx.clip();
+        const JUMLAH_SALJU = Math.max(90, Math.floor(effLen * 0.7));
+        for (let i = 0; i < JUMLAH_SALJU; i++) {
+          const xr = ((i * 53 + 7) % 100) / 100;
+          const perp = ((i * 29 + 11) % 101) / 100 - 0.5;
+          const bxS = fz.x0 + fz.nx * xr * effLen + fz.px * perp * fz.half * 1.5;
+          const byS = fz.y0 + fz.ny * xr * effLen + fz.py * perp * fz.half * 1.5;
+          const kecepatan = 0.5 + (i % 5) * 0.22;
+          const ph = i * 1.3;
+          const amp = 4 + (i % 4) * 2;
+          const sx = bxS + Math.sin(tNow * kecepatan + ph) * amp;
+          const sy = byS + Math.cos(tNow * kecepatan * 0.8 + ph * 1.7) * amp * 0.6;
+          const r = 1.6 + (i % 5 === 0 ? 1.6 : (i % 2 === 0 ? 0.9 : 0.4));
+          const alpha = (0.5 + 0.45 * Math.abs(Math.sin(tNow * 0.9 + ph))) * fade;
+          if (i % 8 === 0) {
+            gambarKepingSalju(sx, sy, r, tNow * 0.3 + ph * 0.2, alpha);
+          } else {
+            ctx.fillStyle = "rgba(224, 242, 254, " + alpha + ")";
+            ctx.fillRect(sx - r * 0.4, sy - r * 0.4, r * 0.8, r * 0.8);
+          }
+        }
+        ctx.restore();
       } finally {
         fz.reveal = revealAsli;
         tNow = performance.now() / 1000;
@@ -1024,6 +1030,18 @@ function draw() {
       ctx.strokeStyle = "#7dd3fc";
       ctx.lineWidth = 2;
       ctx.stroke();
+    }
+
+    if (e.paralyze > 0) {
+      ctx.fillStyle = "rgba(168, 85, 247, 0.3)";
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = "#c084fc";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     if (e.burn) {
@@ -1264,7 +1282,7 @@ function draw() {
           const w = maxW * (0.2 + 0.8 * Math.sin(Math.PI * (0.15 + 0.85 * t)));
           const geserW = ges * t;
           ctx.lineTo(sl.x + Math.cos(a + geserW) * r + Math.cos(a + Math.PI / 2) * w * tpn,
-                     sl.y + Math.sin(a + geserW) * r + Math.sin(a + Math.PI / 2) * w * tpn);
+            sl.y + Math.sin(a + geserW) * r + Math.sin(a + Math.PI / 2) * w * tpn);
         }
         for (let i = N; i >= 0; i--) {
           const t = i / N;
@@ -1272,7 +1290,7 @@ function draw() {
           const w = maxW * (0.2 + 0.8 * Math.sin(Math.PI * (0.15 + 0.85 * t)));
           const geserW = ges * t;
           ctx.lineTo(sl.x + Math.cos(a + geserW) * r - Math.cos(a + Math.PI / 2) * w * tpn,
-                     sl.y + Math.sin(a + geserW) * r - Math.sin(a + Math.PI / 2) * w * tpn);
+            sl.y + Math.sin(a + geserW) * r - Math.sin(a + Math.PI / 2) * w * tpn);
         }
         ctx.closePath();
         ctx.fill();
@@ -1522,8 +1540,9 @@ function draw() {
   if (karakter !== null && (statusGame === "main" || statusGame === "pause" || statusGame === "over" || statusGame === "menang" || statusGame === "upgrade")) {
     gambarSenjata();
 
+    const aksenRing = (karakter && karakter.warnaDash) || "#7dd3fc";
     if (player.specialBuff > 0) {
-      ctx.strokeStyle = "rgba(125, 211, 252, 0.7)";
+      ctx.strokeStyle = warnaRGBA(aksenRing, 0.7);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(player.x, player.y, 48, 0, Math.PI * 2);
@@ -1532,12 +1551,12 @@ function draw() {
 
     if (player.ultBuff) {
       const pu = 0.7 + 0.3 * Math.sin(performance.now() / 120);
-      ctx.strokeStyle = "rgba(125, 211, 252, " + (0.85 * pu) + ")";
+      ctx.strokeStyle = warnaRGBA(aksenRing, 0.85 * pu);
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(player.x, player.y, 60, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = "rgba(191, 233, 255, " + (0.45 * pu) + ")";
+      ctx.strokeStyle = warnaRGBA(aksenRing, 0.45 * pu);
       ctx.beginPath();
       ctx.arc(player.x, player.y, 84, 0, Math.PI * 2);
       ctx.stroke();
@@ -1665,6 +1684,233 @@ function draw() {
     ctx.restore();
   }
 
+  // VOIZ: bolt nihil melengkung (setitik cahaya ungu dengan aura)
+  for (const b of boltNihil) {
+    const sudut = Math.atan2(b.dy || 0, b.dx || 1);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(sudut + Math.PI / 2);
+    ctx.globalCompositeOperation = "lighter";
+    const gb = ctx.createRadialGradient(0, -12, 1, 0, -12, 15);
+    gb.addColorStop(0, "rgba(192, 132, 252, 0.95)");
+    gb.addColorStop(0.4, "rgba(139, 92, 246, 0.7)");
+    gb.addColorStop(1, "rgba(109, 40, 217, 0)");
+    ctx.fillStyle = gb;
+    ctx.beginPath();
+    ctx.moveTo(0, -26);
+    ctx.quadraticCurveTo(9, -12, 6, 2);
+    ctx.quadraticCurveTo(3, 15, 0, 18);
+    ctx.quadraticCurveTo(-3, 15, -6, 2);
+    ctx.quadraticCurveTo(-9, -12, 0, -26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#a855f7";
+    ctx.fillRect(-1.5, -22, 3, 11);
+    ctx.restore();
+  }
+
+  // VOIZ: UMBRA (balok ungu pekat tebal, arah terkunci sesuai kast)
+  for (const L of nullLasers) {
+    const pjg = 950;
+    const dxL = (L.dx !== undefined ? L.dx : Math.cos(L.a));
+    const dyL = (L.dy !== undefined ? L.dy : Math.sin(L.a));
+    const exL = L.x + dxL * pjg;
+    const eyL = L.y + dyL * pjg;
+    const naik = Math.min(1, L.t / 0.4);
+    const redup = L.life < 0.4 ? Math.max(0, L.life / 0.4) : 1;
+    const bergetar = 1 + 0.06 * Math.sin(performance.now() / 22 + Math.random());
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const grad = ctx.createLinearGradient(L.x, L.y, exL, eyL);
+    grad.addColorStop(0, "rgba(196, 181, 253, 0.9)");
+    grad.addColorStop(0.45, "rgba(139, 92, 246, 0.78)");
+    grad.addColorStop(1, "rgba(88, 28, 135, 0)");
+    // selubung luar (glow) lebar & pekat
+    ctx.strokeStyle = "rgba(88, 28, 135, " + (0.3 * naik * redup) + ")";
+    ctx.lineWidth = 100 * bergetar * naik * redup;
+    ctx.beginPath();
+    ctx.moveTo(L.x, L.y);
+    ctx.lineTo(exL, eyL);
+    ctx.stroke();
+    // badan balok tebal
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 46 * bergetar * naik * redup;
+    ctx.beginPath();
+    ctx.moveTo(L.x, L.y);
+    ctx.lineTo(exL, eyL);
+    ctx.stroke();
+    // inti terang (setara berat visual panah kenzro)
+    ctx.strokeStyle = "rgba(196, 181, 253, " + (0.95 * naik * redup) + ")";
+    ctx.lineWidth = 11 * bergetar * naik;
+    ctx.beginPath();
+    ctx.moveTo(L.x, L.y);
+    ctx.lineTo(exL, eyL);
+    ctx.stroke();
+    // kepala laser (titik cahaya di ujung)
+    const tipR = 13 * naik * bergetar;
+    const gTip = ctx.createRadialGradient(exL, eyL, 1, exL, eyL, tipR);
+    gTip.addColorStop(0, "rgba(226, 196, 255, 1)");
+    gTip.addColorStop(0.4, "rgba(168, 85, 247, 0.8)");
+    gTip.addColorStop(1, "rgba(109, 40, 217, 0)");
+    ctx.fillStyle = gTip;
+    ctx.beginPath();
+    ctx.arc(exL, eyL, tipR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // VOIZ: PRISM Ã¢â‚¬â€ aliran sihir tebal & halus: selubung lebar + badan + inti
+// + butir sihir yang MENGALIR dari asal ke tujuan (bukan garis petir).
+  for (const p of prismPulsa) {
+    const muda = Math.min(1, p.t / 0.1);
+    const tua = Math.max(0, p.life / 0.4);
+    const op = muda * tua;
+    if (op <= 0.01) continue;
+    const dx = p.x2 - p.x1, dy = p.y2 - p.y1;
+    const ll = Math.hypot(dx, dy) || 1;
+    const nx = -dy / ll, ny = dx / ll;
+    const mx = (p.x1 + p.x2) / 2, my = (p.y1 + p.y2) / 2;
+    const of = Math.sin(p.t * 24 + (p.dua || 0)) * 6 * op;
+    const cx = mx + nx * of, cy = my + ny * of;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    // 1) selubung luar (glow) lebar -> aliran terasa tebal
+    ctx.strokeStyle = "rgba(109, 40, 217, " + (0.16 * op).toFixed(3) + ")";
+    ctx.lineWidth = 26 * op;
+    ctx.beginPath();
+    ctx.moveTo(p.x1, p.y1);
+    ctx.quadraticCurveTo(cx, cy, p.x2, p.y2);
+    ctx.stroke();
+    // 2) badan aliran (gradasi ungu halus)
+    const gA = ctx.createLinearGradient(p.x1, p.y1, p.x2, p.y2);
+    gA.addColorStop(0, "rgba(226, 196, 255, " + (0.8 * op).toFixed(3) + ")");
+    gA.addColorStop(0.5, "rgba(168, 85, 247, " + (0.65 * op).toFixed(3) + ")");
+    gA.addColorStop(1, "rgba(124, 58, 237, " + (0.5 * op).toFixed(3) + ")");
+    ctx.strokeStyle = gA;
+    ctx.lineWidth = 11 * op;
+    ctx.beginPath();
+    ctx.moveTo(p.x1, p.y1);
+    ctx.quadraticCurveTo(cx, cy, p.x2, p.y2);
+    ctx.stroke();
+    // 3) inti terang
+    ctx.strokeStyle = "rgba(255, 246, 255, " + (0.7 * op).toFixed(3) + ")";
+    ctx.lineWidth = 3 * op;
+    ctx.beginPath();
+    ctx.moveTo(p.x1, p.y1);
+    ctx.quadraticCurveTo(cx, cy, p.x2, p.y2);
+    ctx.stroke();
+    // 4) butir sihir MENGALIR sepanjang jalur
+    const NW = 4;
+    for (let b = 0; b < NW; b++) {
+      const tt = ((p.t / 0.4 + b / NW) % 1 + 1) % 1;
+      const ss = Math.sin(tt * Math.PI);
+      const bob = Math.sin(p.t * 26 + b * 1.9) * 4 * op;
+      const bx = p.x1 + dx * tt + nx * bob;
+      const by = p.y1 + dy * tt + ny * bob;
+      const br = (5 + b * 0.8) * (0.6 + 0.4 * ss) * op;
+      const gB = ctx.createRadialGradient(bx, by, 0.4, bx, by, br * 2.2);
+      gB.addColorStop(0, "rgba(255, 238, 255, " + (0.95 * op).toFixed(3) + ")");
+      gB.addColorStop(0.45, "rgba(192, 132, 252, " + (0.7 * op).toFixed(3) + ")");
+      gB.addColorStop(1, "rgba(109, 40, 217, 0)");
+      ctx.fillStyle = gB;
+      ctx.beginPath();
+      ctx.arc(bx, by, br * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 5) cahaya titik sambaran
+    const gT = ctx.createRadialGradient(p.x2, p.y2, 0.5, p.x2, p.y2, 10 * op + 2);
+    gT.addColorStop(0, "rgba(255, 244, 255, " + (0.95 * op).toFixed(3) + ")");
+    gT.addColorStop(0.5, "rgba(168, 85, 247, " + (0.7 * op).toFixed(3) + ")");
+    gT.addColorStop(1, "rgba(109, 40, 217, 0)");
+    ctx.fillStyle = gT;
+    ctx.beginPath();
+    ctx.arc(p.x2, p.y2, 10 * op + 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // VOIZ: bola void yang dilempar (bola kegelapan beraura ungu)
+  for (const ob of voidOrbs) {
+    const obR = 20 * (1 + 0.08 * Math.sin(performance.now() / 60));
+    ctx.save();
+    ctx.translate(ob.x, ob.y);
+    ctx.globalCompositeOperation = "lighter";
+    const go = ctx.createRadialGradient(0, 0, 1, 0, 0, obR * 2.6);
+    go.addColorStop(0, "rgba(139, 92, 246, 0.55)");
+    go.addColorStop(0.5, "rgba(88, 28, 135, 0.22)");
+    go.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = go;
+    ctx.beginPath();
+    ctx.arc(0, 0, obR * 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    const cok = ctx.createRadialGradient(0, 0, 0, 0, 0, obR);
+    cok.addColorStop(0, "#000000");
+    cok.addColorStop(0.6, "#150726");
+    cok.addColorStop(1, "rgba(124, 58, 237, 0.9)");
+    ctx.fillStyle = cok;
+    ctx.beginPath();
+    ctx.arc(0, 0, obR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(196, 181, 253, 0.8)";
+    ctx.lineWidth = Math.max(1.5, obR * 0.16);
+    ctx.beginPath();
+    ctx.arc(0, 0, obR * 0.92, 0, Math.PI * 2);
+    ctx.stroke();
+    const obT = performance.now() / 1000;
+    for (let k = 0; k < 2; k++) {
+      ctx.strokeStyle = "rgba(139, 92, 246, 0.6)";
+      ctx.lineWidth = Math.max(1.5, obR * 0.14);
+      ctx.beginPath();
+      ctx.arc(0, 0, obR * (1.5 + k * 0.35), obT * (3 + k) + k * 2, obT * (3 + k) + k * 2 + Math.PI * 1.4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // VOIZ: BLACKHOLE ultimate (piringan ungu berputar dengan inti hitam)
+  for (const bh of blackholes) {
+    const R = bh.R;
+    if (R <= 1) continue;
+    const tt = performance.now() / 1000 + (bh.seed || 0);
+    const su = bh.t >= bh.TUMBUH ? Math.max(0, 1 - (bh.t - bh.TUMBUH) / bh.SUSUT) : 1;
+    ctx.save();
+    ctx.translate(bh.x, bh.y);
+    ctx.globalCompositeOperation = "lighter";
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+    g.addColorStop(0, "rgba(12, 4, 22, 0.98)");
+    g.addColorStop(0.28, "rgba(20, 6, 40, 0.94)");
+    g.addColorStop(0.52, "rgba(88, 28, 135, 0.62)");
+    g.addColorStop(0.82, "rgba(109, 40, 217, 0.26)");
+    g.addColorStop(1, "rgba(109, 40, 217, 0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(139, 92, 246, " + (0.5 * su) + ")";
+    ctx.lineWidth = Math.max(2, R * 0.04);
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, R * (0.35 + k * 0.22), tt * (1.2 + k * 0.5) + k * 2, tt * (1.2 + k * 0.5) + k * 2 + Math.PI * 1.35);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+    const gc = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.32);
+    gc.addColorStop(0, "#000000");
+    gc.addColorStop(0.7, "#0b0214");
+    gc.addColorStop(1, "#1e0b38");
+    ctx.fillStyle = gc;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.32 * su, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(124, 58, 237, " + (0.6 * su) + ")";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.34 * su, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   for (const p of particles) {
     ctx.globalAlpha = 1 - p.t / p.life;
     ctx.fillStyle = p.color;
@@ -1778,12 +2024,14 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  drawHUD();
-  gambarBossHealth();
-
   if (statusGame === "upgrade" && pilihanKartu && pilihanKartu.length) {
     gambarKartuUpgrade();
   }
+
+  // HUD (termasuk soul meter) digambar SETELAH lapis gelap kartu, jadi
+  // soul meter tetap terang & terlihat saat fase pilih kartu (HP & PC).
+  drawHUD();
+  gambarBossHealth();
 
   if (errorBanner) {
     const errH = H * 0.04;
@@ -1793,9 +2041,35 @@ function draw() {
     ctx.font = "bold " + Math.round(W * 0.014) + "px Zen Dots";
     ctx.fillText("ERROR: " + errorBanner, W * 0.008, H - errH * 0.3);
   }
+
+  gambarMarkahVersi();
 }
 
 let soulIgniteStart = null;
+let soulVoidStart = null;
+
+// Tanda versi dicetak LANGSUNG ke kanvas game (selalu terlihat di layar
+// permainan, bukan badge HTML yang bisa tertutup/terlewat). Kalau teks ini
+// tidak muncul, berarti yang dimuat adalah file LAMA/salinan lain.
+function gambarMarkahVersi() {
+  try {
+    const no = typeof BUILD_TERKINI === "number" ? BUILD_TERKINI : 0;
+    if (!no) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.9;
+    ctx.font = "bold 15px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(159,232,165,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.75)";
+    ctx.lineWidth = 3;
+    const teks = "v" + no;
+    ctx.strokeText(teks, 8, 8);
+    ctx.fillText(teks, 8, 8);
+    ctx.restore();
+  } catch (err) {}
+}
 
 function gambarBundar(x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
@@ -1868,7 +2142,7 @@ function gambarBossHealth() {
   ctx.fillText("FASE " + (bos.fase + 1) + "/" + def.fase.length, bx + bw / 2, by - Math.round(34 * s));
   ctx.restore();
 
-  // Satu bar utuh — tidak dipecah per fase. Warna mengikuti fase aktif.
+  // Satu bar utuh Ã¢â‚¬â€ tidak dipecah per fase. Warna mengikuti fase aktif.
   ctx.save();
   ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
   gambarBundar(bx - 4, by - 4, bw + 8, bh + 8, (bh + 8) / 2);
@@ -2236,11 +2510,11 @@ const PILAR_KRISTAL_ES = [
   { xr: 0.20, w: 12, h: 15, tilt: 0 },
 
   { xr: 0.27, w: 11, h: 10, tilt: 0 },
-  { xr: 0.35, w: 10, h: 8,  tilt: 0 },
-  { xr: 0.43, w: 10, h: 7,  tilt: 0 },
-  { xr: 0.50, w: 11, h: 9,  tilt: 0 },
-  { xr: 0.57, w: 10, h: 7,  tilt: 0 },
-  { xr: 0.65, w: 10, h: 8,  tilt: 0 },
+  { xr: 0.35, w: 10, h: 8, tilt: 0 },
+  { xr: 0.43, w: 10, h: 7, tilt: 0 },
+  { xr: 0.50, w: 11, h: 9, tilt: 0 },
+  { xr: 0.57, w: 10, h: 7, tilt: 0 },
+  { xr: 0.65, w: 10, h: 8, tilt: 0 },
   { xr: 0.73, w: 11, h: 10, tilt: 0 },
 
   { xr: 0.80, w: 12, h: 15, tilt: 0 },
@@ -2250,15 +2524,15 @@ const PILAR_KRISTAL_ES = [
 ];
 
 const TETESAN_ES = [
-  { xr: 0.04, w: 8,  h: 15 },
-  { xr: 0.12, w: 6,  h: 9 },
-  { xr: 0.22, w: 5,  h: 6 },
-  { xr: 0.35, w: 6,  h: 8 },
-  { xr: 0.48, w: 5,  h: 5 },
-  { xr: 0.62, w: 6,  h: 7 },
-  { xr: 0.76, w: 5,  h: 6 },
-  { xr: 0.88, w: 7,  h: 11 },
-  { xr: 0.96, w: 8,  h: 16 }
+  { xr: 0.04, w: 8, h: 15 },
+  { xr: 0.12, w: 6, h: 9 },
+  { xr: 0.22, w: 5, h: 6 },
+  { xr: 0.35, w: 6, h: 8 },
+  { xr: 0.48, w: 5, h: 5 },
+  { xr: 0.62, w: 6, h: 7 },
+  { xr: 0.76, w: 5, h: 6 },
+  { xr: 0.88, w: 7, h: 11 },
+  { xr: 0.96, w: 8, h: 16 }
 ];
 
 function gambarKepingSalju(x, y, r, rot, alpha) {
@@ -2484,7 +2758,7 @@ function gambarApiEs(px, py, pw, ph, t, freezeProgress = 1.0, tanpGlow = false) 
     { rx: 0.97, ry: -38, period: 3.2, offset: 1.6 },
     { rx: 0.08, ry: -28, period: 2.5, offset: 0.9 },
     { rx: 0.92, ry: -28, period: 3.6, offset: 2.1 },
-    { rx: 0.50, ry: -8,  period: 2.2, offset: 0.5 },
+    { rx: 0.50, ry: -8, period: 2.2, offset: 0.5 },
     { rx: 0.05, ry: ph + 6, period: 3.0, offset: 1.2 }
   ];
 
@@ -2577,6 +2851,18 @@ function gambarGlowBar(px, py, pw, ph, t, jenis, progress) {
     ctx.beginPath();
     ctx.arc(px + pw / 2, py + ph / 2, glowRadius, 0, Math.PI * 2);
     ctx.fill();
+  } else if (jenis === "void") {
+    const glowR = pw * 0.52;
+    const denyut = (0.6 + 0.3 * Math.sin(t * 2.8)) * progress;
+    const gl = ctx.createRadialGradient(px + pw / 2, py + ph / 2, 2, px + pw / 2, py + ph / 2, glowR);
+    gl.addColorStop(0, "rgba(124, 58, 237, " + (0.4 * denyut) + ")");
+    gl.addColorStop(0.5, "rgba(88, 28, 135, " + (0.16 * denyut) + ")");
+    gl.addColorStop(0.85, "rgba(30, 11, 56, " + (0.05 * denyut) + ")");
+    gl.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gl;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph / 2, glowR, 0, Math.PI * 2);
+    ctx.fill();
   } else {
     const mistW = pw * 0.68;
     const denyut = (0.55 + 0.35 * Math.sin(t * 2.2)) * progress;
@@ -2613,13 +2899,194 @@ function blitSoulFrame(frames, t, x, y, alpha) {
   blitX(frames, t, SOUL_ANIM_RATE, x, y, alpha);
 }
 
+function gambarVoidSoul(px, py, pw, ph, t, progress) {
+  const cx = px + pw / 2;
+  const cy = py + ph / 2;
+  const R = ph * 1.7 * (0.92 + 0.08 * Math.sin(t * 3));
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  for (let k = 0; k < 3; k++) {
+    const rk = R * (1.45 + k * 0.5);
+    ctx.strokeStyle = "rgba(139, 92, 246, " + (0.6 * progress) + ")";
+    ctx.lineWidth = Math.max(1.5, R * 0.3 - k * R * 0.08);
+    ctx.beginPath();
+    ctx.arc(cx, cy, rk, t * (2 + k * 0.8) + k * 2.1, t * (2 + k * 0.8) + k * 2.1 + Math.PI * 1.35);
+    ctx.stroke();
+  }
+
+  const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  gc.addColorStop(0, "#000000");
+  gc.addColorStop(0.55, "#140528");
+  gc.addColorStop(1, "rgba(124, 58, 237, 0.5)");
+  ctx.fillStyle = gc;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.85, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(196, 181, 253, " + (0.75 * progress) + ")";
+  ctx.lineWidth = Math.max(1.5, R * 0.14);
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.78, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i / 12) * Math.PI * 2 + t * 2.4;
+    const fr = (i * 0.11 + t * 0.55) % 1;
+    const rr = R * (2 - fr * 1.3);
+    const px2 = cx + Math.cos(a0 - fr * 1.7) * rr;
+    const py2 = cy + Math.sin(a0 - fr * 1.7) * rr * 0.92;
+    ctx.fillStyle = (i % 2 === 0 ? "rgba(192, 132, 252, " : "rgba(139, 92, 246, ") + ((1 - fr) * 0.85 * progress).toFixed(3) + ")";
+    ctx.fillRect(px2 - 1.4, py2 - 1.4, 2.8, 2.8);
+  }
+
+  ctx.restore();
+}
+
+function gambarVoidTepi(px, py, pw, ph, t, progress) {
+  const cx = px + pw / 2;
+  const cy = py + ph / 2;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  // ---- ORNAMEN LUAR: partikel & ekor komet mengorbit di luar garis bar ----
+  const Rx = pw * 0.62 + ph * 0.55;
+  const Ry = ph * 1.1;
+  const nLuar = 22;
+  for (let i = 0; i < nLuar; i++) {
+    const a0 = (i / nLuar) * Math.PI * 2 + t * 0.9;
+    const ex = cx + Math.cos(a0) * Rx;
+    const ey = cy + Math.sin(a0) * Ry;
+    const siz = 3 + (i % 3) * 1.6;
+    const al = (0.5 + 0.5 * Math.sin(t * 3 + i)) * progress;
+    ctx.fillStyle = (i % 2 === 0 ? "rgba(192, 132, 252, " : "rgba(168, 85, 247, ") + al.toFixed(3) + ")";
+    ctx.fillRect(ex - siz / 2, ey - siz / 2, siz, siz);
+  }
+  for (let k = 0; k < 3; k++) {
+    const t0 = t * 1.15 + k * 2.1;
+    for (let j = 0; j < 8; j++) {
+      const a1 = t0 + j * 0.16;
+      ctx.fillStyle = "rgba(139, 92, 246, " + ((1 - j / 8) * 0.55 * progress).toFixed(3) + ")";
+      ctx.fillRect(cx + Math.cos(a1) * Rx - 1.7, cy + Math.sin(a1) * Ry - 1.7, 3.4, 3.4);
+    }
+  }
+  // ornamen magnitudo di 4 sudut (ziarah berlian luar)
+  for (let k = 0; k < 4; k++) {
+    const sx = k === 0 ? px - ph * 0.75 : k === 1 ? px + pw + ph * 0.75 : k === 2 ? px - ph * 0.75 : px + pw + ph * 0.75;
+    const sy = k === 1 || k === 0 ? py - ph * 0.75 : py + ph + ph * 0.75;
+    const rot = t * 2.2 + k * 1.57;
+    const Lm = ph * 0.5 * (1 + 0.25 * Math.sin(t * 4 + k * 2));
+    ctx.strokeStyle = "rgba(168, 85, 247, " + (0.85 * progress) + ")";
+    ctx.lineWidth = Math.max(1.6, ph * 0.12);
+    ctx.beginPath();
+    for (let j = 0; j < 4; j++) {
+      const a = rot + j * Math.PI / 2;
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + Math.cos(a) * Lm, sy + Math.sin(a) * Lm);
+    }
+    ctx.stroke();
+  }
+
+  // ---- partikel TEPI bar yang tersedot ke inti void (lebih tebal) ----
+  const kel = 2 * (pw + ph);
+  for (let i = 0; i < 24; i++) {
+    const fr = (t * 0.42 + i * 0.061) % 1;
+    const jarak = fr * kel;
+    let ex0, ey0;
+    if (jarak < pw) { ex0 = px + jarak; ey0 = py; }
+    else if (jarak < pw + ph) { ex0 = px + pw; ey0 = py + jarak - pw; }
+    else if (jarak < 2 * pw + ph) { ex0 = px + pw - (jarak - pw - ph); ey0 = py + ph; }
+    else { ex0 = px; ey0 = py + ph - (jarak - 2 * pw - ph); }
+    const mode = Math.min(1, fr * fr * 3); // makin dekat pusat makin cepat terserap
+    const px2 = ex0 + (cx - ex0) * mode;
+    const py2 = ey0 + (cy - ey0) * mode;
+    const alfa = (1 - fr) * (0.95 * progress);
+    ctx.fillStyle = (i % 3 === 0 ? "rgba(192, 132, 252, " : (i % 3 === 1 ? "rgba(139, 92, 246, " : "rgba(168, 85, 247, ")) + alfa.toFixed(3) + ")";
+    const ukur = 2.4 + (i % 4) * 1.0;
+    ctx.fillRect(px2 - ukur / 2, py2 - ukur / 2, ukur, ukur);
+  }
+
+  // pusaran (vortex) kecil di 4 sudut bar, sedikit lebih besar
+  for (let k = 0; k < 4; k++) {
+    const sudutX = k === 0 || k === 1 ? px : px + pw;
+    const sudutY = k === 0 || k === 2 ? py : py + ph;
+    for (let j = 0; j < 2; j++) {
+      ctx.strokeStyle = "rgba(139, 92, 246, " + (0.6 * progress) + ")";
+      ctx.lineWidth = Math.max(1.3, ph * 0.1);
+      ctx.beginPath();
+      ctx.arc(sudutX, sudutY, ph * (0.34 + j * 0.26), t * (1.4 + j * 0.9) + k * 1.57, t * (1.4 + j * 0.9) + k * 1.57 + Math.PI * 1.5);
+      ctx.stroke();
+    }
+  }
+
+  // cincin denyut yang memancar dari void dan pudar di tepi bar
+  ctx.beginPath();
+  ctx.rect(px, py, pw, ph);
+  ctx.clip();
+  for (let k = 0; k < 3; k++) {
+    const rr = ((t * 0.75) % 1 + k / 3) % 1;
+    ctx.strokeStyle = "rgba(168, 85, 247, " + ((1 - rr) * 0.45 * progress).toFixed(3) + ")";
+    ctx.lineWidth = Math.max(1, ph * 0.14 * (1 - rr));
+    ctx.beginPath();
+    ctx.arc(cx, cy, ph * (0.4 + rr * 3.4), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+  function gambarTepiSoul(x, y, w, h, t, aksen) {
+  const blok = Math.max(8, Math.round(h * 0.8));
+  const tebal = Math.max(3, h * 0.16);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.shadowColor = aksen;
+  ctx.shadowBlur = 15;
+  ctx.strokeStyle = aksen;
+  ctx.lineWidth = tebal;
+  ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = Math.max(1.5, h * 0.06);
+  ctx.strokeRect(x + 4 + tebal, y + 4 + tebal, w - 8 - tebal * 2, h - 8 - tebal * 2);
+  ctx.lineWidth = tebal * 1.15;
+  ctx.strokeStyle = aksen;
+  ctx.beginPath();
+  ctx.moveTo(x, y + blok);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + blok, y);
+  ctx.moveTo(x + w - blok, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + blok);
+  ctx.moveTo(x + w, y + h - blok);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w - blok, y + h);
+  ctx.moveTo(x + blok, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + h - blok);
+  ctx.stroke();
+  const kel = 2 * (w + h);
+  for (let i = 0; i < 6; i++) {
+    const fr = (t * (0.7 + 0.3 * (i % 2)) + i * 0.19) % 1;
+    const jarak = fr * kel;
+    let pxp, pyp;
+    if (jarak < w) { pxp = x + jarak; pyp = y; }
+    else if (jarak < w + h) { pxp = x + w; pyp = y + jarak - w; }
+    else if (jarak < 2 * w + h) { pxp = x + w - (jarak - w - h); pyp = y + h; }
+    else { pxp = x; pyp = y + h - (jarak - 2 * w - h); }
+    ctx.globalAlpha = Math.max(0.15, (1 - fr) * 0.85);
+    ctx.fillStyle = aksen;
+    ctx.fillRect(pxp - 2, pyp - 2, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function gambarBurstSoul(jenis, cx, cy, h, tNow, start) {
   if (start === null) return;
   const age = tNow - start;
   if (age <= 0 || age > 0.95) return;
   const q = 1 - age / 0.95;
-  const w1 = jenis === "api" ? "255, 190, 80" : "226, 242, 254";
-  const w2 = jenis === "api" ? "255, 80, 20" : "56, 189, 248";
+  const w1 = jenis === "api" ? "255, 190, 80" : (jenis === "void" ? "196, 181, 253" : "226, 242, 254");
+  const w2 = jenis === "api" ? "255, 80, 20" : (jenis === "void" ? "124, 58, 237" : "56, 189, 248");
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
@@ -2747,7 +3214,7 @@ function gambarPanahEsSoul(x0, wBar, cy, h, tNow, sweep, start) {
       const fx = tipX - h * (0.5 + fr * 5);
       const fy = cy + Math.sin(fr * Math.PI * 2 + i) * h * 1.6 - h * 0.5;
       ctx.fillStyle = i % 2 === 0 ? "rgba(224, 242, 254, " + ((1 - fr) * 0.8).toFixed(3) + ")"
-                                   : "rgba(125, 211, 252, " + ((1 - fr) * 0.6).toFixed(3) + ")";
+        : "rgba(125, 211, 252, " + ((1 - fr) * 0.6).toFixed(3) + ")";
       ctx.fillRect(fx, fy, h * 0.14, h * 0.14);
     }
   }
@@ -2776,7 +3243,7 @@ function gambarPanahEsSoul(x0, wBar, cy, h, tNow, sweep, start) {
 }
 
 function gambarNyalaSoul(jenis, x, y, w, h, tNow) {
-  const kunci = jenis === "api" ? "255, 200, 80" : "186, 230, 253";
+  const kunci = jenis === "api" ? "255, 200, 80" : (jenis === "void" ? "139, 92, 246" : "186, 230, 253");
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
@@ -2791,12 +3258,14 @@ function gambarNyalaSoul(jenis, x, y, w, h, tNow) {
     const ph = (tNow * 0.9 + i * 0.61) % 1;
     const xi = x + w * 0.12 + w * 0.76 * ((i * 97) % 100) / 100 + Math.sin(tNow * 2 + i * 1.7) * 3;
     const a = Math.sin(ph * Math.PI);
-    const yi = jenis === "api"
-      ? y + h - 5 - ph * (h + 48)
-      : y - 36 + ph * (h + 36);
+    const yi = jenis === "es"
+      ? y - 36 + ph * (h + 36)
+      : y + h - 5 - ph * (h + 48);
     const colr = jenis === "api"
       ? (i % 3 === 0 ? "255, 248, 214" : (i % 3 === 1 ? "255, 184, 51" : "255, 77, 23"))
-      : (i % 3 === 0 ? "255, 255, 255" : (i % 3 === 1 ? "224, 242, 254" : "125, 211, 252"));
+      : (jenis === "void"
+        ? (i % 3 === 0 ? "216, 180, 254" : (i % 3 === 1 ? "168, 85, 247" : "124, 58, 237"))
+        : (i % 3 === 0 ? "255, 255, 255" : (i % 3 === 1 ? "224, 242, 254" : "125, 211, 252")));
     ctx.fillStyle = "rgba(" + colr + ", " + (0.85 * a).toFixed(3) + ")";
     ctx.fillRect(xi - 1.2, yi - 1.2, 2.4, 2.4);
   }
@@ -2824,12 +3293,96 @@ function gambarNyalaSoul(jenis, x, y, w, h, tNow) {
   ctx.restore();
 }
 
-function drawHUD() {
+// ===== efek bar skill TERKUNCI di HUD mode 3-skill =====
+// Gembok di sisi kiri, rantai segar berkilau melintasi bar dengan goyangan
+// halus, garis-garis diagonal samar, dan denyut lembut (skill belum terbuka).
+function gambarGembok(ctx, x, y, sk, tNow) {
+  const denyut = 0.55 + 0.45 * Math.abs(Math.sin(tNow * 2.2));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sk, sk);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(212,219,230," + (0.7 + 0.3 * denyut) + ")";
+  ctx.lineWidth = 0.24;
+  ctx.beginPath();
+  ctx.arc(0.15, -0.12, 0.42, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.stroke();
+  const bw = 1.1, bh = 0.9, c = 0.16;
+  ctx.fillStyle = "rgba(155,166,186," + (0.85 + 0.15 * denyut) + ")";
+  ctx.beginPath();
+  ctx.moveTo(-bw / 2 + c, -bh / 2 + 0.18);
+  ctx.lineTo(bw / 2 - c, -bh / 2 + 0.18);
+  ctx.quadraticCurveTo(bw / 2, -bh / 2 + 0.18, bw / 2, -bh / 2 + 0.18 + c);
+  ctx.lineTo(bw / 2, bh / 2 - 0.12 - c);
+  ctx.quadraticCurveTo(bw / 2, bh / 2 - 0.12, bw / 2 - c, bh / 2 - 0.12);
+  ctx.lineTo(-bw / 2 + c, bh / 2 - 0.12);
+  ctx.quadraticCurveTo(-bw / 2, bh / 2 - 0.12, -bw / 2, bh / 2 - 0.12 - c);
+  ctx.lineTo(-bw / 2, -bh / 2 + 0.18 + c);
+  ctx.quadraticCurveTo(-bw / 2, -bh / 2 + 0.18, -bw / 2 + c, -bh / 2 + 0.18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(13,18,26,.95)";
+  ctx.beginPath();
+  ctx.arc(0.02, -0.02, 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(-0.055, 0.02, 0.15, 0.24);
+  ctx.restore();
+}
 
+function gambarRantai(ctx, x, y, w, warna, tNow) {
+  const n = Math.max(10, Math.round(w / 16));
+  const paso = w / n;
+  const r = Math.max(2, paso * 0.32);
+  const bob = Math.max(0.6, r * 0.4);
+  ctx.lineCap = "round";
+  for (let i = 0; i <= n; i++) {
+    const cx = x + i * paso;
+    const cy = y + Math.sin(tNow * 2.4 + i * 0.85) * bob * 0.4;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((i % 2 === 0 ? 1 : -1) * 0.5);
+    ctx.strokeStyle = "rgba(0,0,0,.45)";
+    ctx.lineWidth = r * 1.05;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r * 0.68, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = warna;
+    ctx.lineWidth = r * 0.8;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r * 0.68, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.22)";
+    ctx.lineWidth = r * 0.3;
+    ctx.beginPath();
+    ctx.ellipse(r * 0.18, -r * 0.16, r * 0.8, r * 0.45, 0, 3.4, 4.8);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function gambarBarTerkunci(ctx, x, y, w, h, tNow) {
+  const g = h / 20;
+  ctx.save();
+  ctx.fillStyle = "rgba(10,14,20,.94)";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "rgba(138,147,165,.10)";
+  ctx.lineWidth = Math.max(1, g);
+  for (let xx = x - h; xx < x + w; xx += h * 0.55) {
+    ctx.beginPath();
+    ctx.moveTo(xx, y + h);
+    ctx.lineTo(xx + h, y);
+    ctx.stroke();
+  }
+  gambarGembok(ctx, x + h * 1.0, y + h * 0.48, h * 0.42, tNow);
+  gambarRantai(ctx, x + h * 1.75, y + h * 0.5, w - h * 1.75 - 3, "rgba(138,147,165,.8)", tNow);
+  ctx.restore();
+}
+
+function drawHUD() {
   const sx = W / 1280;
   const sy = H / 960;
-  const s  = Math.min(sx, sy) * 1.35;
-  const m  = Math.round(20 * s);
+  const s = Math.min(sx, sy) * 1.35;
+  const m = Math.round(20 * s);
   const fs = (px) => Math.round(px * s);
 
   const hpX = m, hpY = m;
@@ -2901,36 +3454,97 @@ function drawHUD() {
     const def = daftar[slotDipakai - 1];
     if (def && def.nama) namaSkill = def.nama;
   }
-  const warnaSkill = karakter && karakter.tipe === "jarak" ? "#7dd3fc" : "#ffd23f";
+  const warnaSkill = karakter && karakter.kunci === "voiz"
+    ? "#a78bfa"
+    : (karakter && karakter.tipe === "jarak" ? "#7dd3fc" : "#ffd23f");
   const skY = hpY + hpBarH + Math.round(8 * s);
   const skBarW = hpBarW, skBarH = hpBarH;
-  const skFillW = skBarW - Math.round(8 * s);
-  const skFillH = skBarH - Math.round(8 * s);
-  const skFillX = hpX + Math.round(4 * s);
-  const skFillY = skY + Math.round(4 * s);
-  const ratio = 1 - player.specialCd / player.specialMax;
 
-  ctx.fillStyle = "#000";
-  ctx.fillRect(hpX, skY, skBarW, skBarH);
-  ctx.fillStyle = warnaSkill;
-  ctx.fillRect(skFillX, skFillY, skFillW * ratio, skFillH);
-  ctx.font = "bold " + fs(22) + "px Zen Dots";
-  if (player.specialCd > 0) {
-    ctx.textAlign = "right";
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = Math.max(1, Math.round(2 * s));
-    ctx.strokeText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
-    ctx.fillStyle = "#fff";
-    ctx.fillText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
-    ctx.textAlign = "left";
+  const mode3 = typeof pakaiModeTigaSkill === "function" && pakaiModeTigaSkill();
+  if (mode3 && karakter) {
+    // HUD mode 3 skill: tiga bar kecil (keybind 1/2/3), semua berbagi CD global
+    // tapi tiap bar memakai CD skillnya sendiri (cdSkill).
+    // 1 = skill bawaan, 2 = slot 3, 3 = slot 4
+    const daftar = daftarSkill(karakter.kunci);
+    const slots = [2, 3, 4];
+    const lbls = ["1", "2", "3"];
+    const bb = Math.max(6, Math.round(hpBarH * 0.5));
+    const step = bb + Math.max(4, Math.round(5 * s));
+    let by = skY;
+    ctx.font = "bold " + fs(17) + "px Zen Dots";
+    ctx.textBaseline = "alphabetic";
+    for (let i = 0; i < 3; i++) {
+      const def = daftar[slots[i] - 1] || {};
+      const terkunci = levelKarakter(karakter.kunci) < (typeof def.level === "number" ? def.level : 0);
+      const mm = Math.max(3, Math.round(4 * s));
+      const nm = (def.nama || "SKILL").slice(0, 12);
+      ctx.textAlign = "left";
+      if (terkunci) {
+        // skill belum terbuka: bar digelapkan dan DIKUNCI OLEH GEMBOK + RANTAI
+        gambarBarTerkunci(ctx, hpX, by, hpBarW, bb, performance.now() / 1000);
+        ctx.fillStyle = "rgba(226,232,240,.95)";
+        ctx.fillText(lbls[i], hpX + Math.max(3, Math.round(4 * s)), by + bb * 0.72);
+        ctx.fillStyle = "rgba(148,163,184,.9)";
+        ctx.fillText(nm, hpX + Math.max(20, Math.round(bb * 1.9)), by + bb * 0.72);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#8a93a5";
+        ctx.fillText("LV " + def.level, hpX + hpBarW - mm, by + bb * 0.72);
+        ctx.textAlign = "left";
+        by += step;
+        continue;
+      }
+      const cd = cdSkill(karakter.kunci, slots[i]);
+      const ratio = cd > 0 ? Math.max(0, Math.min(1, 1 - player.specialCd / cd)) : 0;
+      ctx.fillStyle = "rgba(0,0,0,.8)";
+      ctx.fillRect(hpX, by, hpBarW, bb);
+      ctx.fillStyle = warnaSkill;
+      ctx.fillRect(hpX + Math.max(2, Math.round(2 * s)), by + Math.max(2, Math.round(2 * s)),
+        (hpBarW - Math.max(4, Math.round(4 * s))) * ratio, bb - Math.max(4, Math.round(4 * s)));
+      ctx.fillStyle = player.specialCd > 0 ? "rgba(255,255,255,.45)" : "#fff";
+      ctx.fillText(lbls[i], hpX + mm, by + bb * 0.72);
+      ctx.fillStyle = player.specialCd > 0 ? "rgba(255,255,255,.7)" : "#dbeafe";
+      ctx.fillText(nm, hpX + Math.max(18, Math.round(20 * s)), by + bb * 0.72);
+      if (player.specialCd > 0) {
+        ctx.textAlign = "right";
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = Math.max(1, Math.round(2 * s));
+        ctx.strokeText(player.specialCd.toFixed(1), hpX + hpBarW - mm, by + bb * 0.72);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(player.specialCd.toFixed(1), hpX + hpBarW - mm, by + bb * 0.72);
+        ctx.textAlign = "left";
+      }
+      by += step;
+    }
   } else {
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#0d1219";
-    ctx.fillText(namaSkill, hpX + skBarW / 2, skY + skBarH * 0.7);
-    ctx.textAlign = "left";
+    const skFillW = skBarW - Math.round(8 * s);
+    const skFillH = skBarH - Math.round(8 * s);
+    const skFillX = hpX + Math.round(4 * s);
+    const skFillY = skY + Math.round(4 * s);
+    const ratio = 1 - player.specialCd / player.specialMax;
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(hpX, skY, skBarW, skBarH);
+    ctx.fillStyle = warnaSkill;
+    ctx.fillRect(skFillX, skFillY, skFillW * ratio, skFillH);
+    ctx.font = "bold " + fs(22) + "px Zen Dots";
+    if (player.specialCd > 0) {
+      ctx.textAlign = "right";
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = Math.max(1, Math.round(2 * s));
+      ctx.strokeText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(player.specialCd.toFixed(1), hpX + skBarW - Math.round(4 * s), skY + skBarH * 0.7);
+      ctx.textAlign = "left";
+    } else {
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#0d1219";
+      ctx.fillText(namaSkill, hpX + skBarW / 2, skY + skBarH * 0.7);
+      ctx.textAlign = "left";
+    }
   }
 
   if (deviceTerpilih === "mobile" && statusGame === "main" && player && player.kartu) {
+    try {
     const kartu = player.kartu;
     const ids = Object.keys(kartu);
     if (ids.length > 0) {
@@ -2963,8 +3577,9 @@ function drawHUD() {
           ctx.fillText(b.teks + (b.jml > 1 ? " \u00D7" + b.jml : ""), nx + Math.round(18 * s), ty);
         });
         ctx.textBaseline = "alphabetic";
+        }
       }
-    }
+    } catch (err) {}
   }
 
   const bwS = Math.round(W * 0.34);
@@ -2972,8 +3587,10 @@ function drawHUD() {
   const bxS = Math.round((W - bwS) / 2);
   const byS = H - Math.round(H * 0.09) - bhS;
   const tNow = performance.now() / 1000;
-  const apiMenyala = karakter && karakter.tipe === "dekat" && soul >= SOUL_MAX;
-  const esMenyala = karakter && karakter.tipe === "jarak" && soul >= SOUL_MAX;
+  const karakterVoiz = karakter && karakter.kunci === "voiz";
+  const apiMenyala = !karakterVoiz && karakter && karakter.tipe === "dekat" && soul >= SOUL_MAX;
+  const esMenyala = !karakterVoiz && karakter && karakter.tipe === "jarak" && soul >= SOUL_MAX;
+  const voidMenyala = karakterVoiz && soul >= SOUL_MAX;
 
   let burnProgress = 1.0;
   if (apiMenyala) {
@@ -3011,13 +3628,37 @@ function drawHUD() {
     soulFreezeStart = null;
   }
 
+  let voidProgress = 1.0;
+  if (voidMenyala) {
+    if (soulVoidStart === null) {
+      soulVoidStart = tNow;
+      if (typeof spawnParticles === "function") {
+        spawnParticles(bxS + bwS / 2, byS + bhS / 2, "#a855f7", 12);
+        spawnParticles(bxS + bwS / 2, byS + bhS / 2, "#7c3aed", 20);
+      }
+      if (typeof addFlash === "function") {
+        addFlash("rgba(124, 58, 237, 0.28)", 0.25, 0.35);
+      }
+    }
+    voidProgress = Math.min(1.0, (tNow - soulVoidStart) / 0.75);
+  } else {
+    soulVoidStart = null;
+  }
+
   const esSweep = soulFreezeStart !== null
     ? 1 - Math.pow(1 - Math.min(1, (tNow - soulFreezeStart) / 1.5), 3)
     : 1;
 
   ctx.fillStyle = "#000";
   ctx.fillRect(bxS, byS, bwS, bhS);
-  if (apiMenyala) {
+  if (voidMenyala) {
+    soulAnim = null;
+    gambarGlowBar(bxS, byS, bwS, bhS, tNow, "void", voidProgress);
+    gambarVoidTepi(bxS, byS, bwS, bhS, tNow, voidProgress);
+    gambarVoidSoul(bxS, byS, bwS, bhS, tNow, voidProgress);
+    gambarBurstSoul("void", bxS + bwS / 2, byS + bhS / 2, bhS, tNow, soulVoidStart);
+    gambarNyalaSoul("void", bxS, byS, bwS, bhS, tNow);
+  } else if (apiMenyala) {
     if (!soulAnim || soulAnim.jenis !== "api") {
       soulAnim = bakeSoulAnim("api", bwS, bhS);
     }
@@ -3042,10 +3683,17 @@ function drawHUD() {
   }
 
   const soulFont = "bold " + fs(22) + "px Zen Dots";
-  if (apiMenyala) {
-    ctx.strokeStyle = "#ffe27a";
-    ctx.lineWidth = Math.max(1, Math.round(1.5 * s));
-    ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
+  if (voidMenyala) {
+    gambarTepiSoul(bxS, byS, bwS, bhS, tNow, "rgba(168, 85, 247, 0.95)");
+    ctx.font = soulFont;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(196, 181, 253, 0.9)";
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(10));
+    ctx.fillStyle = "#180526";
+    ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(8));
+    ctx.textAlign = "left";
+  } else if (apiMenyala) {
+    gambarTepiSoul(bxS, byS, bwS, bhS, tNow, "rgba(255, 190, 80, 0.95)");
     ctx.font = soulFont;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255, 235, 140, 0.85)";
@@ -3054,9 +3702,7 @@ function drawHUD() {
     ctx.fillText("SOUL METER", bxS + bwS / 2, byS + bhS / 2 + fs(8));
     ctx.textAlign = "left";
   } else if (esMenyala) {
-    ctx.strokeStyle = "#bae6fd";
-    ctx.lineWidth = Math.max(1, Math.round(1.5 * s));
-    ctx.strokeRect(bxS + 0.5, byS + 0.5, bwS - 1, bhS - 1);
+    gambarTepiSoul(bxS, byS, bwS, bhS, tNow, "rgba(125, 211, 252, 0.95)");
     ctx.font = soulFont;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(186, 230, 253, 0.9)";
@@ -3078,15 +3724,17 @@ function drawHUD() {
   if (soul >= SOUL_MAX && deviceTerpilih !== "mobile") {
     ctx.font = soulFont;
     ctx.textAlign = "center";
-    const ignT = apiMenyala ? soulIgniteStart : (esMenyala ? soulFreezeStart : null);
+    const ignT = apiMenyala ? soulIgniteStart : (esMenyala ? soulFreezeStart : (voidMenyala ? soulVoidStart : null));
     const umurText = ignT !== null ? tNow - ignT : 9999;
     const pop = umurText < 0.8 ? 1 + 0.32 * Math.pow(1 - umurText / 0.8, 2) : 1;
     ctx.save();
     ctx.translate(bxS + bwS / 2, byS + bhS + fs(24));
     ctx.scale(pop, pop);
     const pulse = 0.65 + 0.35 * Math.sin(tNow * 6);
-    const gl = apiMenyala ? "255, 140, 63" : (esMenyala ? "125, 211, 252" : "255, 210, 63");
-    if (apiMenyala) {
+    const gl = apiMenyala ? "255, 140, 63" : (esMenyala ? "125, 211, 252" : (voidMenyala ? "139, 92, 246" : "255, 210, 63"));
+    if (voidMenyala) {
+      ctx.fillStyle = "rgba(196, 181, 253, " + (pulse * voidProgress) + ")";
+    } else if (apiMenyala) {
       ctx.fillStyle = "rgba(255, 215, 60, " + (pulse * burnProgress) + ")";
     } else if (esMenyala) {
       ctx.fillStyle = "rgba(186, 230, 253, " + (pulse * freezeProgress) + ")";
@@ -3094,7 +3742,7 @@ function drawHUD() {
       ctx.fillStyle = "#ffd23f";
     }
     ctx.fillText("ULTIMATE SIAP [R]", 0, 0);
-    if (umurText < 0.8 && (apiMenyala || esMenyala)) {
+    if (umurText < 0.8 && (apiMenyala || esMenyala || voidMenyala)) {
       ctx.shadowColor = "rgba(" + gl + ", 0.9)";
       ctx.shadowBlur = 18;
       ctx.fillStyle = "rgba(255, 255, 255, " + (0.6 * (1 - umurText / 0.8)).toFixed(3) + ")";
@@ -3106,71 +3754,71 @@ function drawHUD() {
   }
 
   if (deviceTerpilih !== "mobile") {
-  const dashR = Math.round(60 * s);
-  const cx = W - dashR - Math.round(28 * s);
-  const cy = H - dashR - Math.round(28 * s);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-  ctx.beginPath();
-  ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = Math.max(1, Math.round(3 * s));
-  ctx.beginPath();
-  ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
-  ctx.stroke();
-
-  const skalaSepatu = s * 1.6;
-  const gambarSepatu = (sx, sy, bad, sol, tali) => {
-    ctx.save();
-    ctx.translate(sx, sy);
-    ctx.scale(skalaSepatu, skalaSepatu);
-    ctx.fillStyle = bad;
+    const dashR = Math.round(60 * s);
+    const cx = W - dashR - Math.round(28 * s);
+    const cy = H - dashR - Math.round(28 * s);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
     ctx.beginPath();
-    ctx.moveTo(-10, 5);
-    ctx.lineTo(-10, -2);
-    ctx.lineTo(-8, -6);
-    ctx.lineTo(-1, -5);
-    ctx.lineTo(2, 5);
-    ctx.closePath();
+    ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = sol;
-    ctx.fillRect(-10, 5, 21, 5);
-    ctx.fillStyle = tali;
-    ctx.fillRect(-6, -4, 9, 3);
-    ctx.fillRect(-5, -1, 9, 3);
-    ctx.restore();
-  };
-
-  const warnaDash = (karakter && karakter.warnaDash) ||
-    (karakter && karakter.tipe === "dekat" ? "#ff4d4d" : "#7dd3fc");
-
-  gambarSepatu(cx, cy, warnaDash, "#0c0f1e", "#ffffff");
-
-  const nMax = Math.max(1, player.dashMax || 1);
-  const rDot = Math.max(1, Math.round(7 * s));
-  for (let i = 0; i < nMax; i++) {
-    const sudut = -Math.PI / 2 + (i * Math.PI * 2) / nMax;
-
-    const dx = cx + Math.cos(sudut) * dashR;
-    const dy = cy + Math.sin(sudut) * dashR;
-    const siap = i < player.dashStacks;
-    ctx.fillStyle = siap ? warnaDash : "rgba(255,255,255,0.18)";
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = Math.max(1, Math.round(3 * s));
     ctx.beginPath();
-    ctx.arc(dx, dy, rDot, 0, Math.PI * 2);
-    ctx.fill();
-    if (siap) {
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.lineWidth = Math.max(1, Math.round(1 * s));
-      ctx.stroke();
+    ctx.arc(cx, cy, dashR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const skalaSepatu = s * 1.6;
+    const gambarSepatu = (sx, sy, bad, sol, tali) => {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(skalaSepatu, skalaSepatu);
+      ctx.fillStyle = bad;
+      ctx.beginPath();
+      ctx.moveTo(-10, 5);
+      ctx.lineTo(-10, -2);
+      ctx.lineTo(-8, -6);
+      ctx.lineTo(-1, -5);
+      ctx.lineTo(2, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = sol;
+      ctx.fillRect(-10, 5, 21, 5);
+      ctx.fillStyle = tali;
+      ctx.fillRect(-6, -4, 9, 3);
+      ctx.fillRect(-5, -1, 9, 3);
+      ctx.restore();
+    };
+
+    const warnaDash = (karakter && karakter.warnaDash) ||
+      (karakter && karakter.tipe === "dekat" ? "#ff4d4d" : "#7dd3fc");
+
+    gambarSepatu(cx, cy, warnaDash, "#0c0f1e", "#ffffff");
+
+    const nMax = Math.max(1, player.dashMax || 1);
+    const rDot = Math.max(1, Math.round(7 * s));
+    for (let i = 0; i < nMax; i++) {
+      const sudut = -Math.PI / 2 + (i * Math.PI * 2) / nMax;
+
+      const dx = cx + Math.cos(sudut) * dashR;
+      const dy = cy + Math.sin(sudut) * dashR;
+      const siap = i < player.dashStacks;
+      ctx.fillStyle = siap ? warnaDash : "rgba(255,255,255,0.18)";
+      ctx.beginPath();
+      ctx.arc(dx, dy, rDot, 0, Math.PI * 2);
+      ctx.fill();
+      if (siap) {
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = Math.max(1, Math.round(1 * s));
+        ctx.stroke();
+      }
     }
-  }
 
-  if (player.dashCd > 0) {
-    ctx.font = "bold " + fs(30) + "px Zen Dots";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#fff";
-    ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(16 * s));
-    ctx.textAlign = "left";
-  }
+    if (player.dashCd > 0) {
+      ctx.font = "bold " + fs(30) + "px Zen Dots";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(player.dashCd.toFixed(1), cx, cy + Math.round(16 * s));
+      ctx.textAlign = "left";
+    }
   }
 }

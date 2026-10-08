@@ -29,9 +29,69 @@ function jurusVender() {
 }
 
 const FUNGSI_SKILL = {};
+const FUNGSI_CD = {};
 
-function daftarkanSkill(kunci, slot, fn) {
+function daftarkanSkill(kunci, slot, fn, cd) {
   FUNGSI_SKILL[kunci + "_" + slot] = fn;
+  if (typeof cd === "number" && cd > 0) FUNGSI_CD[kunci + "_" + slot] = cd;
+}
+
+function cdSkill(kunci, slot) {
+  const c = FUNGSI_CD[kunci + "_" + slot];
+  return typeof c === "number" && c > 0 ? c : (player && player.specialMax ? player.specialMax : 9);
+}
+
+// ===== MODE 3 SKILL IN-GAME (keybind 1/2/3) =====
+// Skill nomor 1 = skill BAWAAN karakter (slot 2: FROSTBITE/HEATWAVE/UMBRA),
+// lalu 2 dan 3 = skill berikutnya sesuai urutan slot (slot 3 dan slot 4).
+// Semua skill tiap karakter punya CD sendiri-sendiri; begitu satu skill
+// dikeluarkan, SEMUA skill ikut CD sebesar CD skill yang dipakai (model
+// Mobile Legends). Berlaku untuk SEMUA karakter.
+const MODE_3SKILL = true;
+
+function pakaiModeTigaSkill() {
+  if (karakter === null) return false;
+  if (MODE_3SKILL === true) return true;
+  return !!MODE_3SKILL[karakter.kunci];
+}
+
+function slotDariTombol(tombol) {
+  if (tombol === "1") return 2; // skill bawaan
+  if (tombol === "2") return 3;
+  if (tombol === "3") return 4;
+  return 0;
+}
+
+// ===== AUTO-BIDIK HP =====
+// Di versi HP tidak ada mouse: setiap skill / ultimate yang diarahkan
+// otomatis membidik musuh HIDUP terdekat dari pemain sebelum dilepaskan.
+function bidikMusuhTerdekatHp() {
+  if (deviceTerpilih !== "mobile" || !player) return;
+  let tgt = null, bd = Infinity;
+  for (const e of enemies) {
+    if (e.hp <= 0) continue;
+    const d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+    if (d < bd) { bd = d; tgt = e; }
+  }
+  if (!tgt) return;
+  mouse.x = tgt.x;
+  mouse.y = tgt.y;
+  mouse.sx = tgt.x - kam.x;
+  mouse.sy = tgt.y - kam.y;
+}
+
+function castSkillSlot(slot) {
+  if (gameOver || animMati || karakter === null || statusGame !== "main" || player.specialCd > 0) return;
+  const kunci = karakter.kunci;
+  const daftar = daftarSkill(kunci);
+  const def = daftar.filter(function (s) { return s.slot === slot; })[0];
+  if (!def || !def.bisaPakai) return;
+  if (levelKarakter(kunci) < def.level) return;
+  const fn = FUNGSI_SKILL[kunci + "_" + slot];
+  if (typeof fn !== "function") return;
+  player.specialCd = cdSkill(kunci, slot);
+  bidikMusuhTerdekatHp();
+  fn();
 }
 
 function castSpecial() {
@@ -39,12 +99,14 @@ function castSpecial() {
   player.specialCd = player.specialMax;
   const slot = skillPakai(karakter.kunci);
   const fn = FUNGSI_SKILL[karakter.kunci + "_" + slot];
+  bidikMusuhTerdekatHp();
   if (typeof fn === "function") fn();
   else jurusBawaan();
 }
 
 function jurusBawaan() {
-  if (karakter.tipe === "dekat") jurusVender();
+  if (karakter && karakter.kunci === "voiz") skillVoizNullLaser();
+  else if (karakter.tipe === "dekat") jurusVender();
   else jurusKenzro();
 }
 
@@ -52,10 +114,12 @@ function rilisUltimate() {
   if (animMati || gameOver) return;
   if (soul < SOUL_MAX) return;
   soul = 0;
+  bidikMusuhTerdekatHp();
   lancarkanUltimate();
 }
 
 function lancarkanUltimate() {
+  if (karakter && karakter.kunci === "voiz") { jurusUltimateVoiz(); return; }
   if (karakter.tipe === "dekat") jurusUltimateVender();
   else jurusUltimateKenzro();
 }
@@ -107,12 +171,6 @@ function jurusUltimateVender() {
     });
   }
 }
-
-// SLOT 3, 4, 5 = PLACEHOLDER
-// Ganti isi tiap fungsi ini dengan ide skill kamu. Nama skill-nya
-// diatur di config.js (atau default "SKILL 3/4/5").
-// Fungsi-fungsi ini membaca karakter.tipe sendiri, jadi karakter
-// baru otomatis dapat arah & warna yang benar tanpa diedit manual.
 
 function arahMaus() {
   return Math.atan2(mouse.y - player.y, mouse.x - player.x);
@@ -234,6 +292,126 @@ function skillKenzroFrozfall() {
   spawnParticles(player.x, player.y - 12, "#7dd3fc", 18);
 }
 
+// ========== SKILL VOIZ SLOT 2: UMBRA ==========
+// Saat dilancarkan: karakter terkunci dan laser keluar dari UJUNG TONGKAT,
+// membeku di arah kast selama 2 detik (alur: buang arah lewat mouse).
+function skillVoizNullLaser() {
+  const a = arahMaus();
+  const tip = Math.round(48 + (player.r || 19) * 3); // tengah senjata + setengah tongkat
+  nullLasers.push({
+    x: player.x + Math.cos(a) * tip,
+    y: player.y + Math.sin(a) * tip,
+    a: a,
+    tip: tip,
+    t: 0,
+    life: 2
+  });
+  sfxLaserVoiz();
+  addFlash("rgba(109, 40, 217, 0.55)", 0.8, 0.35);
+  shake = 0.4;
+  spawnParticles(player.x + Math.cos(a) * tip, player.y + Math.sin(a) * tip, "#7c3aed", 14);
+}
+
+// ========== SKILL VOIZ SLOT 3: PRISM ==========
+// Sihir memantul: dari pemain, cahaya ungu melompat ke musuh TERDEKAT, lalu
+// ke musuh terdekat berikutnya (maks 5 lompatan, tiap target sekali kena).
+// Bukan petir — wujudnya butiran sihir + cincin cahaya di titik sambaran,
+// tanpa garis zigzag menyambar.
+function skillVoizPrism() {
+  const MAKS = 5;
+  const JANGKAUAN = 560;
+  const kena = new Set();
+  const urut = [];
+  let asalX = player.x;
+  let asalY = player.y;
+  for (let hop = 0; hop < MAKS; hop++) {
+    let terdekat = null;
+    let td = JANGKAUAN;
+    for (const e of enemies) {
+      if (e.hp <= 0 || kena.has(e)) continue;
+      const d = Math.hypot(e.x - asalX, e.y - asalY);
+      if (d < td) { td = d; terdekat = e; }
+    }
+    if (!terdekat) break;
+    kena.add(terdekat);
+    urut.push({ e: terdekat, x: terdekat.x, y: terdekat.y });
+    asalX = terdekat.x;
+    asalY = terdekat.y;
+  }
+  if (!urut.length) return;
+
+  // Suara PRISM: kast cepat; file "jurus-prism" dipakai kalau disediakan,
+  // selain itu pakai kast prosedural. Per-hop memakai nada naik staccato
+  // (sfxPrismHop) — tidak ada tick file, cocok untuk serangan cepat.
+  sfxPrismKast();
+  addFlash("rgba(168, 85, 247, 0.32)", 0.55, 0.3);
+  shake = 0.25;
+  spawnParticles(player.x, player.y, "#c084fc", 8);
+
+  let px = player.x;
+  let py = player.y;
+  for (let i = 0; i < urut.length; i++) {
+    const u = urut[i];
+    const LEN = Math.hypot(u.x - px, u.y - py) || 1;
+    const nButir = Math.max(6, Math.round(LEN / 16));
+    for (let k = 0; k < nButir; k++) {
+      const tt = (k + Math.random() * 0.7) / nButir;
+      particles.push({
+        x: px + (u.x - px) * tt,
+        y: py + (u.y - py) * tt,
+        vx: (Math.random() - 0.5) * 70,
+        vy: (Math.random() - 0.5) * 70,
+        life: 0.28 + Math.random() * 0.22,
+        t: 0,
+        size: 2.5 + Math.random() * 4.5,
+        color: Math.random() < 0.5 ? "#c084fc" : "#a78bfa"
+      });
+    }
+    prismPulsa.push({ x1: px, y1: py, x2: u.x, y2: u.y, t: 0, life: 0.4, dua: i });
+
+    sfxPrismHop(i);
+    const dmg = Math.round(46 * (typeof pengaliElement === "function" ? pengaliElement(karakter.kunci) : 1));
+    const dmgPasar = applyDamageMusuh(u.e, dmg);
+    u.e.hitFlash = 0.12;
+    // PASIF PRISM: musuh yang tersambar lumpuh (diam) sebentar; bos lebih tahan.
+    u.e.paralyze = Math.max(u.e.paralyze || 0, u.e.bos ? 0.5 : 1.2);
+    parrySerigala(u.e);
+    sfxKena();
+    rings.push({ x: u.x, y: u.y, r: 5, maxR: 32, life: 0.28, t: 0 });
+    spawnParticles(u.x, u.y, "#c084fc", 8);
+    spawnDamage(u.x, u.y - (u.e.r || 20) - 16, dmgPasar, "#e9d5ff");
+    serapanDarah(dmgPasar);
+    if (u.e.hp <= 0) killEnemy(u.e);
+    px = u.x;
+    py = u.y;
+  }
+}
+
+// ========== ULTIMATE VOIZ: BLACKHOLE ==========
+// Bola kekacauan DILEMPAR dari ujung tongkat menuju pointer; saat mendarat
+// di titik tujuan, lubang hitam menyala (membesar 4-5 detik sambil menarik
+// musuh & damage berkala, lalu menyusut). Ditemani angin partikel.
+function jurusUltimateVoiz() {
+  let tx = mouse.x, ty = mouse.y;
+  tx = Math.max(BARRIER_KIRI + 60, Math.min(WORLD_W - BARRIER_KANAN - 60, tx));
+  ty = Math.max(BARRIER_ATAS + 60, Math.min(WORLD_H - BARRIER_BAWAH - 60, ty));
+  const a = arahMaus();
+  const tip = Math.round(48 + (player.r || 19) * 3);
+  voidOrbs.push({
+    x: player.x + Math.cos(a) * tip,
+    y: player.y + Math.sin(a) * tip,
+    tx: tx,
+    ty: ty,
+    t: 0,
+    laju: 1250
+  });
+  if (!sfxFile("ultimate-voiz")) sfxUltimate();
+  addFlash("rgba(139, 92, 246, 0.5)", 1, 0.6);
+  shake = 0.6;
+  spawnParticles(player.x + Math.cos(a) * tip, player.y + Math.sin(a) * tip, "#7c3aed", 22);
+  rings.push({ x: player.x + Math.cos(a) * tip, y: player.y + Math.sin(a) * tip, r: 14, maxR: 80, life: 0.35, t: 0 });
+}
+
 for (let i = 0; i < KARAKTER.length; i++) {
   const kar = KARAKTER[i];
   daftarkanSkill(kar.kunci, 2, jurusBawaan);
@@ -241,10 +419,12 @@ for (let i = 0; i < KARAKTER.length; i++) {
   if (kar.kunci === "rin") {
     daftarkanSkill(kar.kunci, 3, skillVenderInferno);
   } else if (kar.kunci === "kenzro") {
-    daftarkanSkill(kar.kunci, 3, skillKenzroFrozfall);
+    daftarkanSkill(kar.kunci, 3, skillKenzroFrozfall, 10);
+  } else if (kar.kunci === "voiz") {
+    daftarkanSkill(kar.kunci, 3, skillVoizPrism, 8);
   } else {
     daftarkanSkill(kar.kunci, 3, skillUji3);
   }
-  daftarkanSkill(kar.kunci, 4, skillUji4);
-  daftarkanSkill(kar.kunci, 5, skillUji5);
+  daftarkanSkill(kar.kunci, 4, skillUji4, kar.kunci === "kenzro" ? 7 : 0);
+  daftarkanSkill(kar.kunci, 5, skillUji5, kar.kunci === "kenzro" ? 12 : 0);
 }
