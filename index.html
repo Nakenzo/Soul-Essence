@@ -212,7 +212,6 @@
                 <button id="tombolPlay" class="tombol-play">&#9654; PLAY</button>
                 <button id="tombolKarakter" class="tombol-abu tombol-karakter-menu">&#9733; KARAKTER</button>
                 <button id="tombolSetting" class="tombol-abu tombol-karakter-menu">&#9881; SETTINGS</button>
-                <button id="tombolAdmin" class="tombol-admin-lock" type="button" title="Login akun admin (khusus pengembang)">&#128274; ADMIN</button>
                 <div id="saldoJudul" class="teks-skor" hidden></div>
             </div>
 
@@ -555,20 +554,6 @@
     <script src="main.js"></script>
     <script src="admin-konfig.js"></script>
     <script src="admin-akun.js"></script>
-    <script>
-        // ADMIN berbasis akun: tombol ADMIN membuka layar AKUN (login).
-        // Mode admin hanya aktif kalau login dengan akun yang username-nya
-        // sama dengan ADMIN_KONFIG.username (admin-konfig.js). Tidak ada
-        // sandi admin yang ditulis di kode, jadi tidak ada jalur lain.
-        (function () {
-            var tombolAdmin = document.getElementById("tombolAdmin");
-            if (!tombolAdmin) return;
-            tombolAdmin.addEventListener("click", function () {
-                if (typeof bukaAkun === "function") { bukaAkun(); return; }
-                if (window.alert) window.alert("Layar AKUN tidak tersedia.");
-            });
-        })();
-    </script>
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
