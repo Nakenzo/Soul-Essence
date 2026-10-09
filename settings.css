@@ -7,11 +7,11 @@
       ~22px dari layar kanvas sehingga box terasa seukuran layar).
    2. Skala --cs di-clamp dan disesuaikan. --cs = lebar canvas / 1707, bisa
       ~0.4 di HP, sehingga font jadi 4-5px dan kolom label lebih pendek dari
-      isinya. Karena itu: floor 0.85 supaya teks tidak pernah mengecil, nilai
-      asli dikalikan 1.08 agar sedikit lebih besar dari tata letak normal, dan
-      cap 1.38 supaya di layar sangat besar teks tidak melebihi box yang sudah
-      dikunci. Nilai asli disimpan di --cs-akar dulu supaya deklarasi --cs yang
-      baru tidak siklik.
+      isinya. Karena itu: floor 0.68 supaya teks tidak pernah mengecil, nilai
+      asli dikalikan 0.82 agar teks menu lebih ringkas dari tata letak normal,
+      dan cap 1.0 supaya di layar sangat besar teks tidak ikut membengkak.
+      Nilai asli disimpan di --cs-akar dulu supaya deklarasi --cs yang baru
+      tidak siklik.
    3. Seluruh isi diskalakan dengan --cs: font, tinggi saklar, thumb slider,
       tombol, dan jarak antar elemen. Semua tetap dikalikan --cs.
    4. line-height direset. .posisi-game { line-height: 0 } mewariskan 0 ke
@@ -27,7 +27,7 @@
 }
 
 .setting-layar .modal-pilih.setting-wide {
-    --cs: clamp(0.85, calc(var(--cs-akar) * 1.08), 1.38);
+    --cs: clamp(0.68, calc(var(--cs-akar) * 0.82), 1.0);
     width: 100%;
     max-width: 100%;
     height: 100%;

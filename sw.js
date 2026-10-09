@@ -20,7 +20,7 @@
 // jadi tiap rilis yang menaikkan build manifest WAJIB mengubah angka ini juga.
 // Kalau tidak, pemain terus-menerus dilayani JS lama dari cache (bug klasik:
 // tombol/CSS baru tapi draw.js basi). tools/salin-www.js memverifikasi keduanya.
-const BUILD = 39;
+const BUILD = 40;
 const CACHE_FALLBACK = "soul-essence-v" + BUILD;
 const ASSETS_TO_CACHE = [
   "./",
@@ -139,6 +139,25 @@ self.addEventListener("fetch", (e) => {
       return;
     }
   } catch (err) {}
+  // NAVIGASI (buka/refresh halaman HTML): network-first. Kalau online, index.html
+  // terbaru selalu dipakai (jadi perubahan CSS/JS langsung kelihatan setelah
+  // sekali refresh, tidak menunggu service worker berganti). Kalau offline,
+  // baru pakai salinan di cache.
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then((r) => {
+          if (r && r.ok) {
+            const salinan = r.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, salinan));
+          }
+          return r;
+        })
+        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(e.request)))
+    );
+    return;
+  }
+  // Aset lain: cache-first.
   // Hanya boleh baca dari cache versi ini, supaya tidak pernah warehouse
   // file basi dari cache lama yang belum terhapus.
   e.respondWith(
