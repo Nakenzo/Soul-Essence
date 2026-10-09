@@ -90,6 +90,8 @@ function akunTombolPanduan() {
 
 // Dipanggil dari menu.js saat panel Cadangan dibuka.
 function akunPerbaruiUI() {
+  // Cek mode admin (akun admin) tiap status akun berubah.
+  if (typeof adminCekAkun === "function") { try { adminCekAkun(); } catch (err) {} }
   if (!akunLayar || !akunLayar.zona) return;
   if (!akunAktif()) {
     akunLayar.zona.hidden = true;

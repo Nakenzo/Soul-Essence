@@ -15,8 +15,7 @@ const EKSTENSI_BOLEH = new Set([
 const LEWATI_AKAR = new Set([
   ".git", "mobile", "node_modules", "tools",
   "README.md", "package.json", "package-lock.json",
-  "server.js", "start-app.bat",
-  "admin-akses.js", "admin-artefak.js", "test-wave-select.js"
+  "server.js", "start-app.bat", "admin.html"
 ]);
 
 function salin(asal, tujuan) {

@@ -20,7 +20,7 @@
 // jadi tiap rilis yang menaikkan build manifest WAJIB mengubah angka ini juga.
 // Kalau tidak, pemain terus-menerus dilayani JS lama dari cache (bug klasik:
 // tombol/CSS baru tapi draw.js basi). tools/salin-www.js memverifikasi keduanya.
-const BUILD = 37;
+const BUILD = 38;
 const CACHE_FALLBACK = "soul-essence-v" + BUILD;
 const ASSETS_TO_CACHE = [
   "./",
@@ -52,6 +52,8 @@ const ASSETS_TO_CACHE = [
   "./draw.js",
   "./ambience.js",
   "./main.js",
+  "./admin-konfig.js",
+  "./admin-akun.js",
   "./assets/fonts/ZenDots.woff2",
   "./assets/characters/kenzro.png",
   "./assets/characters/rin.png",

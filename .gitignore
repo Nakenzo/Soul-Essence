@@ -1,7 +1,5 @@
 # File uji/debug dari tim — jangan di-push ke GitHub
 admin.html
-admin-artefak.js
-test-wave-select.js
 
 node_modules/
 *.log

@@ -10,10 +10,11 @@
 -- Setelah Run, tidak ada lagi yang perlu disetel. Konfirmasi email sudah
 -- mati, jadi pemain yang daftar langsung bisa masuk.
 --
--- Isinya cuma 3 hal:
---   Tabel "saves"    -> progres game per akun
---   Tabel "profiles" -> username + gmail per akun
---   2 fungsi         -> supaya bisa MASUK pakai username (bukan email)
+-- Isinya:
+--   Tabel "saves"        -> progres game per akun
+--   Tabel "profiles"     -> username + gmail per akun
+--   Tabel "admin_device" -> pengikatan perangkat akun admin
+--   2 fungsi             -> supaya bisa MASUK pakai username (bukan email)
 -- ============================================================================
 
 
@@ -154,11 +155,56 @@ revoke execute on function public.akun_username_terpakai(text)  from public;
 revoke execute on function public.akun_email_dari_username(text) from public;
 grant  execute on function public.akun_username_terpakai(text)  to anon, authenticated;
 grant  execute on function public.akun_email_dari_username(text) to anon, authenticated;
+-- ============================================================================
+-- 4. TABEL ADMIN_DEVICE  (pengikatan perangkat akun admin)
+-- ----------------------------------------------------------------------------
+-- Satu baris per akun admin: device_id perangkat yang sedang terikat. Dipakai
+-- game supaya akun admin hanya bisa login dari 1 perangkat; terikat sampai
+-- admin logout (baris dihapus). Akun non-admin tidak memakai tabel ini.
+-- ============================================================================
+
+create table if not exists public.admin_device (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  device_id  text not null,
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.admin_device
+  is 'Pengikatan perangkat untuk akun admin (1 perangkat sampai logout).';
+
+
+-- Kunci akses: tiap akun cuma boleh lihat/ubah barisnya sendiri.
+
+alter table public.admin_device enable row level security;
+
+drop policy if exists "admin_device_baca_milik"     on public.admin_device;
+drop policy if exists "admin_device_tulis_milik"    on public.admin_device;
+drop policy if exists "admin_device_perbarui_milik" on public.admin_device;
+drop policy if exists "admin_device_hapus_milik"    on public.admin_device;
+
+create policy "admin_device_baca_milik"
+  on public.admin_device for select
+  using (auth.uid() = user_id);
+
+create policy "admin_device_tulis_milik"
+  on public.admin_device for insert
+  with check (auth.uid() = user_id);
+
+create policy "admin_device_perbarui_milik"
+  on public.admin_device for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "admin_device_hapus_milik"
+  on public.admin_device for delete
+  using (auth.uid() = user_id);
 
 
 -- ============================================================================
--- 4. CEK (opsional) - jalankan setelah mencoba daftar/masuk dari game
+-- 5. CEK (opsional) - jalankan setelah mencoba daftar/masuk dari game
 -- ============================================================================
+
+
 --
 --   select username, gmail, created_at from public.profiles order by created_at;
 --   select user_id, versi, updated_at, length(kode) from public.saves;
