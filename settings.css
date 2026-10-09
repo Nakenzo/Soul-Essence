@@ -7,9 +7,9 @@
       ~22px dari layar kanvas sehingga box terasa seukuran layar).
    2. Skala --cs di-clamp dan disesuaikan. --cs = lebar canvas / 1707, bisa
       ~0.4 di HP, sehingga font jadi 4-5px dan kolom label lebih pendek dari
-      isinya. Karena itu: floor 0.9 supaya teks tidak pernah mengecil, nilai
-      asli dikalikan 1.15 agar sedikit lebih besar dari tata letak normal, dan
-      cap 1.45 supaya di layar sangat besar teks tidak melebihi box yang sudah
+      isinya. Karena itu: floor 0.85 supaya teks tidak pernah mengecil, nilai
+      asli dikalikan 1.08 agar sedikit lebih besar dari tata letak normal, dan
+      cap 1.38 supaya di layar sangat besar teks tidak melebihi box yang sudah
       dikunci. Nilai asli disimpan di --cs-akar dulu supaya deklarasi --cs yang
       baru tidak siklik.
    3. Seluruh isi diskalakan dengan --cs: font, tinggi saklar, thumb slider,
@@ -27,7 +27,7 @@
 }
 
 .setting-layar .modal-pilih.setting-wide {
-    --cs: clamp(0.9, calc(var(--cs-akar) * 1.15), 1.45);
+    --cs: clamp(0.85, calc(var(--cs-akar) * 1.08), 1.38);
     width: 100%;
     max-width: 100%;
     height: 100%;

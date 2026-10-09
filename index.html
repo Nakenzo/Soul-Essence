@@ -5,38 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soul Essence</title>
     <link rel="stylesheet" href="style.css">
-    <script>
-        // Cache-buster CSS: muat style.css ?v=<build dari manifest> supaya CSS
-        // baru tidak pernah tersangkut di cache/SW lama. Kalau gagal (offline),
-        // link asli tetap dipakai dan tetap tersedia dari cache offline.
-        (function () {
-            var dasar = document.querySelector('link[rel="stylesheet"][href="style.css"]');
-            if (!dasar) return;
-            // ?nc= supaya manifest tidak pernah kena cache lama (SW cache-first
-            // menyimpan "manifest.json" tanpa query; dengan query = selalu segar).
-            fetch("manifest.json?nc=" + Date.now(), { cache: "no-store" })
-                .then(function (r) { return r && r.ok ? r.json() : null; })
-                .then(function (m) {
-                    if (!m || typeof m.build === "undefined") return;
-                    var segar = document.createElement("link");
-                    segar.rel = "stylesheet";
-                    segar.href = "style.css?v=" + m.build;
-                    segar.onload = function () {
-                        if (dasar.parentNode) dasar.parentNode.removeChild(dasar);
-                    };
-                    segar.onerror = function () {
-                        if (segar.parentNode) segar.parentNode.removeChild(segar);
-                    };
-                    document.head.appendChild(segar);
-                })
-                .catch(function () {});
-        })();
-    </script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111111">
     <link rel="icon" type="image/png" href="assets/ui/icon-192.png">
     <link rel="apple-touch-icon" href="assets/ui/icon-192.png">
     <link rel="stylesheet" href="settings.css" media="all">
+    <script>
+        // Cache-buster CSS: muat style.css & settings.css ?v=<build dari manifest>
+        // supaya CSS baru tidak pernah tersangkut di cache/SW lama (SW cache-first
+        // menyimpan file tanpa query). Kalau gagal (offline), link asli tetap
+        // dipakai dan tetap tersedia dari cache offline. Dijalankan setelah kedua
+        // link ada, jadi keduanya ikut diganti.
+        (function () {
+            function segarkan() {
+                var daftar = document.querySelectorAll(
+                    'link[rel="stylesheet"][href="style.css"], link[rel="stylesheet"][href="settings.css"]'
+                );
+                if (!daftar.length) return;
+                // ?nc= supaya manifest tidak pernah kena cache lama.
+                fetch("manifest.json?nc=" + Date.now(), { cache: "no-store" })
+                    .then(function (r) { return r && r.ok ? r.json() : null; })
+                    .then(function (m) {
+                        if (!m || typeof m.build === "undefined") return;
+                        Array.prototype.forEach.call(daftar, function (dasar) {
+                            var nama = dasar.getAttribute("href");
+                            var segar = document.createElement("link");
+                            segar.rel = "stylesheet";
+                            segar.media = "all";
+                            segar.href = nama + "?v=" + m.build;
+                            segar.onload = function () {
+                                if (dasar.parentNode) dasar.parentNode.removeChild(dasar);
+                            };
+                            segar.onerror = function () {
+                                if (segar.parentNode) segar.parentNode.removeChild(segar);
+                            };
+                            document.head.appendChild(segar);
+                        });
+                    })
+                    .catch(function () {});
+            }
+            if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", segarkan);
+            else segarkan();
+        })();
+    </script>
 </head>
 <body>
     <script>var BUILD_TERKINI = 0;</script>
